@@ -1,0 +1,283 @@
+//
+//  ViewModifiers.swift
+//  TodoApp
+//
+//  Reusable view modifiers for consistent styling
+//
+
+import SwiftUI
+import UIKit // for UIAccessibility
+
+// MARK: - Card Modifiers
+
+/// Standard card style with background and shadow
+struct CardModifier: ViewModifier {
+    var backgroundColor: Color = DesignSystem.Colors.background
+    var cornerRadius: CGFloat = DesignSystem.CornerRadius.md
+    var shadow: ShadowStyle = DesignSystem.Shadow.sm
+    
+    func body(content: Content) -> some View {
+        content
+            .background(backgroundColor)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .designShadow(shadow)
+    }
+}
+
+/// Modern detail card style (used in TaskDetailHeaderView)
+struct DetailCardModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.vertical, DesignSystem.Spacing.md)
+            .background(Color(DesignSystem.Colors.secondaryGroupedBackground))
+            .cornerRadius(DesignSystem.CornerRadius.xl)
+            .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
+            .padding(.horizontal)
+    }
+}
+
+extension View {
+    func cardStyle(
+        backgroundColor: Color = DesignSystem.Colors.background,
+        cornerRadius: CGFloat = DesignSystem.CornerRadius.md,
+        shadow: ShadowStyle = DesignSystem.Shadow.sm
+    ) -> some View {
+        modifier(CardModifier(
+            backgroundColor: backgroundColor,
+            cornerRadius: cornerRadius,
+            shadow: shadow
+        ))
+    }
+    
+    func detailCardStyle() -> some View {
+        modifier(DetailCardModifier())
+    }
+}
+
+// MARK: - Stat Card Style
+
+/// Style for project stats display cards
+struct StatCardModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(DesignSystem.Spacing.lg)
+            .background(DesignSystem.Colors.secondaryGroupedBackground)
+            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg))
+            .designShadow(DesignSystem.Shadow.sm)
+    }
+}
+
+extension View {
+    func statCardStyle() -> some View {
+        modifier(StatCardModifier())
+    }
+}
+
+// MARK: - Section Card Style
+
+/// Style for grouped content sections
+struct SectionCardModifier: ViewModifier {
+    var padding: CGFloat = DesignSystem.Spacing.lg
+    
+    func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .background(DesignSystem.Colors.secondaryBackground)
+            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md))
+    }
+}
+
+extension View {
+    func sectionCardStyle(padding: CGFloat = DesignSystem.Spacing.lg) -> some View {
+        modifier(SectionCardModifier(padding: padding))
+    }
+}
+
+// MARK: - Badge Style
+
+/// Small badge for counts, status indicators, etc.
+struct BadgeModifier: ViewModifier {
+    var backgroundColor: Color
+    var foregroundColor: Color = .white
+    
+    func body(content: Content) -> some View {
+        content
+            .font(DesignSystem.Typography.caption)
+            .padding(.horizontal, DesignSystem.Spacing.sm)
+            .padding(.vertical, DesignSystem.Spacing.xxs)
+            .background(backgroundColor)
+            .foregroundStyle(foregroundColor)
+            .clipShape(Capsule())
+    }
+}
+
+extension View {
+    func badgeStyle(
+        backgroundColor: Color,
+        foregroundColor: Color = .white
+    ) -> some View {
+        modifier(BadgeModifier(
+            backgroundColor: backgroundColor,
+            foregroundColor: foregroundColor
+        ))
+    }
+}
+
+// MARK: - Button Styles
+
+/// Primary action button style
+struct PrimaryButtonStyle: ButtonStyle {
+    var color: Color = DesignSystem.Colors.taskInProgress
+    var isEnabled: Bool = true
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(DesignSystem.Typography.bodyBold)
+            .foregroundStyle(.white)
+            .padding(.horizontal, DesignSystem.Spacing.xl)
+            .padding(.vertical, DesignSystem.Spacing.md)
+            .background(isEnabled ? color : color.opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.circle))
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(DesignSystem.Animation.quick, value: configuration.isPressed)
+    }
+}
+
+/// Secondary button style (outlined)
+struct SecondaryButtonStyle: ButtonStyle {
+    var color: Color = DesignSystem.Colors.taskInProgress
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(DesignSystem.Typography.bodyMedium)
+            .foregroundStyle(color)
+            .padding(.horizontal, DesignSystem.Spacing.xl)
+            .padding(.vertical, DesignSystem.Spacing.md)
+            .background(color.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md))
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
+                    .stroke(color, lineWidth: 1.5)
+            )
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(DesignSystem.Animation.quick, value: configuration.isPressed)
+    }
+}
+
+extension View {
+    func primaryButtonStyle(
+        color: Color = DesignSystem.Colors.taskInProgress,
+        isEnabled: Bool = true
+    ) -> some View {
+        buttonStyle(PrimaryButtonStyle(color: color, isEnabled: isEnabled))
+    }
+    
+    func secondaryButtonStyle(color: Color = DesignSystem.Colors.taskInProgress) -> some View {
+        buttonStyle(SecondaryButtonStyle(color: color))
+    }
+}
+
+// MARK: - Project Color Picker
+
+struct ColorButton: View {
+    let color: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: color))
+                    .frame(width: 44, height: 44)
+                
+                if isSelected {
+                    Circle()
+                        .strokeBorder(.white, lineWidth: 3)
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.white)
+                        .fontWeight(.bold)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Color \(color)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+// MARK: - Empty State Style
+
+/// Style for empty state views
+struct EmptyStateModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, DesignSystem.Spacing.huge)
+            .padding(.vertical, DesignSystem.Spacing.massive)
+    }
+}
+
+extension View {
+    func emptyStateStyle() -> some View {
+        modifier(EmptyStateModifier())
+    }
+}
+
+// MARK: - Project Color Tint
+
+/// Apply project color as a subtle tint
+struct ProjectTintModifier: ViewModifier {
+    let color: Color
+    let opacity: Double
+    @Environment(\.colorScheme) var colorScheme
+    
+    func body(content: Content) -> some View {
+        content
+            .background(
+                color.opacity(
+                    colorScheme == .dark ? opacity * 0.5 : opacity
+                )
+            )
+    }
+}
+
+extension View {
+    func projectTint(color: Color, opacity: Double = 0.1) -> some View {
+        modifier(ProjectTintModifier(color: color, opacity: opacity))
+    }
+}
+
+// MARK: - Pulsing Animation
+
+/// Pulsing animation for active timer indicators
+struct PulsingModifier: ViewModifier {
+    @State private var isPulsing = false
+    
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPulsing ? 1.2 : 1.0)
+            .opacity(isPulsing ? 0.6 : 1.0)
+            .animation(
+                .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
+                value: isPulsing
+            )
+            .onAppear {
+                isPulsing = true
+            }
+    }
+}
+
+extension View {
+    /// Applies PulsingModifier only when active and motion is allowed.
+    @ViewBuilder
+    func pulsingAnimation(active: Bool) -> some View {
+        if active && !UIAccessibility.isReduceMotionEnabled {
+            self.modifier(PulsingModifier())
+        } else {
+            self
+        }
+    }
+}

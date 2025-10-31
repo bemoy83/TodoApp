@@ -1,0 +1,61 @@
+import SwiftUI
+
+struct EditProjectSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Bindable var project: Project
+
+    @State private var title: String
+    @State private var selectedColor: String
+
+    // If you had ColorButton in the old file, it still works from here.
+    private let predefinedColors = [
+        "#007AFF", "#34C759", "#FF9500", "#FF3B30",
+        "#AF52DE", "#FF2D55", "#5AC8FA", "#FFCC00",
+        "#8E8E93", "#00C7BE"
+    ]
+
+    init(project: Project) {
+        self.project = project
+        _title = State(initialValue: project.title)
+        _selectedColor = State(initialValue: project.color)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Project Details") {
+                    TextField("Project Name", text: $title)
+                }
+                Section("Color") {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))],
+                              spacing: DesignSystem.Spacing.lg) {
+                        ForEach(predefinedColors, id: \.self) { color in
+                            ColorButton(color: color,
+                                        isSelected: selectedColor == color) {
+                                selectedColor = color
+                            }
+                        }
+                    }
+                    .padding(.vertical, DesignSystem.Spacing.sm)
+                }
+            }
+            .navigationTitle("Edit Project")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { saveChanges() }
+                        .disabled(title.isEmpty)
+                }
+            }
+        }
+    }
+
+    private func saveChanges() {
+        project.title = title
+        project.color = selectedColor
+        dismiss()
+    }
+}

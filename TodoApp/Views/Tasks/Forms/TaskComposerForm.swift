@@ -1,0 +1,408 @@
+import SwiftUI
+import SwiftData
+
+/// A reusable, stateless form that mirrors TaskEditView's options.
+/// It binds to "draft" fields supplied by a caller (Add or Edit screens).
+struct TaskComposerForm: View {
+    // Draft bindings
+    @Binding var title: String
+    @Binding var notes: String
+    @Binding var selectedProject: Project?
+    @Binding var hasDueDate: Bool
+    @Binding var dueDate: Date
+    @Binding var priority: Int
+    
+    // NEW: Time estimate bindings
+    @Binding var hasEstimate: Bool
+    @Binding var estimateHours: Int
+    @Binding var estimateMinutes: Int
+    @Binding var hasCustomEstimate: Bool
+    
+    // Context
+    let isSubtask: Bool
+    let parentTask: Task?
+    let editingTask: Task? // NEW: The task being edited (for checking its subtasks)
+    
+    // Project list for the picker (when not a subtask)
+    @Query(sort: \Project.title) private var projects: [Project]
+    
+    // Query all tasks to calculate subtask estimates without accessing relationships
+    @Query(sort: \Task.order) private var allTasks: [Task]
+    
+    @State private var showingDateValidationAlert = false
+    @State private var showingEstimateValidationAlert = false
+    @State private var estimateValidationMessage = ""
+    
+    private var inheritedProject: Project? {
+        parentTask?.project
+    }
+    
+    private var parentDueDate: Date? {
+        parentTask?.dueDate
+    }
+    
+    // NEW: Calculate subtask estimate total using @Query (avoids accessing relationships)
+    private var taskSubtaskEstimateTotal: Int? {
+        guard let task = editingTask else { return nil }
+        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
+        guard !subtasks.isEmpty else { return nil }
+        
+        return subtasks.compactMap { $0.estimatedMinutes }.reduce(0, +)
+    }
+    
+    // For subtasks: show parent's total using @Query
+    private var parentSubtaskEstimateTotal: Int? {
+        guard let parent = parentTask else { return nil }
+        let subtasks = allTasks.filter { $0.parentTask?.id == parent.id }
+        guard !subtasks.isEmpty else { return nil }
+        
+        return subtasks.compactMap { $0.estimatedMinutes }.reduce(0, +)
+    }
+    
+    var body: some View {
+        Form {
+            // Title
+            Section("Task Details") {
+                TextField("Title", text: $title)
+                    .font(DesignSystem.Typography.body)
+            }
+            
+            // Notes Section
+            Section("Notes") {
+                ZStack(alignment: .topLeading) {
+                    // Placeholder
+                    if notes.isEmpty {
+                        Text("Add notes...")
+                            .font(DesignSystem.Typography.body)
+                            .foregroundStyle(DesignSystem.Colors.secondary.opacity(0.5))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    
+                    TextEditor(text: $notes)
+                        .font(DesignSystem.Typography.body)
+                        .frame(height: 100)
+                        .scrollContentBackground(.hidden)
+                        .opacity(notes.isEmpty ? 0.25 : 1)
+                }
+                .frame(height: 100)
+            }
+            
+            // Project
+            if isSubtask {
+                Section("Project") {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                        
+                        if let project = inheritedProject {
+                            HStack(spacing: 8) {
+                                Circle()
+                                    .fill(Color(hex: project.color))
+                                    .frame(width: 10, height: 10)
+                                Text("\(project.title) (inherited from parent)")
+                            }
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        } else {
+                            Text("No project (inherited from parent)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } else {
+                Section("Project") {
+                    Picker("Assign to Project", selection: $selectedProject) {
+                        // No Project
+                        HStack {
+                            Circle()
+                                .fill(.gray.opacity(0.3))
+                                .frame(width: 12, height: 12)
+                            Text("No Project")
+                        }
+                        .tag(nil as Project?)
+                        
+                        // Projects
+                        ForEach(projects) { project in
+                            HStack {
+                                Circle()
+                                    .fill(Color(hex: project.color))
+                                    .frame(width: 12, height: 12)
+                                Text(project.title)
+                            }
+                            .tag(project as Project?)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                }
+            }
+            
+            // Due date
+            Section("Due Date") {
+                if isSubtask {
+                    HStack {
+                        Image(systemName: "calendar")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        if let p = parentDueDate {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Parent due date:")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                                Text(p.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } else {
+                            Text("Parent has no due date")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                Toggle(isSubtask ? "Set Custom Due Date" : "Set Due Date", isOn: $hasDueDate)
+                
+                if hasDueDate {
+                    DatePicker(
+                        "Due Date",
+                        selection: $dueDate,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .onChange(of: dueDate) { _, newValue in
+                        validateSubtaskDueDate(newValue)
+                    }
+                    
+                    if isSubtask, parentDueDate != nil {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .font(.caption2)
+                            Text("Must be on or before parent's due date")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.orange)
+                    }
+                } else if isSubtask, parentDueDate != nil {
+                    HStack {
+                        Image(systemName: "checkmark.circle")
+                            .font(.caption2)
+                        Text("Will inherit parent's due date")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.green)
+                }
+            }
+            
+            // Time Estimate Section
+            Section("Time Estimate") {
+                // Show parent's auto-calculated estimate if subtask
+                if isSubtask, let parentTotal = parentSubtaskEstimateTotal, parentTotal > 0 {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Parent's estimate (from subtasks):")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                            Text(formatMinutes(parentTotal))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                // UPDATED: Contextual toggle based on whether task has subtasks with estimates
+                // If parent with subtask estimates → "Override Subtask Estimates"
+                // Otherwise → "Set Time Estimate"
+                let hasSubtasksWithEstimates = !isSubtask && (taskSubtaskEstimateTotal ?? 0) > 0
+                
+                if hasSubtasksWithEstimates {
+                    // Parent task with subtasks - show override toggle
+                    Toggle("Override Subtask Estimates", isOn: $hasEstimate)
+                        .onChange(of: hasEstimate) { _, newValue in
+                            hasCustomEstimate = newValue
+                            if newValue {
+                                validateEstimate()
+                            }
+                        }
+                    
+                    if !hasEstimate {
+                        // Show auto-calculated info when NOT overriding
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "checkmark.circle")
+                                .font(.caption2)
+                                .padding(.top, 2)
+                            Text("Auto-calculated from subtasks: \(formatMinutes(taskSubtaskEstimateTotal ?? 0))")
+                                .font(.caption2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .foregroundStyle(.green)
+                    }
+                } else {
+                    // Regular task or parent without subtask estimates - standard toggle
+                    Toggle("Set Time Estimate", isOn: $hasEstimate)
+                        .onChange(of: hasEstimate) { _, newValue in
+                            hasCustomEstimate = false // Regular tasks don't use custom flag
+                        }
+                }
+                
+                // Show pickers when estimate is enabled
+                if hasEstimate {
+                    HStack(spacing: DesignSystem.Spacing.lg) {
+                        // Hours picker
+                        VStack(spacing: DesignSystem.Spacing.xs) {
+                            Text("Hours")
+                                .font(DesignSystem.Typography.caption)
+                                .foregroundStyle(.secondary)
+                            Picker("Hours", selection: $estimateHours) {
+                                ForEach(0..<100) { hour in
+                                    Text("\(hour)").tag(hour)
+                                }
+                            }
+                            .pickerStyle(.wheel)
+                            .frame(width: 80)
+                            .frame(minHeight: 120, idealHeight: 120, maxHeight: 120)
+                            .clipped()
+                        }
+                        
+                        // Minutes picker
+                        VStack(spacing: DesignSystem.Spacing.xs) {
+                            Text("Minutes")
+                                .font(DesignSystem.Typography.caption)
+                                .foregroundStyle(.secondary)
+                            Picker("Minutes", selection: $estimateMinutes) {
+                                ForEach(0..<60, id: \.self) { minute in
+                                    Text("\(minute)").tag(minute)
+                                }
+                            }
+                            .pickerStyle(.wheel)
+                            .frame(width: 80)
+                            .frame(minHeight: 120, idealHeight: 120, maxHeight: 120)
+                            .clipped()
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .onChange(of: estimateHours) { _, _ in validateEstimate() }
+                    .onChange(of: estimateMinutes) { _, _ in validateEstimate() }
+                    
+                    // Show calculated total
+                    let totalMinutes = (estimateHours * 60) + estimateMinutes
+                    if totalMinutes > 0 {
+                        HStack {
+                            Image(systemName: "clock")
+                                .font(.caption2)
+                            Text("Total: \(formatMinutes(totalMinutes))")
+                                .font(.caption)
+                        }
+                        .foregroundStyle(.secondary)
+                    } else {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.caption2)
+                            Text("Setting 0 time will remove the estimate")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.orange)
+                    }
+                    
+                    // Show override warning when parent overriding subtasks
+                    if hasSubtasksWithEstimates {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "info.circle")
+                                .font(.caption2)
+                                .padding(.top, 2)
+                            Text("Custom estimate will be used instead of auto-calculated \(formatMinutes(taskSubtaskEstimateTotal ?? 0)) from subtasks")
+                                .font(.caption2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .foregroundStyle(.orange)
+                    }
+                }
+            }
+            
+            // Priority
+            Section("Priority") {
+                Picker("Priority Level", selection: $priority) {
+                    ForEach(Priority.allCases, id: \.self) { p in
+                        HStack {
+                            Circle()
+                                .fill(p.color)
+                                .frame(width: 12, height: 12)
+                            Text(p.label)
+                        }
+                        .tag(p.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+        }
+        .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
+            Button("OK") {
+                if let parentDue = parentDueDate {
+                    dueDate = parentDue
+                }
+            }
+        } message: {
+            if let parentDue = parentDueDate {
+                Text("Subtask due date cannot be later than parent's due date (\(parentDue.formatted(date: .abbreviated, time: .shortened))).")
+            }
+        }
+        .alert("Invalid Time Estimate", isPresented: $showingEstimateValidationAlert) {
+            Button("OK") {
+                // Reset to subtask total
+                if let total = taskSubtaskEstimateTotal {
+                    estimateHours = total / 60
+                    estimateMinutes = (total % 60)
+                    // Round minutes to nearest 15
+                    let roundedMinutes = ((estimateMinutes + 7) / 15) * 15
+                    estimateMinutes = roundedMinutes
+                    if roundedMinutes >= 60 {
+                        estimateHours += 1
+                        estimateMinutes = 0
+                    }
+                }
+            }
+        } message: {
+            Text(estimateValidationMessage)
+        }
+        .scrollDismissesKeyboard(.interactively)
+    }
+    
+    private func validateSubtaskDueDate(_ newDate: Date) {
+        guard isSubtask, let parentDue = parentDueDate else { return }
+        if newDate > parentDue {
+            showingDateValidationAlert = true
+        }
+    }
+    
+    private func validateEstimate() {
+        guard !isSubtask, hasCustomEstimate else { return }
+        guard let subtaskTotal = taskSubtaskEstimateTotal, subtaskTotal > 0 else { return }
+        
+        let totalMinutes = (estimateHours * 60) + estimateMinutes
+        
+        if totalMinutes > 0 && totalMinutes < subtaskTotal {
+            estimateValidationMessage = "Custom estimate (\(formatMinutes(totalMinutes))) cannot be less than subtask estimates total (\(formatMinutes(subtaskTotal)))."
+            showingEstimateValidationAlert = true
+        }
+    }
+    
+    private func formatMinutes(_ minutes: Int) -> String {
+        let hours = minutes / 60
+        let mins = minutes % 60
+        
+        if hours > 0 && mins > 0 {
+            return "\(hours)h \(mins)m"
+        } else if hours > 0 {
+            return "\(hours)h"
+        } else {
+            return "\(mins)m"
+        }
+    }
+}
