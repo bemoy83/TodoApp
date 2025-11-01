@@ -106,15 +106,15 @@ struct TaskTimeTrackingView: View {
     }
     
     private func computeTotalTimeSeconds(for task: Task) -> Int {
-        var total = task.directTimeSpent * 60
-        
+        var total = task.directTimeSpent  // Already in seconds!
+
         if task.hasActiveTimer {
             if let activeEntry = task.timeEntries?.first(where: { $0.endTime == nil }) {
                 let elapsed = currentTime.timeIntervalSince(activeEntry.startTime)
                 total += max(0, Int(elapsed))
             }
         }
-        
+
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         for subtask in subtasks {
             total += computeTotalTimeSeconds(for: subtask)
@@ -141,17 +141,17 @@ struct TaskTimeTrackingView: View {
     }
 
     private var displayedTotalTimeSeconds: Int {
-        var total = task.directTimeSpent * 60
-        
+        var total = task.directTimeSpent  // Already in seconds!
+
         if task.hasActiveTimer {
             total += currentSessionSeconds
         }
-        
+
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         for subtask in subtasks {
             total += computeTotalTimeSeconds(for: subtask)
         }
-        
+
         return max(0, total)
     }
     
@@ -160,7 +160,7 @@ struct TaskTimeTrackingView: View {
     }
 
     private var displayedDirectTime: Int {
-        var totalSeconds = task.directTimeSpent * 60
+        var totalSeconds = task.directTimeSpent  // Already in seconds!
         if task.hasActiveTimer {
             totalSeconds += currentSessionSeconds
         }
@@ -179,7 +179,7 @@ struct TaskTimeTrackingView: View {
 
     private var liveTimeProgress: Double? {
         guard let estimate = task.effectiveEstimate, estimate > 0 else { return nil }
-        return Double(displayedTotalTimeSeconds) / Double(estimate * 60)
+        return Double(displayedTotalTimeSeconds) / Double(estimate)  // estimate is already in seconds!
     }
     
     private var liveEstimateStatus: TimeEstimateStatus? {
@@ -196,8 +196,7 @@ struct TaskTimeTrackingView: View {
     
     private var liveTimeRemaining: Int? {
         guard let estimate = task.effectiveEstimate else { return nil }
-        let estimateSeconds = estimate * 60
-        let remainingSeconds = estimateSeconds - displayedTotalTimeSeconds
+        let remainingSeconds = estimate - displayedTotalTimeSeconds  // estimate is already in seconds!
         return remainingSeconds / 60
     }
 

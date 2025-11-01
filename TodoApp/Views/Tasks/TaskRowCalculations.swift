@@ -31,22 +31,23 @@ struct TaskRowCalculations {
     }
     
     // MARK: - Time Calculations
-    
+
     /// Total time spent including live sessions (parent + all subtasks recursively)
+    /// Returns time in MINUTES for display
     var totalTimeSpent: Int {
-        var total = task.directTimeSpent
-        
+        var total = task.directTimeSpent / 60  // Convert seconds to minutes for display
+
         // Add live session if main task timer is running
         if task.hasActiveTimer {
             total += currentSessionMinutes
         }
-        
+
         // Add time from subtasks (recursive, includes their live sessions)
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         for subtask in subtasks {
             total += computeTotalTime(for: subtask)
         }
-        
+
         return max(0, total) // Ensure non-negative
     }
     
@@ -61,9 +62,10 @@ struct TaskRowCalculations {
     }
     
     /// Recursive helper to compute total time including live sessions
+    /// Returns time in MINUTES
     private func computeTotalTime(for task: Task) -> Int {
-        var total = task.directTimeSpent
-        
+        var total = task.directTimeSpent / 60  // Convert seconds to minutes
+
         // Add live session for this specific task
         if task.hasActiveTimer {
             if let activeEntry = task.timeEntries?.first(where: { $0.endTime == nil }) {
@@ -72,7 +74,7 @@ struct TaskRowCalculations {
                 total += max(0, minutes)
             }
         }
-        
+
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         for subtask in subtasks {
             total += computeTotalTime(for: subtask)
@@ -85,7 +87,8 @@ struct TaskRowCalculations {
     /// Live time progress calculation (includes running timers)
     var liveTimeProgress: Double? {
         guard let estimate = task.effectiveEstimate, estimate > 0 else { return nil }
-        return Double(totalTimeSpent) / Double(estimate)
+        let estimateMinutes = estimate / 60  // Convert seconds to minutes
+        return Double(totalTimeSpent) / Double(estimateMinutes)
     }
     
     /// Live estimate status (includes running timers)
@@ -104,10 +107,10 @@ struct TaskRowCalculations {
     /// Live remaining time (includes running timers) - in minutes
     var liveTimeRemaining: Int? {
         guard let estimate = task.effectiveEstimate else { return nil }
-        let estimateSeconds = estimate * 60
-        let spentSeconds = totalTimeSpent * 60
-        let remainingSeconds = estimateSeconds - spentSeconds
-        return remainingSeconds / 60
+        let estimateMinutes = estimate / 60  // Convert seconds to minutes
+        let spentMinutes = totalTimeSpent
+        let remainingMinutes = estimateMinutes - spentMinutes
+        return remainingMinutes
     }
     
     // MARK: - Timer Status
