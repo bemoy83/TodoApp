@@ -37,205 +37,180 @@ struct TaskDependenciesView: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Main Dependencies Section
-            GroupBox {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Header with edit button
-                    HStack {
-                        Text("Dependencies")
-                            .font(.headline)
-                        
-                        Spacer()
-                        
-                        if !isSubtask || enableDependencies {
-                            if let deps = task.dependsOn, !deps.isEmpty {
-                                Button(isEditingDependencies ? "Done" : "Edit") {
-                                    isEditingDependencies.toggle()
-                                }
-                                .font(.subheadline)
-                                .foregroundStyle(.blue)
+        VStack(spacing: DesignSystem.Spacing.lg) {
+            // Main Dependencies Card
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                // Section header with edit button
+                HStack {
+                    Text("Dependencies")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+
+                    Spacer()
+
+                    if !isSubtask || enableDependencies {
+                        if let deps = task.dependsOn, !deps.isEmpty {
+                            Button(isEditingDependencies ? "Done" : "Edit") {
+                                isEditingDependencies.toggle()
+                                HapticManager.selection()
                             }
+                            .font(.subheadline)
+                            .foregroundStyle(.blue)
                         }
                     }
-                    
+                }
+                .padding(.horizontal)
+
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
                     // Toggle for subtasks (now persisted)
                     if isSubtask {
-                        Toggle("Enable Dependencies", isOn: $enableDependencies)
-                            .font(.subheadline)
-                        
-                        if !enableDependencies {
-                            HStack {
-                                Image(systemName: "info.circle")
-                                    .font(.caption2)
-                                Text("Advanced feature - enable to add dependencies")
-                                    .font(.caption)
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                            Toggle("Enable Dependencies", isOn: $enableDependencies)
+                                .font(.subheadline)
+                                .tint(.blue)
+
+                            if !enableDependencies {
+                                HStack(spacing: DesignSystem.Spacing.xs) {
+                                    Image(systemName: "info.circle")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                    Text("Advanced feature - enable to add dependencies")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
-                            .foregroundStyle(.secondary)
                         }
+                        .padding(.horizontal)
                     }
-                    
+
                     // Show dependencies section if not a subtask OR toggle is enabled
                     if !isSubtask || enableDependencies {
                         // Depends On Section
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("This task depends on:")
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                            Text("This task depends on")
                                 .font(.subheadline)
-                                .fontWeight(.semibold)
-                            
-                            if let dependencies = task.dependsOn, !dependencies.isEmpty {
-                                ForEach(dependencies) { dependency in
-                                    HStack(spacing: 12) {
-                                        // Delete button in edit mode
-                                        if isEditingDependencies {
-                                            Button {
-                                                withAnimation {
-                                                    removeDependency(dependency)
-                                                }
-                                            } label: {
-                                                Image(systemName: "minus.circle.fill")
-                                                    .foregroundStyle(.red)
-                                                    .font(.title3)
-                                            }
-                                            .buttonStyle(.plain)
-                                        }
-                                        
-                                        Image(systemName: dependency.isCompleted ? "checkmark.circle.fill" : "circle")
-                                            .foregroundStyle(dependency.isCompleted ? .green : .gray)
-                                            .font(.caption)
-                                        
-                                        Text(dependency.title)
-                                            .font(.subheadline)
-                                        
-                                        Spacer()
-                                        
-                                        // Contextual delete button (always visible)
-                                        if !isEditingDependencies {
-                                            Button {
-                                                withAnimation {
-                                                    removeDependency(dependency)
-                                                }
-                                            } label: {
-                                                Image(systemName: "xmark.circle.fill")
-                                                    .foregroundStyle(.secondary)
-                                                    .font(.subheadline)
-                                            }
-                                            .buttonStyle(.plain)
-                                        }
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                                .padding(.horizontal)
+
+                            VStack(spacing: DesignSystem.Spacing.xs) {
+                                if let dependencies = task.dependsOn, !dependencies.isEmpty {
+                                    ForEach(dependencies) { dependency in
+                                        DependencyRow(
+                                            dependency: dependency,
+                                            isEditMode: isEditingDependencies,
+                                            onRemove: { removeDependency(dependency) }
+                                        )
+                                        .padding(.horizontal)
                                     }
-                                    .padding(.vertical, 4)
-                                    .contentShape(Rectangle())
+                                } else {
+                                    Text("No dependencies")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal)
                                 }
-                            } else {
-                                Text("No dependencies")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
                             }
-                            
+
+                            // Add button
                             Button {
                                 showingDependencyPicker = true
+                                HapticManager.selection()
                             } label: {
-                                Label("Add Dependency", systemImage: "plus.circle.fill")
-                                    .font(.subheadline)
+                                HStack(spacing: DesignSystem.Spacing.sm) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.body)
+                                        .foregroundStyle(.blue)
+
+                                    Text("Add Dependency")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.blue)
+
+                                    Spacer()
+                                }
+                                .padding(.horizontal)
+                                .padding(.vertical, DesignSystem.Spacing.xs)
                             }
-                            .padding(.top, 4)
+                            .buttonStyle(.plain)
                         }
-                        
+
                         Divider()
-                        
+                            .padding(.horizontal)
+
                         // Blocked By Section (reverse relationship)
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Tasks waiting for this:")
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                            Text("Tasks waiting for this")
                                 .font(.subheadline)
-                                .fontWeight(.semibold)
-                            
-                            if !blockedByTasks.isEmpty {
-                                ForEach(blockedByTasks) { blockedTask in
-                                    NavigationLink(destination: TaskDetailView(task: blockedTask)) {
-                                        HStack {
-                                            Image(systemName: "arrow.left.circle")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                            
-                                            Text(blockedTask.title)
-                                                .font(.subheadline)
-                                            
-                                            Spacer()
-                                            
-                                            Image(systemName: "chevron.right")
-                                                .font(.caption2)
-                                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                                .padding(.horizontal)
+
+                            VStack(spacing: DesignSystem.Spacing.xs) {
+                                if !blockedByTasks.isEmpty {
+                                    ForEach(blockedByTasks) { blockedTask in
+                                        NavigationLink(destination: TaskDetailView(task: blockedTask)) {
+                                            HStack(spacing: DesignSystem.Spacing.sm) {
+                                                Image(systemName: "arrow.left.circle")
+                                                    .font(.body)
+                                                    .foregroundStyle(.secondary)
+                                                    .frame(width: 28)
+
+                                                Text(blockedTask.title)
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(.primary)
+
+                                                Spacer()
+
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.tertiary)
+                                            }
+                                            .padding(.vertical, DesignSystem.Spacing.xs)
                                         }
-                                        .padding(.vertical, 2)
+                                        .buttonStyle(.plain)
+                                        .padding(.horizontal)
                                     }
-                                    .buttonStyle(.plain)
+                                } else {
+                                    Text("No tasks waiting")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal)
                                 }
-                            } else {
-                                Text("No tasks waiting")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal)
-            
-            // Subtask Dependencies Section (only for parent tasks)
+            .detailCardStyle()
+
+            // Subtask Dependencies Card (only for parent tasks)
             if !isSubtask && !subtasksWithDependencies.isEmpty {
-                GroupBox("Subtask Dependencies") {
-                    VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                    Text("Subtask Dependencies")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .padding(.horizontal)
+
+                    VStack(spacing: DesignSystem.Spacing.sm) {
                         ForEach(subtasksWithDependencies, id: \.subtask.id) { item in
-                            VStack(alignment: .leading, spacing: 4) {
-                                // Subtask name
-                                NavigationLink(destination: TaskDetailView(task: item.subtask)) {
-                                    HStack {
-                                        Image(systemName: "arrow.turn.down.right")
-                                            .font(.caption2)
-                                        Text(item.subtask.title)
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption2)
-                                            .foregroundStyle(.tertiary)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                
-                                // Dependencies
-                                ForEach(item.dependencies) { dependency in
-                                    NavigationLink(destination: TaskDetailView(task: dependency)) {
-                                        HStack(spacing: 8) {
-                                            Text("  ↳")
-                                                .font(.caption)
-                                                .foregroundStyle(.orange)
-                                            Text("blocked by:")
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                            Text(dependency.title)
-                                                .font(.caption)
-                                            Spacer()
-                                            Image(systemName: "chevron.right")
-                                                .font(.caption2)
-                                                .foregroundStyle(.tertiary)
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            .padding(.vertical, 4)
+                            SubtaskDependencyRow(
+                                subtask: item.subtask,
+                                dependencies: item.dependencies
+                            )
+                            .padding(.horizontal)
                         }
-                        
+
                         Text("Tap subtask to manage its dependencies")
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.tertiary)
-                            .padding(.top, 4)
+                            .padding(.horizontal)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal)
+                .detailCardStyle()
             }
         }
         .sheet(isPresented: $showingDependencyPicker) {
@@ -251,7 +226,106 @@ struct TaskDependenciesView: View {
     }
 }
 
+// MARK: - Dependency Row
 
+private struct DependencyRow: View {
+    let dependency: Task
+    let isEditMode: Bool
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            // Status icon
+            Image(systemName: dependency.isCompleted ? "checkmark.circle.fill" : "circle")
+                .font(.body)
+                .foregroundStyle(dependency.isCompleted ? .green : .gray)
+                .frame(width: 28)
+
+            // Title
+            Text(dependency.title)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+
+            Spacer()
+
+            // Remove button
+            Button {
+                withAnimation {
+                    onRemove()
+                    HapticManager.impact()
+                }
+            } label: {
+                Image(systemName: isEditMode ? "minus.circle.fill" : "xmark.circle.fill")
+                    .font(isEditMode ? .title3 : .subheadline)
+                    .foregroundStyle(isEditMode ? .red : .secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, DesignSystem.Spacing.xs)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Subtask Dependency Row
+
+private struct SubtaskDependencyRow: View {
+    let subtask: Task
+    let dependencies: [Task]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // Subtask link
+            NavigationLink(destination: TaskDetailView(task: subtask)) {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28)
+
+                    Text(subtask.title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .buttonStyle(.plain)
+
+            // Dependencies list
+            ForEach(dependencies) { dependency in
+                NavigationLink(destination: TaskDetailView(task: dependency)) {
+                    HStack(spacing: DesignSystem.Spacing.xs) {
+                        Text("↳")
+                            .font(.body)
+                            .foregroundStyle(.orange)
+                            .frame(width: 28, alignment: .trailing)
+
+                        Text("blocked by:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Text(dependency.title)
+                            .font(.caption)
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, DesignSystem.Spacing.xs)
+    }
+}
 
 #Preview("Parent Task with Subtask Dependencies") {
     let container = try! ModelContainer(
