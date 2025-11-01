@@ -69,7 +69,7 @@ import SwiftData
             priority: 2,
             createdDate: Date(),
             project: project,
-            estimatedMinutes: 120
+            estimatedSeconds: 120 * 60
         )
         context.insert(estimateTask)
         
@@ -99,7 +99,7 @@ import SwiftData
             dueDate: Date(),
             createdDate: Date(),
             project: project,
-            estimatedMinutes: 180
+            estimatedSeconds: 180 * 60
         )
         context.insert(longTask)
         
@@ -135,7 +135,7 @@ import SwiftData
             dueDate: Calendar.current.date(byAdding: .hour, value: 3, to: Date()),
             createdDate: Date(),
             project: project,
-            estimatedMinutes: 240
+            estimatedSeconds: 240 * 60
         )
         context.insert(task)
         
@@ -192,7 +192,7 @@ import SwiftData
             dueDate: Date(),
             createdDate: Date(),
             project: project,
-            estimatedMinutes: 90
+            estimatedSeconds: 90 * 60
         )
         context.insert(task)
         

@@ -37,12 +37,13 @@ struct TaskEditView: View {
         _dueDate = State(initialValue: task.dueDate ?? .now)
         _selectedProject = State(initialValue: task.project)
         _notesText = State(initialValue: task.notes ?? "")
-        
-        // NEW: Initialize estimate state
-        let estimate = task.estimatedMinutes ?? 0
-        _hasEstimate = State(initialValue: task.estimatedMinutes != nil)
-        _estimateHours = State(initialValue: estimate / 60)
-        _estimateMinutes = State(initialValue: estimate % 60)
+
+        // Initialize estimate state (convert seconds to hours/minutes for display)
+        let estimateSeconds = task.estimatedSeconds ?? 0
+        let estimateMinutes = estimateSeconds / 60
+        _hasEstimate = State(initialValue: task.estimatedSeconds != nil)
+        _estimateHours = State(initialValue: estimateMinutes / 60)
+        _estimateMinutes = State(initialValue: estimateMinutes % 60)
         _hasCustomEstimate = State(initialValue: task.hasCustomEstimate)
     }
     
@@ -88,13 +89,14 @@ struct TaskEditView: View {
         let trimmedNotes = notesText.trimmingCharacters(in: .whitespacesAndNewlines)
         task.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
         
-        // NEW: Handle time estimate
+        // Handle time estimate (convert hours/minutes to seconds for storage)
         if hasEstimate {
             let totalMinutes = (estimateHours * 60) + estimateMinutes
-            task.estimatedMinutes = totalMinutes > 0 ? totalMinutes : nil
+            let totalSeconds = totalMinutes * 60
+            task.estimatedSeconds = totalSeconds > 0 ? totalSeconds : nil
             task.hasCustomEstimate = hasCustomEstimate
         } else {
-            task.estimatedMinutes = nil
+            task.estimatedSeconds = nil
             task.hasCustomEstimate = false
         }
         
@@ -114,7 +116,7 @@ struct TaskEditView: View {
             title: "Sample Task",
             priority: 1,
             notes: "Some existing notes here",
-            estimatedMinutes: 120
+            estimatedSeconds: 120 * 60
         ),
         isNewTask: false
     )
@@ -135,16 +137,16 @@ struct TaskEditView: View {
         priority: 1,
         dueDate: Calendar.current.date(byAdding: .day, value: 7, to: Date()),
         createdDate: Date(),
-        estimatedMinutes: 240
+        estimatedSeconds: 240 * 60
     )
-    
+
     let subtask = Task(
         title: "Subtask",
         priority: 2,
         createdDate: Date(),
         parentTask: parent,
         notes: "Subtask notes",
-        estimatedMinutes: 60
+        estimatedSeconds: 60 * 60
     )
     
     return TaskEditView(

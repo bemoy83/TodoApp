@@ -74,9 +74,9 @@ final class Task {
     var createdDate: Date
     var order: Int?
     var notes: String? // User notes for the task
-    
-    // NEW: Time estimation
-    var estimatedMinutes: Int? // nil = no estimate set
+
+    // Time estimation (stored in seconds for accuracy)
+    var estimatedSeconds: Int? // nil = no estimate set
     var hasCustomEstimate: Bool = false // true = user overrode auto-sum
     
     // Relationship to project
@@ -112,7 +112,7 @@ final class Task {
         project: Project? = nil,
         order: Int? = nil,
         notes: String? = nil,
-        estimatedMinutes: Int? = nil,
+        estimatedSeconds: Int? = nil,
         hasCustomEstimate: Bool = false
     ) {
         self.id = id
@@ -125,7 +125,7 @@ final class Task {
         self.project = project
         self.order = order ?? 0
         self.notes = notes
-        self.estimatedMinutes = estimatedMinutes
+        self.estimatedSeconds = estimatedSeconds
         self.hasCustomEstimate = hasCustomEstimate
         self.subtasks = nil
         self.timeEntries = nil
@@ -156,10 +156,8 @@ final class Task {
         guard let entries = timeEntries else { return 0 }
         return entries.reduce(0) { total, entry in
             guard let end = entry.endTime else { return total }
-            let seconds = end.timeIntervalSince(entry.startTime)
-            // Round to nearest minute: add 0.5 before converting to Int
-            let duration = Int((seconds / 60.0).rounded())
-            return total + duration
+            let seconds = Int(end.timeIntervalSince(entry.startTime))
+            return total + seconds
         }
     }
     
@@ -307,9 +305,9 @@ final class Task {
     @Transient
     var effectiveEstimate: Int? {
         if hasCustomEstimate {
-            return estimatedMinutes
+            return estimatedSeconds
         } else {
-            return calculatedEstimateFromSubtasks ?? estimatedMinutes
+            return calculatedEstimateFromSubtasks ?? estimatedSeconds
         }
     }
     

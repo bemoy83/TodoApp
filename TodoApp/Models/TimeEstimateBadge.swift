@@ -74,10 +74,11 @@ struct TimeEstimateBadge: View {
         return estimateStatus?.color ?? .secondary
     }
     
-    private func formatMinutes(_ minutes: Int) -> String {
-        let hours = minutes / 60
-        let mins = minutes % 60
-        
+    private func formatMinutes(_ seconds: Int) -> String {
+        let totalMinutes = seconds / 60
+        let hours = totalMinutes / 60
+        let mins = totalMinutes % 60
+
         if hours > 0 && mins > 0 {
             return "\(hours)h\(mins)m"
         } else if hours > 0 {
@@ -90,41 +91,41 @@ struct TimeEstimateBadge: View {
 
 #Preview("On Track") {
     VStack(spacing: 16) {
-        TimeEstimateBadge(actual: 30, estimated: 120)
-        TimeEstimateBadge(actual: 60, estimated: 120)
+        TimeEstimateBadge(actual: 30 * 60, estimated: 120 * 60)
+        TimeEstimateBadge(actual: 60 * 60, estimated: 120 * 60)
     }
     .padding()
 }
 
 #Preview("Warning") {
     VStack(spacing: 16) {
-        TimeEstimateBadge(actual: 90, estimated: 120)
-        TimeEstimateBadge(actual: 110, estimated: 120)
+        TimeEstimateBadge(actual: 90 * 60, estimated: 120 * 60)
+        TimeEstimateBadge(actual: 110 * 60, estimated: 120 * 60)
     }
     .padding()
 }
 
 #Preview("Over") {
     VStack(spacing: 16) {
-        TimeEstimateBadge(actual: 120, estimated: 120)
-        TimeEstimateBadge(actual: 150, estimated: 120)
+        TimeEstimateBadge(actual: 120 * 60, estimated: 120 * 60)
+        TimeEstimateBadge(actual: 150 * 60, estimated: 120 * 60)
     }
     .padding()
 }
 
 #Preview("With Active Timer") {
     VStack(spacing: 16) {
-        TimeEstimateBadge(actual: 45, estimated: 120, hasActiveTimer: true)
-        TimeEstimateBadge(actual: 100, estimated: 120, hasActiveTimer: true)
-        TimeEstimateBadge(actual: 130, estimated: 120, hasActiveTimer: true)
+        TimeEstimateBadge(actual: 45 * 60, estimated: 120 * 60, hasActiveTimer: true)
+        TimeEstimateBadge(actual: 100 * 60, estimated: 120 * 60, hasActiveTimer: true)
+        TimeEstimateBadge(actual: 130 * 60, estimated: 120 * 60, hasActiveTimer: true)
     }
     .padding()
 }
 
 #Preview("Calculated") {
     VStack(spacing: 16) {
-        TimeEstimateBadge(actual: 45, estimated: 180, isCalculated: true)
-        TimeEstimateBadge(actual: 150, estimated: 180, isCalculated: true)
+        TimeEstimateBadge(actual: 45 * 60, estimated: 180 * 60, isCalculated: true)
+        TimeEstimateBadge(actual: 150 * 60, estimated: 180 * 60, isCalculated: true)
     }
     .padding()
 }

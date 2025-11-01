@@ -79,10 +79,11 @@ struct AddTaskView: View {
         // Trim whitespace and set to nil if empty
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // NEW: Calculate time estimate
+        // Calculate time estimate (convert hours/minutes to seconds for storage)
         let totalMinutes = hasEstimate ? (estimateHours * 60) + estimateMinutes : nil
-        let finalEstimate = (totalMinutes ?? 0) > 0 ? totalMinutes : nil
-        
+        let totalSeconds = totalMinutes.map { $0 * 60 }
+        let finalEstimate = (totalSeconds ?? 0) > 0 ? totalSeconds : nil
+
         let task = Task(
             title: title,
             priority: priority,
@@ -92,7 +93,7 @@ struct AddTaskView: View {
             project: parentTask?.project ?? selectedProject,
             order: parentTask == nil ? nextOrder : nil,
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
-            estimatedMinutes: finalEstimate,
+            estimatedSeconds: finalEstimate,
             hasCustomEstimate: hasCustomEstimate && finalEstimate != nil
         )
         modelContext.insert(task)
@@ -112,7 +113,7 @@ struct AddTaskView: View {
         priority: 1,
         dueDate: Calendar.current.date(byAdding: .day, value: 7, to: Date()),
         createdDate: Date(),
-        estimatedMinutes: 240
+        estimatedSeconds: 240 * 60
     )
     
     return AddTaskView(parentTask: parent)
