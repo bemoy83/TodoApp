@@ -189,6 +189,40 @@ Reduced from 5 sizes to 3 core sizes:
 - Secondary text: `.subheadline` (15pt) - values, hints
 - Icons: `.body` consistently
 
+**Typography Rationalization**:
+Reduced from 5 sizes to 3 core sizes:
+- Section headers: `.caption` (11pt) - uppercase, gray
+- Primary content: `.body` (17pt) - semibold for emphasis
+- Secondary text: `.subheadline` (15pt) - values, hints
+- Icons: `.body` consistently
+
+### TaskTimeTrackingView Redesign
+**Philosophy**: Match TaskDetailHeaderView sectioned pattern for consistency
+
+**Structure**:
+1. **Estimate Section** (conditional - only if has estimate)
+   - Single row: actual/estimate, status icon, percentage
+   - Progress bar below with color coding
+   - Remaining time right-aligned
+   - "From subtasks" indicator if calculated
+
+2. **Total Time Section** (always shown)
+   - Icon + total time display
+   - Breakdown showing direct + subtask time if applicable
+
+3. **Active Session** (conditional - only if timer running)
+   - "Recording" label with pulsing red dot
+   - Large centered stopwatch display
+
+4. **Timer Button** (always shown)
+   - Full-width, proper tap target
+   - Disabled when blocked (unless already running)
+
+5. **Blocked Warning** (conditional)
+   - Only shows when blocked and not running
+
+**Result**: ~100 lines shorter, better hierarchy, consistent with header view
+
 **Spacing Values** (from DesignSystem.swift):
 - `xxs`: 2pt (tight lists)
 - `xs`: 4pt (compact spacing)
@@ -221,6 +255,7 @@ Reduced from 5 sizes to 3 core sizes:
 - `TaskRowContent.swift` - Badge repositioning
 - `TaskListView.swift` - Search implementation
 - `TaskDetailHeaderView.swift` - Complete sectioned redesign
+- `TaskTimeTrackingView.swift` - Sectioned layout, removed GroupBox
 - `ViewModifiers.swift` - Added `.detailCardStyle()`
 - `Badges.swift` - Added `StatusBadge`, `PriorityBadge`, `ProjectBadge`
 
@@ -307,18 +342,6 @@ private var subtasks: [Task] {
 - Smooth spring animations on expand/collapse
 
 ### Architecture Patterns Established
-
-**Query-Based Views**: All relationship-dependent views now use `@Query` for reactive updates
-**Recursive Calculations**: Time tracking properly aggregates through subtask hierarchies
-**Context Propagation**: SwiftData changes properly sync across view hierarchies
-**Defensive Coding**: Nil-coalescing for optional orders, safe parent lookups
-
-### Known Limitations
-- Card-style list rows attempted but reverted due to List spacing issues
-- Custom card modifiers created (CardStyleModifiers.swift) but not currently in use
-- May revisit card styling with different approach in future
-
-### Testing Improvements
 All task movement scenarios validated:
 - ✅ Move subtask between parents updates time correctly
 - ✅ Parent task counts update immediately

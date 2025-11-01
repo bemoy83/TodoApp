@@ -192,10 +192,6 @@ Reorderer.reorder(
 10. **Test with expansion state** - Ensure UI updates when expanded
 11. **⚠️ CRITICAL: Clear relationships before delete** - Always clear `dependsOn`, `blockedBy`, `subtasks`, `timeEntries`, `parentTask`, `project` before calling `modelContext.delete()` to avoid SwiftData "future" crashes
 
-### KNOWN ISSUES:
-- Card-style rows don't work well with List (spacing issues)
-- CardStyleModifiers.swift exists but not currently used
-
 ### TESTING CHECKLIST:
 When implementing features, validate:
 - ✅ Works when task is expanded

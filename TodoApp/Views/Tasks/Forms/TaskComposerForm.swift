@@ -254,44 +254,37 @@ struct TaskComposerForm: View {
                 
                 // Show pickers when estimate is enabled
                 if hasEstimate {
-                    HStack(spacing: DesignSystem.Spacing.lg) {
-                        // Hours picker
-                        VStack(spacing: DesignSystem.Spacing.xs) {
-                            Text("Hours")
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundStyle(.secondary)
-                            Picker("Hours", selection: $estimateHours) {
-                                ForEach(0..<100) { hour in
-                                    Text("\(hour)").tag(hour)
-                                }
+                    // Native iOS-style time picker (like the Clock app)
+                    DatePicker(
+                        "Set Time Estimate",
+                        selection: Binding(
+                            get: {
+                                Calendar.current.date(
+                                    from: DateComponents(
+                                        hour: estimateHours,
+                                        minute: estimateMinutes
+                                    )
+                                ) ?? Date()
+                            },
+                            set: { newValue in
+                                let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+                                estimateHours = components.hour ?? 0
+                                estimateMinutes = components.minute ?? 0
+                                validateEstimate()
                             }
-                            .pickerStyle(.wheel)
-                            .frame(width: 80)
-                            .frame(minHeight: 120, idealHeight: 120, maxHeight: 120)
-                            .clipped()
-                        }
-                        
-                        // Minutes picker
-                        VStack(spacing: DesignSystem.Spacing.xs) {
-                            Text("Minutes")
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundStyle(.secondary)
-                            Picker("Minutes", selection: $estimateMinutes) {
-                                ForEach(0..<60, id: \.self) { minute in
-                                    Text("\(minute)").tag(minute)
-                                }
-                            }
-                            .pickerStyle(.wheel)
-                            .frame(width: 80)
-                            .frame(minHeight: 120, idealHeight: 120, maxHeight: 120)
-                            .clipped()
-                        }
-                    }
+                        ),
+                        displayedComponents: [.hourAndMinute]
+                    )
+                    .labelsHidden()
+                    .datePickerStyle(.wheel)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .onChange(of: estimateHours) { _, _ in validateEstimate() }
-                    .onChange(of: estimateMinutes) { _, _ in validateEstimate() }
-                    
-                    // Show calculated total
+                    .onAppear {
+                        // Clamp to safe range
+                        estimateHours = min(max(estimateHours, 0), 99)
+                        estimateMinutes = min(max(estimateMinutes, 0), 59)
+                    }
+
+                    // Show calculated total below
                     let totalMinutes = (estimateHours * 60) + estimateMinutes
                     if totalMinutes > 0 {
                         HStack {
@@ -310,7 +303,7 @@ struct TaskComposerForm: View {
                         }
                         .foregroundStyle(.orange)
                     }
-                    
+
                     // Show override warning when parent overriding subtasks
                     if hasSubtasksWithEstimates {
                         HStack(alignment: .top, spacing: 8) {
@@ -324,6 +317,7 @@ struct TaskComposerForm: View {
                         .foregroundStyle(.orange)
                     }
                 }
+
             }
             
             // Priority
