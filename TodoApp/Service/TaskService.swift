@@ -10,7 +10,7 @@ final class TaskService {
 
     /// Creates a sibling duplicate of the given task.
     /// - Notes:
-    ///   - Copies: title, priority, dueDate, notes, project, parentTask, estimatedMinutes, hasCustomEstimate
+    ///   - Copies: title, priority, dueDate, notes, project, parentTask, estimatedSeconds, hasCustomEstimate
     ///   - Resets: completedDate (nil), createdDate (now)
     ///   - Order: places after the original (orderValue + 1)
     @discardableResult
@@ -25,7 +25,7 @@ final class TaskService {
             project: task.project,
             order: task.orderValue + 1,
             notes: task.notes,
-            estimatedMinutes: task.estimatedMinutes,
+            estimatedSeconds: task.estimatedSeconds,
             hasCustomEstimate: task.hasCustomEstimate
         )
         context.insert(duplicate)

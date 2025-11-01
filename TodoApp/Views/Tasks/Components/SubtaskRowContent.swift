@@ -84,9 +84,10 @@ struct SubtaskRowContent: View {
         }
     }
     
-    private func formatMinutes(_ minutes: Int) -> String {
-        let hours = minutes / 60
-        let mins = minutes % 60
+    private func formatMinutes(_ seconds: Int) -> String {
+        let totalMinutes = seconds / 60
+        let hours = totalMinutes / 60
+        let mins = totalMinutes % 60
         if hours > 0 {
             return mins > 0 ? "\(hours)h \(mins)m" : "\(hours)h"
         } else {

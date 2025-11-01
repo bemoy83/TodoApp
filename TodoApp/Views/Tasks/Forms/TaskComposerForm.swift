@@ -41,22 +41,26 @@ struct TaskComposerForm: View {
         parentTask?.dueDate
     }
     
-    // NEW: Calculate subtask estimate total using @Query (avoids accessing relationships)
+    // Calculate subtask estimate total using @Query (avoids accessing relationships)
+    // Returns total in MINUTES for display purposes
     private var taskSubtaskEstimateTotal: Int? {
         guard let task = editingTask else { return nil }
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         guard !subtasks.isEmpty else { return nil }
-        
-        return subtasks.compactMap { $0.estimatedMinutes }.reduce(0, +)
+
+        let totalSeconds = subtasks.compactMap { $0.estimatedSeconds }.reduce(0, +)
+        return totalSeconds / 60 // Convert to minutes for display
     }
-    
+
     // For subtasks: show parent's total using @Query
+    // Returns total in MINUTES for display purposes
     private var parentSubtaskEstimateTotal: Int? {
         guard let parent = parentTask else { return nil }
         let subtasks = allTasks.filter { $0.parentTask?.id == parent.id }
         guard !subtasks.isEmpty else { return nil }
-        
-        return subtasks.compactMap { $0.estimatedMinutes }.reduce(0, +)
+
+        let totalSeconds = subtasks.compactMap { $0.estimatedSeconds }.reduce(0, +)
+        return totalSeconds / 60 // Convert to minutes for display
     }
     
     var body: some View {

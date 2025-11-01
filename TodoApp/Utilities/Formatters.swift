@@ -8,14 +8,21 @@
 import Foundation
 
 public extension Int {
-    /// Formats minute counts like "1h 05m", "45m", "2h".
-    func formattedMinutes() -> String {
-        let hours = self / 60
-        let mins  = self % 60
+    /// Formats seconds as time like "1h 5m", "45m", "2h 30m".
+    func formattedTime() -> String {
+        let totalMinutes = self / 60
+        let hours = totalMinutes / 60
+        let mins  = totalMinutes % 60
         if hours > 0 {
             return mins > 0 ? "\(hours)h \(mins)m" : "\(hours)h"
         } else {
             return "\(mins)m"
         }
+    }
+
+    /// Legacy alias for backwards compatibility (converts seconds to formatted time)
+    @available(*, deprecated, renamed: "formattedTime", message: "Use formattedTime() - now expects seconds instead of minutes")
+    func formattedMinutes() -> String {
+        formattedTime()
     }
 }
