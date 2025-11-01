@@ -49,7 +49,7 @@ struct ProjectRowView: View {
                     MetaLabel("\(completedTopLevelTaskCount) / \(topLevelTaskCount)", systemImage: "checklist")
                     
                     if totalTimeSpent > 0 {
-                        MetaLabel(totalTimeSpent.formattedMinutes(), systemImage: "clock")
+                        MetaLabel(totalTimeSpent.formattedTime(), systemImage: "clock")
                     }
                 }
             }
