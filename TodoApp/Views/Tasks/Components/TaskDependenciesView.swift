@@ -251,7 +251,7 @@ private struct DependencyRow: View {
             Button {
                 withAnimation {
                     onRemove()
-                    HapticManager.impact()
+                    HapticManager.medium()
                 }
             } label: {
                 Image(systemName: isEditMode ? "minus.circle.fill" : "xmark.circle.fill")
