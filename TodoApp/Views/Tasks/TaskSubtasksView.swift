@@ -26,48 +26,80 @@ struct TaskSubtasksView: View {
         }
 
     var body: some View {
-        GroupBox("Subtasks") {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            // Section header
+            Text("Subtasks")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .padding(.horizontal)
 
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                 if subtasks.isEmpty {
+                    // Empty state
                     Text("No subtasks")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
                 } else {
-                    ForEach(subtasks) { subtask in
-                        SubtaskRow(
-                            subtask: subtask,
-                            alert: $currentAlert,
-                            onToggleComplete: { handleSubtaskCompletion(subtask) },
-                            onEdit: { editingSubtask = subtask },
-                            onMore: { showingMoreSheetFor = subtask }
-                        )
-                        .padding(.vertical, 4)
+                    // Subtask list
+                    VStack(spacing: DesignSystem.Spacing.xs) {
+                        ForEach(subtasks) { subtask in
+                            SubtaskRow(
+                                subtask: subtask,
+                                alert: $currentAlert,
+                                onToggleComplete: { handleSubtaskCompletion(subtask) },
+                                onEdit: { editingSubtask = subtask },
+                                onMore: { showingMoreSheetFor = subtask }
+                            )
+                        }
                     }
-                    if canAddSubtasks { Divider() }
+                    .padding(.horizontal)
+
+                    if canAddSubtasks {
+                        Divider()
+                            .padding(.horizontal)
+                    }
                 }
 
+                // Action area
                 if canAddSubtasks {
                     Button {
                         showingAddSubtask = true
+                        HapticManager.selection()
                     } label: {
-                        Label("Add Subtask", systemImage: "plus.circle.fill")
-                            .font(.subheadline)
+                        HStack(spacing: DesignSystem.Spacing.sm) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.body)
+                                .foregroundStyle(.blue)
+
+                            Text("Add Subtask")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.blue)
+
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, DesignSystem.Spacing.xs)
                     }
+                    .buttonStyle(.plain)
                 } else {
-                    HStack(spacing: 6) {
+                    HStack(spacing: DesignSystem.Spacing.xs) {
                         Image(systemName: "info.circle")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
+
                         Text("Subtasks can't have subtasks")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    .padding(.horizontal)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal)
+        .detailCardStyle()
 
         // ✅ New subtask - uses AddTaskView (no phantom tasks)
         .sheet(isPresented: $showingAddSubtask) {
@@ -119,31 +151,38 @@ private struct SubtaskRow: View {
     let onMore: () -> Void
 
     var body: some View {
-        HStack(spacing: DesignSystem.Spacing.md) {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            // Status button
             SubtaskStatusButton(
                 subtask: subtask,
                 action: onToggleComplete,
                 size: .standard
             )
 
+            // Content navigation
             NavigationLink(destination: TaskDetailView(task: subtask)) {
-                HStack {
+                HStack(spacing: DesignSystem.Spacing.sm) {
                     SubtaskRowContent(subtask: subtask, style: .detailed)
+
                     Spacer()
-                    
+
+                    // Timer indicator (if active)
                     if subtask.hasActiveTimer {
                         Image(systemName: "timer")
-                            .font(.caption2)
+                            .font(.subheadline)
                             .foregroundStyle(.red)
+                            .pulsingAnimation(active: true)
                     }
-                    
+
+                    // Navigation chevron
                     Image(systemName: "chevron.right")
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
             .buttonStyle(.plain)
         }
+        .padding(.vertical, DesignSystem.Spacing.xs)
         .contentShape(Rectangle())
         .rowContextMenu(
             task: subtask,
