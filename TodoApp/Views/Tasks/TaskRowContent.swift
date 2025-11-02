@@ -98,30 +98,11 @@ struct TaskRowProgressBar: View {
     private var timeProgressBar: some View {
         Group {
             if let _ = task.effectiveEstimate, let progress = calculations.liveTimeProgress {
-                HStack(spacing: DesignSystem.Spacing.xs) {
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color(.tertiarySystemFill))
-                                .frame(height: DesignSystem.Spacing.xs)
-                            
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(calculations.liveEstimateStatus?.color ?? .blue)
-                                .frame(
-                                    width: min(geometry.size.width * progress, geometry.size.width),
-                                    height: DesignSystem.Spacing.xs
-                                )
-                                .animation(.easeInOut(duration: 0.3), value: progress)
-                        }
-                    }
-                    .frame(height: DesignSystem.Spacing.xs)
-                    
-                    Text("\(Int(progress * 100))%")
-                        .font(.caption2)
-                        .foregroundStyle(calculations.liveEstimateStatus?.color ?? .secondary)
-                        .monospacedDigit()
-                        .frame(width: 32, alignment: .trailing)
-                }
+                TimeProgressBar(
+                    progress: progress,
+                    status: calculations.liveEstimateStatus,
+                    height: DesignSystem.Spacing.xs
+                )
             }
         }
     }

@@ -141,15 +141,17 @@ struct TaskRowCalculations {
     /// Determine which progress bar to show (contextual)
     var shouldShowTimeProgress: Bool {
         guard task.effectiveEstimate != nil else { return false }
-        
+
+        // Show progress bar when timer is running
         if hasAnyTimerRunning {
             return true
         }
-        
-        if let progress = task.timeProgress {
-            return progress >= 0.75
+
+        // Show progress bar when approaching estimate (75%+)
+        if let progress = task.timeProgress, progress >= 0.75 {
+            return true
         }
-        
+
         return false
     }
     
