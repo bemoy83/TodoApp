@@ -153,37 +153,3 @@ struct TaskRowProgressBar: View {
         }
     }
 }
-
-// MARK: - Remaining Time Badge
-/// Compact badge showing remaining time or overtime when timer is running
-struct RemainingTimeBadge: View {
-    let remaining: Int
-    let status: TimeEstimateStatus
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: remaining >= 0 ? "clock" : "exclamationmark.triangle.fill")
-                .font(.caption2)
-            
-            Text(formatRemainingTime())
-                .font(.caption2)
-                .fontWeight(.medium)
-        }
-        .foregroundStyle(remaining >= 0 ? status.color : .red)
-    }
-    
-    private func formatRemainingTime() -> String {
-        let absRemaining = abs(remaining)
-        let hours = absRemaining / 60
-        let mins = absRemaining % 60
-        
-        var timeStr: String
-        if hours > 0 {
-            timeStr = mins > 0 ? "\(hours)h \(mins)m" : "\(hours)h"
-        } else {
-            timeStr = "\(mins)m"
-        }
-        
-        return remaining >= 0 ? "\(timeStr) left" : "\(timeStr) over"
-    }
-}
