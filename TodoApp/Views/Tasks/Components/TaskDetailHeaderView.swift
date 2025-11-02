@@ -47,31 +47,34 @@ struct TaskDetailHeaderView: View {
             // Parent breadcrumb (conditional - only if subtask)
             if let parent = parentTask {
                 NavigationLink(destination: TaskDetailView(task: parent)) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.turn.up.left")
-                            .font(.subheadline)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Subtask of")
-                                .font(.subheadline)
-                                .foregroundStyle(.tertiary)
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                        Text("Subtask of")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+
+                        HStack(spacing: DesignSystem.Spacing.sm) {
+                            Image(systemName: "arrow.turn.up.left")
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28)
+
                             Text(parent.title)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.body)
+                                .foregroundStyle(.tertiary)
                         }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.subheadline)
-                            .foregroundStyle(.tertiary)
                     }
-                    .padding(DesignSystem.Spacing.md)
-                    .background(Color(DesignSystem.Colors.secondaryBackground))
-                    .cornerRadius(DesignSystem.CornerRadius.lg)
+                    .padding(.horizontal)
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal)
+                .detailCardStyle()
             }
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
