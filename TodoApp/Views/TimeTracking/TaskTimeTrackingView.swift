@@ -250,7 +250,7 @@ private struct EstimateSection: View {
                 VStack(alignment: .leading, spacing: 2) {
                     // Progress ratio with status
                     HStack(spacing: 6) {
-                        Text("\(formatMinutes(actualTime)) / \(formatMinutes(estimate))")
+                        Text("\((actualTime * 60).formattedTime()) / \((estimate * 60).formattedTime())")
                             .font(.subheadline)
                             .monospacedDigit()
                         
@@ -283,7 +283,7 @@ private struct EstimateSection: View {
                 if let remaining = remaining {
                     VStack(alignment: .trailing, spacing: 2) {
                         if remaining > 0 {
-                            Text(formatMinutes(remaining))
+                            Text((remaining * 60).formattedTime())
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(status?.color ?? .secondary)
@@ -291,7 +291,7 @@ private struct EstimateSection: View {
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         } else {
-                            Text(formatMinutes(abs(remaining)))
+                            Text((abs(remaining) * 60).formattedTime())
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.red)
@@ -325,17 +325,6 @@ private struct EstimateSection: View {
         }
         .padding(.horizontal)
     }
-    
-    private func formatMinutes(_ minutes: Int) -> String {
-        let hours = minutes / 60
-        let mins = minutes % 60
-
-        if hours > 0 {
-            return mins > 0 ? "\(hours)h \(mins)m" : "\(hours)h"
-        } else {
-            return "\(mins)m"
-        }
-    }
 }
 
 // MARK: - Total Time Section
@@ -359,13 +348,13 @@ private struct TotalTimeSection: View {
                     .frame(width: 28)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(formatMinutes(totalTime))
+                    Text((totalTime * 60).formattedTime())
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                    
+
                     // Breakdown if has subtask time
                     if hasSubtaskTime {
-                        Text("\(formatMinutes(directTime)) direct, \(formatMinutes(totalTime - directTime)) from subtasks")
+                        Text("\((directTime * 60).formattedTime()) direct, \(((totalTime - directTime) * 60).formattedTime()) from subtasks")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -375,17 +364,6 @@ private struct TotalTimeSection: View {
             }
         }
         .padding(.horizontal)
-    }
-    
-    private func formatMinutes(_ minutes: Int) -> String {
-        let hours = minutes / 60
-        let mins = minutes % 60
-
-        if hours > 0 {
-            return mins > 0 ? "\(hours)h \(mins)m" : "\(hours)h"
-        } else {
-            return "\(mins)m"
-        }
     }
 }
 

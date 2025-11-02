@@ -213,7 +213,7 @@ struct TaskComposerForm: View {
                             Text("Parent's estimate (from subtasks):")
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
-                            Text(formatMinutes(parentTotal))
+                            Text((parentTotal * 60).formattedTime())
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -242,7 +242,7 @@ struct TaskComposerForm: View {
                             Image(systemName: "checkmark.circle")
                                 .font(.caption2)
                                 .padding(.top, 2)
-                            Text("Auto-calculated from subtasks: \(formatMinutes(taskSubtaskEstimateTotal ?? 0))")
+                            Text("Auto-calculated from subtasks: \(((taskSubtaskEstimateTotal ?? 0) * 60).formattedTime())")
                                 .font(.caption2)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -294,7 +294,7 @@ struct TaskComposerForm: View {
                         HStack {
                             Image(systemName: "clock")
                                 .font(.caption2)
-                            Text("Total: \(formatMinutes(totalMinutes))")
+                            Text("Total: \((totalMinutes * 60).formattedTime())")
                                 .font(.caption)
                         }
                         .foregroundStyle(.secondary)
@@ -314,7 +314,7 @@ struct TaskComposerForm: View {
                             Image(systemName: "info.circle")
                                 .font(.caption2)
                                 .padding(.top, 2)
-                            Text("Custom estimate will be used instead of auto-calculated \(formatMinutes(taskSubtaskEstimateTotal ?? 0)) from subtasks")
+                            Text("Custom estimate will be used instead of auto-calculated \(((taskSubtaskEstimateTotal ?? 0) * 60).formattedTime()) from subtasks")
                                 .font(.caption2)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -384,23 +384,10 @@ struct TaskComposerForm: View {
         guard let subtaskTotal = taskSubtaskEstimateTotal, subtaskTotal > 0 else { return }
         
         let totalMinutes = (estimateHours * 60) + estimateMinutes
-        
+
         if totalMinutes > 0 && totalMinutes < subtaskTotal {
-            estimateValidationMessage = "Custom estimate (\(formatMinutes(totalMinutes))) cannot be less than subtask estimates total (\(formatMinutes(subtaskTotal)))."
+            estimateValidationMessage = "Custom estimate (\((totalMinutes * 60).formattedTime())) cannot be less than subtask estimates total (\((subtaskTotal * 60).formattedTime()))."
             showingEstimateValidationAlert = true
-        }
-    }
-    
-    private func formatMinutes(_ minutes: Int) -> String {
-        let hours = minutes / 60
-        let mins = minutes % 60
-        
-        if hours > 0 && mins > 0 {
-            return "\(hours)h \(mins)m"
-        } else if hours > 0 {
-            return "\(hours)h"
-        } else {
-            return "\(mins)m"
         }
     }
 }

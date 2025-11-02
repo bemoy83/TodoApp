@@ -33,8 +33,8 @@ struct TimeEstimateBadge: View {
             Image(systemName: hasActiveTimer ? "timer" : "target")
                 .font(.caption2)
                 .symbolEffect(.pulse, options: .repeat(.continuous), isActive: hasActiveTimer)
-            
-            Text("\(formatMinutes(actual)) / \(formatMinutes(estimated))")
+
+            Text("\(actual.formattedTime()) / \(estimated.formattedTime())")
                 .font(.caption)
                 .monospacedDigit()
             
@@ -72,20 +72,6 @@ struct TimeEstimateBadge: View {
             return DesignSystem.Colors.timerActive
         }
         return estimateStatus?.color ?? .secondary
-    }
-    
-    private func formatMinutes(_ seconds: Int) -> String {
-        let totalMinutes = seconds / 60
-        let hours = totalMinutes / 60
-        let mins = totalMinutes % 60
-
-        if hours > 0 && mins > 0 {
-            return "\(hours)h\(mins)m"
-        } else if hours > 0 {
-            return "\(hours)h"
-        } else {
-            return "\(mins)m"
-        }
     }
 }
 

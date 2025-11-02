@@ -44,7 +44,7 @@ struct DataStatisticsSection: View {
                     StatRow(
                         icon: "clock.fill",
                         label: "Time Tracked",
-                        value: formatMinutes(totalTimeTracked),
+                        value: totalTimeTracked.formattedTime(),
                         color: DesignSystem.Colors.warning
                     )
                 }
@@ -56,17 +56,6 @@ struct DataStatisticsSection: View {
             ))
         } header: {
             Label("Data Statistics", systemImage: "chart.bar.fill")
-        }
-    }
-    
-    private func formatMinutes(_ minutes: Int) -> String {
-        let hours = minutes / 60
-        let mins = minutes % 60
-        
-        if hours > 0 {
-            return mins > 0 ? "\(hours)h \(mins)m" : "\(hours)h"
-        } else {
-            return "\(mins)m"
         }
     }
 }
