@@ -25,13 +25,13 @@ struct TaskTimeTrackingView: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
             // Estimate Section (conditional - only if has estimate)
             if let estimate = task.effectiveEstimate {
-                EstimateSection(
-                    estimate: estimate / 60,  // Convert seconds to minutes for display
-                    actualTime: displayedTotalTime,
+                EstimateSectionRefactored(
+                    actualSeconds: displayedTotalTimeSeconds,
+                    estimateSeconds: estimate,
                     progress: liveTimeProgress,
                     status: liveEstimateStatus,
-                    remaining: liveTimeRemaining,
-                    isCalculated: task.isUsingCalculatedEstimate
+                    isCalculated: task.isUsingCalculatedEstimate,
+                    hasActiveTimer: task.hasActiveTimer
                 )
             }
             
@@ -226,101 +226,71 @@ struct TaskTimeTrackingView: View {
 
 // MARK: - Estimate Section
 
-private struct EstimateSection: View {
-    let estimate: Int
-    let actualTime: Int
+private struct EstimateSectionRefactored: View {
+    let actualSeconds: Int
+    let estimateSeconds: Int
     let progress: Double?
     let status: TimeEstimateStatus?
-    let remaining: Int?
     let isCalculated: Bool
-    
+    let hasActiveTimer: Bool
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Time Estimate")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
-            
-            HStack {
+
+            HStack(alignment: .center, spacing: DesignSystem.Spacing.md) {
                 Image(systemName: "target")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .frame(width: 28)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    // Progress ratio with status
-                    HStack(spacing: 6) {
-                        Text("\((actualTime * 60).formattedTime()) / \((estimate * 60).formattedTime())")
-                            .font(.subheadline)
-                            .monospacedDigit()
-                        
-                        if let status = status {
-                            Image(systemName: status.icon)
-                                .font(.caption)
-                                .foregroundStyle(status.color)
-                        }
-                        
+
+                VStack(alignment: .leading, spacing: 4) {
+                    // TimeEstimateBadge handles display mode automatically (normal vs countdown)
+                    TimeEstimateBadge(
+                        actual: actualSeconds,
+                        estimated: estimateSeconds,
+                        isCalculated: isCalculated,
+                        hasActiveTimer: hasActiveTimer
+                    )
+                    .font(.title3)
+                    .fontWeight(.semibold)
+
+                    // Show percentage and "From subtasks" below badge
+                    HStack(spacing: 8) {
                         if let progress = progress {
                             Text("\(Int(progress * 100))%")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .monospacedDigit()
                         }
-                    }
-                    
-                    // Calculated indicator
-                    if isCalculated {
-                        Text("From subtasks")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .italic()
-                    }
-                }
-                
-                Spacer()
-                
-                // Remaining time
-                if let remaining = remaining {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        if remaining > 0 {
-                            Text((remaining * 60).formattedTime())
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(status?.color ?? .secondary)
-                            Text("left")
+
+                        if isCalculated {
+                            Text("•")
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
-                        } else {
-                            Text((abs(remaining) * 60).formattedTime())
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.red)
-                            Text("over")
+
+                            Text("From subtasks")
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
+                                .italic()
                         }
                     }
                 }
+
+                Spacer()
             }
-            
+
             // Progress bar
             if let progress = progress {
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color(.tertiarySystemFill))
-                            .frame(height: 8)
-                        
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(status?.color ?? .blue)
-                            .frame(
-                                width: min(geometry.size.width * progress, geometry.size.width),
-                                height: 8
-                            )
-                            .animation(.easeInOut(duration: 0.3), value: progress)
-                    }
-                }
-                .frame(height: 8)
+                TimeProgressBar(
+                    progress: progress,
+                    status: status,
+                    height: 8,
+                    showPercentage: false
+                )
             }
         }
         .padding(.horizontal)
