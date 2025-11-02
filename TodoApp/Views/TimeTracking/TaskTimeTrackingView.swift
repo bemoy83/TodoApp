@@ -258,25 +258,12 @@ private struct EstimateSectionRefactored: View {
                     .font(.title3)
                     .fontWeight(.semibold)
 
-                    // Show percentage and "From subtasks" below badge
-                    HStack(spacing: 8) {
-                        if let progress = progress {
-                            Text("\(Int(progress * 100))%")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-
-                        if isCalculated {
-                            Text("•")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-
-                            Text("From subtasks")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .italic()
-                        }
+                    // Show "From subtasks" indicator
+                    if isCalculated {
+                        Text("From subtasks")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .italic()
                     }
                 }
 
@@ -288,8 +275,7 @@ private struct EstimateSectionRefactored: View {
                 TimeProgressBar(
                     progress: progress,
                     status: status,
-                    height: 8,
-                    showPercentage: false
+                    height: 8
                 )
             }
         }

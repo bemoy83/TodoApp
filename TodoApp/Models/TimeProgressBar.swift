@@ -7,23 +7,20 @@
 
 import SwiftUI
 
-/// Displays a horizontal progress bar for time tracking
+/// Displays a horizontal progress bar for time tracking with percentage
 struct TimeProgressBar: View {
     let progress: Double
     let status: TimeEstimateStatus?
     let height: CGFloat
-    let showPercentage: Bool
 
     init(
         progress: Double,
         status: TimeEstimateStatus? = nil,
-        height: CGFloat = 4,
-        showPercentage: Bool = true
+        height: CGFloat = 4
     ) {
         self.progress = progress
         self.status = status
         self.height = height
-        self.showPercentage = showPercentage
     }
 
     var body: some View {
@@ -45,13 +42,11 @@ struct TimeProgressBar: View {
             }
             .frame(height: height)
 
-            if showPercentage {
-                Text("\(Int(progress * 100))%")
-                    .font(percentageFont)
-                    .foregroundStyle(status?.color ?? .secondary)
-                    .monospacedDigit()
-                    .frame(width: 32, alignment: .trailing)
-            }
+            Text("\(Int(progress * 100))%")
+                .font(percentageFont)
+                .foregroundStyle(status?.color ?? .secondary)
+                .monospacedDigit()
+                .frame(width: 32, alignment: .trailing)
         }
     }
 
@@ -82,15 +77,6 @@ struct TimeProgressBar: View {
         TimeProgressBar(progress: 0.3, status: .onTrack, height: 8)
         TimeProgressBar(progress: 0.75, status: .warning, height: 8)
         TimeProgressBar(progress: 1.2, status: .over, height: 8)
-    }
-    .padding()
-}
-
-#Preview("Without Percentage") {
-    VStack(spacing: 16) {
-        TimeProgressBar(progress: 0.3, status: .onTrack, height: 8, showPercentage: false)
-        TimeProgressBar(progress: 0.75, status: .warning, height: 8, showPercentage: false)
-        TimeProgressBar(progress: 1.2, status: .over, height: 8, showPercentage: false)
     }
     .padding()
 }
