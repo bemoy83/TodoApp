@@ -95,6 +95,150 @@ TodoApp is a SwiftUI-based task management application with hierarchical task or
    - Swipe actions and context menus
    - Haptic feedback throughout
 
+## Recent Updates (Session: Shared Components & Smart Badges - Nov 2025)
+
+### Shared Time Tracking Components
+**Problem**: Duplicate UI code across TaskTimeTrackingView and TaskRowContent (~100+ lines)
+
+**Solution**: Created reusable components with consistent behavior
+- **TimeProgressBar**: Standalone progress bar component
+  - Configurable height (4pt list view, 8pt detail view)
+  - Always shows percentage (40pt width for 3-digit support)
+  - Color-coded status (green/orange/red)
+  - Used in both list and detail contexts
+
+- **TimeEstimateBadge**: Merged with RemainingTimeBadge
+  - Smart display modes: normal ("45m / 2h") vs countdown ("15m left")
+  - Switches to countdown at 90%+ when timer is active
+  - After timer stops: always shows actual/estimated ratio
+  - Auto-formats: shows seconds in countdown, minutes in normal mode
+  - Single source of truth for time estimate display
+
+**Benefits**:
+- ~100 lines of duplicate code removed
+- Consistent behavior across list and detail views
+- Easier maintenance and bug fixes
+- Badge scales to different font sizes (.caption → .title3)
+
+### Time Formatting Strategy
+**Philosophy**: Different precision for different contexts
+
+**Implementation** (Int.formattedTime(showSeconds:)):
+```swift
+// Compact mode (default) - for list views, badges
+3665.formattedTime() → "1h 1m"
+45.formattedTime() → "0m"
+
+// Detailed mode - for detail views
+3665.formattedTime(showSeconds: true) → "1h 1m 5s"
+45.formattedTime(showSeconds: true) → "45s"
+```
+
+**Usage Pattern**:
+- **List views**: Compact (rounded to minutes) for scannability
+- **Detail views**: Detailed (actual seconds) for precision
+- **Badges**: Always compact for consistency
+- **TaskTimeTrackingView Total Time**: Shows detailed format with seconds
+
+**Smart formatting**:
+- "5s" (seconds only)
+- "45m 10s" (minutes + seconds)
+- "2h 5s" (hours + seconds, skips zero minutes)
+- "1h 45m 32s" (full display)
+
+### Smart DueDateBadge with Adaptive Countdown
+**Problem**: Static date badges don't convey urgency when approaching deadlines
+
+**Solution**: Task-aware threshold calculation
+- **With estimate**: `threshold = max(estimatedTime * 1.5, 2 hours)`
+- **Without estimate**: `threshold = 6 hours` (default)
+- **Timer active**: Always show countdown (immediate relevance)
+
+**Display Modes**:
+| Mode | Display | Color | When |
+|------|---------|-------|------|
+| Normal | "📅 Jan 15" | Gray | Beyond threshold |
+| Countdown | "⏰ 3h 15m left" | Orange | Within threshold |
+| Overdue | "⚠️ 2h 15m overdue" | Red | Past due |
+| Completed | "✅ Jan 15" | Gray | Task done |
+
+**Smart Threshold Examples**:
+- 2h task due at 5 PM: Countdown starts at 2 PM (3h threshold = 1.5x)
+- 30m task due at 5 PM: Countdown starts at 3 PM (2h minimum)
+- No estimate due at 5 PM: Countdown starts at 11 AM (6h default)
+- Timer running: Shows countdown regardless of time remaining
+
+**Benefits**:
+- Prevents false urgency (30m task doesn't panic at 6h)
+- Provides realistic warning (8h task alerts at 12h)
+- Active work gets immediate context (countdown during timer)
+- Clean date display when deadline is distant
+
+### Card-Style Design Finalization
+**TaskDetailHeaderView Polish**:
+- Removed double horizontal padding (32pt → 16pt per side)
+- Cards now use full available width minus VStack padding
+- Parent breadcrumb modernized:
+  - Added "SUBTASK OF" section header
+  - Applied .detailCardStyle() for consistency
+  - 28pt icon width alignment with other sections
+
+**Dates Section Refinement**:
+- Removed time display from dates (date only)
+- Reasoning: Time not immediately relevant in static header
+- Prevents wrapping on "Due (inherited)" labels
+- Cleaner display: "Jan 15, 2024" vs "Jan 15, 2024 at 3:30 PM"
+- Future: Could add dynamic countdown when approaching due time
+
+**Result**: All TaskDetailHeaderView sections now use consistent card styling
+
+### UI Refinements
+**Progress Bar Percentage Width**:
+- Increased from 32pt → 40pt
+- Prevents "100%" from wrapping to new line
+- Accommodates 3-digit percentages (100%, 125%, etc.)
+
+**TaskTimeTrackingView Modernization**:
+- Estimate Section: Uses shared TimeEstimateBadge (.title3 size)
+- Progress bar: Uses shared TimeProgressBar (8pt height)
+- Total Time: Shows detailed seconds format
+- Removed duplicate percentage display (now only in progress bar)
+- ~30 lines of code removed
+
+### Files Modified This Session
+- `Formatters.swift` - Added showSeconds parameter to formattedTime()
+- `TimeProgressBar.swift` - New reusable progress bar component
+- `TimeEstimateBadge.swift` - Merged countdown logic, smart display modes
+- `Badges.swift` - Smart DueDateBadge with adaptive threshold
+- `TaskRowContent.swift` - Uses shared TimeProgressBar component
+- `TaskTimeTrackingView.swift` - Uses shared badge + progress bar, detailed seconds
+- `TaskDetailHeaderView.swift` - Modernized breadcrumb, removed time from dates
+- `ViewModifiers.swift` - Removed horizontal padding from DetailCardModifier
+- `TaskRowCalculations.swift` - Progress bar threshold unchanged (75%)
+
+### Design Patterns Established
+
+**Component Reusability**:
+- Extract duplicate UI into shared components
+- Make components flexible (height, showSeconds, etc.)
+- Components scale to different contexts (list vs detail)
+
+**Context-Appropriate Precision**:
+- Compact views: Round for scannability
+- Detail views: Show full precision
+- Badges: Always compact regardless of context
+
+**Smart Thresholds**:
+- Use task data to calculate relevant urgency windows
+- Different thresholds for different task sizes
+- Active state overrides static thresholds
+
+**Time Storage & Display**:
+- **Storage**: Seconds (Int) - accurate, no precision loss
+- **Display compact**: Minutes/hours - "1h 45m"
+- **Display detailed**: Seconds - "1h 45m 32s"
+- **Calculations**: Seconds throughout
+
 ## Recent Updates (Session: UI Refinement & Design Consistency)
 
 ### TaskRowView Modernization
