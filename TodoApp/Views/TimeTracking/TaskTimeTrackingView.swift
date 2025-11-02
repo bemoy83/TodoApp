@@ -37,9 +37,9 @@ struct TaskTimeTrackingView: View {
             
             // Total Time Section (always shown)
             TotalTimeSection(
-                totalTime: displayedTotalTime,
-                directTime: displayedDirectTime,
-                hasSubtaskTime: task.directTimeSpent > 0 && displayedTotalTime != displayedDirectTime
+                totalTimeSeconds: displayedTotalTimeSeconds,
+                directTimeSeconds: displayedDirectTimeSeconds,
+                hasSubtaskTime: task.directTimeSpent > 0 && displayedTotalTimeSeconds != displayedDirectTimeSeconds
             )
             
             // Active Session (conditional - only if timer running)
@@ -159,12 +159,16 @@ struct TaskTimeTrackingView: View {
         return displayedTotalTimeSeconds / 60
     }
 
-    private var displayedDirectTime: Int {
+    private var displayedDirectTimeSeconds: Int {
         var totalSeconds = task.directTimeSpent  // Already in seconds!
         if task.hasActiveTimer {
             totalSeconds += currentSessionSeconds
         }
-        return totalSeconds / 60
+        return totalSeconds
+    }
+
+    private var displayedDirectTime: Int {
+        return displayedDirectTimeSeconds / 60
     }
 
     private var currentSessionSeconds: Int {
@@ -286,36 +290,37 @@ private struct EstimateSectionRefactored: View {
 // MARK: - Total Time Section
 
 private struct TotalTimeSection: View {
-    let totalTime: Int
-    let directTime: Int
+    let totalTimeSeconds: Int
+    let directTimeSeconds: Int
     let hasSubtaskTime: Bool
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Total Time")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
-            
+
             HStack {
                 Image(systemName: "clock")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .frame(width: 28)
-                
+
                 VStack(alignment: .leading, spacing: 2) {
-                    Text((totalTime * 60).formattedTime())
+                    Text(totalTimeSeconds.formattedTime(showSeconds: true))
                         .font(.subheadline)
                         .fontWeight(.semibold)
 
                     // Breakdown if has subtask time
                     if hasSubtaskTime {
-                        Text("\((directTime * 60).formattedTime()) direct, \(((totalTime - directTime) * 60).formattedTime()) from subtasks")
+                        let subtaskTimeSeconds = totalTimeSeconds - directTimeSeconds
+                        Text("\(directTimeSeconds.formattedTime(showSeconds: true)) direct, \(subtaskTimeSeconds.formattedTime(showSeconds: true)) from subtasks")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 Spacer()
             }
         }
