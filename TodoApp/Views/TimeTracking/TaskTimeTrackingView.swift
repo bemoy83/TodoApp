@@ -26,7 +26,7 @@ struct TaskTimeTrackingView: View {
             // Estimate Section (conditional - only if has estimate)
             if let estimate = task.effectiveEstimate {
                 EstimateSection(
-                    estimate: estimate,
+                    estimate: estimate / 60,  // Convert seconds to minutes for display
                     actualTime: displayedTotalTime,
                     progress: liveTimeProgress,
                     status: liveEstimateStatus,
