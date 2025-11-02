@@ -226,9 +226,9 @@ struct TaskRowView: View {
                 }
             )
         }
-        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             // Update current time when any timer is active
-            // 30-second refresh for list view
+            // 1-second refresh for accurate badge countdown
             if calculations.hasAnyTimerRunning {
                 currentTime = Date()
             }

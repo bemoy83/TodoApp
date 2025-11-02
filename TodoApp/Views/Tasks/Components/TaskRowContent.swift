@@ -63,17 +63,17 @@ struct TaskRowMetadataSection: View {
                             isCompleted: task.isCompleted,
                             isInherited: isDueDateInherited,
                             estimatedSeconds: task.effectiveEstimate,
-                            hasActiveTimer: task.hasActiveTimer
+                            hasActiveTimer: calculations.hasAnyTimerRunning
                         )
                     }
-                    
+
                     // Time estimate badge (auto-switches to countdown mode at 90%+)
                     if let estimate = task.effectiveEstimate {
                         TimeEstimateBadge(
                             actual: calculations.totalTimeSpent * 60, // Convert minutes to seconds
                             estimated: estimate,
                             isCalculated: task.isUsingCalculatedEstimate,
-                            hasActiveTimer: task.hasActiveTimer
+                            hasActiveTimer: calculations.hasAnyTimerRunning
                         )
                     }
                 }
