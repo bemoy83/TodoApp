@@ -241,7 +241,7 @@ private struct EstimateSectionRefactored: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Time Estimate")
-                .font(.caption)
+                .font(.body)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
@@ -297,7 +297,7 @@ private struct TotalTimeSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Total Time")
-                .font(.caption)
+                .font(.body)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 

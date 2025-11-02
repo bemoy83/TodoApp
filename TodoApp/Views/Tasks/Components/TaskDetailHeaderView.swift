@@ -214,12 +214,14 @@ private struct StatusSection: View {
                         Text(task.status.displayName)
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.primary)
-                        
-                        Text(task.isCompleted ? "Tap to mark incomplete" : "Tap to complete")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(statusColor)
                     }
+                    
+                    Spacer()
+                    
+                    Text(task.isCompleted ? "Tap to mark incomplete" : "Tap to complete")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(DesignSystem.Spacing.sm)
             }
@@ -308,7 +310,7 @@ private struct DateRow: View {
             Spacer()
             
             Text(date.formatted(date: .abbreviated, time: .omitted))
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.primary)
             
             /*if isActionable {
