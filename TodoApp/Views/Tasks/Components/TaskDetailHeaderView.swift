@@ -49,7 +49,7 @@ struct TaskDetailHeaderView: View {
                 NavigationLink(destination: TaskDetailView(task: parent)) {
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                         Text("Subtask of")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .textCase(.uppercase)
 
@@ -66,9 +66,9 @@ struct TaskDetailHeaderView: View {
 
                             Spacer()
 
-                            Image(systemName: "chevron.right")
+                            /*Image(systemName: "chevron.right")
                                 .font(.body)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(.tertiary)*/
                         }
                     }
                     .padding(.horizontal)
