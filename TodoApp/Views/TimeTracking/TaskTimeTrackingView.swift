@@ -241,7 +241,7 @@ private struct EstimateSectionRefactored: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Time Estimate")
-                .font(.body)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
@@ -297,7 +297,7 @@ private struct TotalTimeSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Total Time")
-                .font(.body)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
@@ -337,23 +337,11 @@ private struct ActiveSessionSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Current Session")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
             
             VStack(spacing: DesignSystem.Spacing.sm) {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(.red)
-                        .frame(width: 8, height: 8)
-                        .opacity(pulseOpacity)
-
-                    Text("Recording")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
                 // Stopwatch display
                 Text(formatStopwatch(sessionSeconds))
                     .font(.system(size: 34, weight: .medium, design: .monospaced))

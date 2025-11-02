@@ -312,12 +312,6 @@ private struct DateRow: View {
             Text(date.formatted(date: .abbreviated, time: .omitted))
                 .font(.subheadline)
                 .foregroundStyle(.primary)
-            
-            /*if isActionable {
-                Image(systemName: "chevron.right")
-                    .font(.subheadline)
-                    .foregroundStyle(.tertiary)
-            }*/
         }
         .padding(.vertical, 2)
     }
