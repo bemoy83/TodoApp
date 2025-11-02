@@ -65,21 +65,14 @@ struct TaskRowMetadataSection: View {
                         )
                     }
                     
-                    // Time estimate badge or remaining time badge
+                    // Time estimate badge (auto-switches to countdown mode at 90%+)
                     if let estimate = task.effectiveEstimate {
-                        if calculations.shouldShowTimeProgress {
-                            RemainingTimeBadge(
-                                remaining: calculations.liveTimeRemaining ?? 0,
-                                status: calculations.liveEstimateStatus ?? .onTrack
-                            )
-                        } else {
-                            TimeEstimateBadge(
-                                actual: calculations.totalTimeSpent,
-                                estimated: estimate,
-                                isCalculated: task.isUsingCalculatedEstimate,
-                                hasActiveTimer: task.hasActiveTimer
-                            )
-                        }
+                        TimeEstimateBadge(
+                            actual: calculations.totalTimeSpent * 60, // Convert minutes to seconds
+                            estimated: estimate,
+                            isCalculated: task.isUsingCalculatedEstimate,
+                            hasActiveTimer: task.hasActiveTimer
+                        )
                     }
                 }
             }

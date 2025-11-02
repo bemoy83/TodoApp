@@ -20,29 +20,29 @@ struct TimeEstimateBadge: View {
     let estimated: Int
     let isCalculated: Bool
     let hasActiveTimer: Bool
-    
+
     init(actual: Int, estimated: Int, isCalculated: Bool = false, hasActiveTimer: Bool = false) {
         self.actual = actual
         self.estimated = estimated
         self.isCalculated = isCalculated
         self.hasActiveTimer = hasActiveTimer
     }
-    
+
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: hasActiveTimer ? "timer" : "target")
+            Image(systemName: iconName)
                 .font(.caption2)
                 .symbolEffect(.pulse, options: .repeat(.continuous), isActive: hasActiveTimer)
 
-            Text("\(actual.formattedTime()) / \(estimated.formattedTime())")
+            Text(displayText)
                 .font(.caption)
                 .monospacedDigit()
-            
-            if let status = estimateStatus {
+
+            if shouldShowStatusIcon, let status = estimateStatus {
                 Image(systemName: status.icon)
                     .font(.caption2)
             }
-            
+
             if isCalculated {
                 Image(systemName: "arrow.triangle.branch")
                     .font(.caption2)
@@ -50,6 +50,55 @@ struct TimeEstimateBadge: View {
             }
         }
         .foregroundStyle(badgeColor)
+    }
+
+    // MARK: - Display Mode Logic
+
+    /// Show countdown/over format when approaching or exceeding estimate
+    private var shouldShowCountdownMode: Bool {
+        progress >= 0.90
+    }
+
+    /// Show status icon only in normal mode (countdown mode uses different icon)
+    private var shouldShowStatusIcon: Bool {
+        !shouldShowCountdownMode
+    }
+
+    private var iconName: String {
+        if shouldShowCountdownMode {
+            return remaining >= 0 ? "clock" : "exclamationmark.triangle.fill"
+        } else {
+            return hasActiveTimer ? "timer" : "target"
+        }
+    }
+
+    private var displayText: String {
+        if shouldShowCountdownMode {
+            return formatCountdown()
+        } else {
+            return "\(actual.formattedTime()) / \(estimated.formattedTime())"
+        }
+    }
+
+    private var remaining: Int {
+        let actualMinutes = actual / 60
+        let estimatedMinutes = estimated / 60
+        return estimatedMinutes - actualMinutes
+    }
+
+    private func formatCountdown() -> String {
+        let absRemaining = abs(remaining)
+        let hours = absRemaining / 60
+        let mins = absRemaining % 60
+
+        var timeStr: String
+        if hours > 0 {
+            timeStr = mins > 0 ? "\(hours)h \(mins)m" : "\(hours)h"
+        } else {
+            timeStr = "\(mins)m"
+        }
+
+        return remaining >= 0 ? "\(timeStr) left" : "\(timeStr) over"
     }
     
     private var progress: Double {
@@ -68,9 +117,14 @@ struct TimeEstimateBadge: View {
     }
     
     private var badgeColor: Color {
+        if shouldShowCountdownMode {
+            return remaining >= 0 ? (estimateStatus?.color ?? .secondary) : .red
+        }
+
         if hasActiveTimer {
             return DesignSystem.Colors.timerActive
         }
+
         return estimateStatus?.color ?? .secondary
     }
 }
