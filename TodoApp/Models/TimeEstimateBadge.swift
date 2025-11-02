@@ -54,9 +54,10 @@ struct TimeEstimateBadge: View {
 
     // MARK: - Display Mode Logic
 
-    /// Show countdown/over format when approaching or exceeding estimate
+    /// Show countdown/over format only when timer is active and approaching estimate
+    /// After stopping timer or completing task, always show actual/estimated format
     private var shouldShowCountdownMode: Bool {
-        progress >= 0.90
+        progress >= 0.90 && hasActiveTimer
     }
 
     /// Show status icon only in normal mode (countdown mode uses different icon)
