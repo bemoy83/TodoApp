@@ -29,21 +29,32 @@ struct DueDateBadge: View {
     let date: Date
     let isCompleted: Bool
     let isInherited: Bool
-    
-    init(date: Date, isCompleted: Bool, isInherited: Bool = false) {
+    let estimatedSeconds: Int?
+    let hasActiveTimer: Bool
+
+    init(
+        date: Date,
+        isCompleted: Bool,
+        isInherited: Bool = false,
+        estimatedSeconds: Int? = nil,
+        hasActiveTimer: Bool = false
+    ) {
         self.date = date
         self.isCompleted = isCompleted
         self.isInherited = isInherited
+        self.estimatedSeconds = estimatedSeconds
+        self.hasActiveTimer = hasActiveTimer
     }
-    
+
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: isInherited ? "calendar.badge.clock" : "calendar")
+            Image(systemName: iconName)
                 .font(.caption2)
-            Text(formattedDate)
+
+            Text(displayText)
                 .font(.caption)
-            
-            if isInherited {
+
+            if isInherited && !shouldShowCountdown {
                 Text("(inherited)")
                     .font(.caption2)
                     .italic()
@@ -51,20 +62,84 @@ struct DueDateBadge: View {
         }
         .foregroundStyle(badgeColor)
     }
-    
-    private var formattedDate: String {
-        date.smartFormatted
+
+    // MARK: - Smart Threshold Logic
+
+    /// Calculate smart threshold based on task estimate
+    /// - With estimate: 1.5x estimated time, minimum 2 hours
+    /// - Without estimate: 6 hours default
+    private var countdownThresholdSeconds: TimeInterval {
+        if let estimate = estimatedSeconds {
+            let estimateHours = Double(estimate) / 3600.0
+            let thresholdHours = max(estimateHours * 1.5, 2.0)
+            return thresholdHours * 3600.0
+        } else {
+            return 6.0 * 3600.0  // 6 hours default
+        }
     }
-    
+
+    /// Seconds remaining until due date
+    private var secondsRemaining: TimeInterval {
+        date.timeIntervalSince(Date())
+    }
+
+    /// Show countdown when: (1) within threshold OR (2) timer is active
+    private var shouldShowCountdown: Bool {
+        if isCompleted { return false }
+        if hasActiveTimer { return true }  // Always show when timer active
+        return secondsRemaining <= countdownThresholdSeconds && secondsRemaining > -Double.infinity
+    }
+
+    private var isOverdue: Bool {
+        secondsRemaining < 0
+    }
+
+    // MARK: - Display Logic
+
+    private var iconName: String {
+        if isCompleted {
+            return "checkmark.circle.fill"
+        } else if shouldShowCountdown {
+            return isOverdue ? "exclamationmark.triangle.fill" : "clock"
+        } else {
+            return isInherited ? "calendar.badge.clock" : "calendar"
+        }
+    }
+
+    private var displayText: String {
+        if shouldShowCountdown {
+            return formatCountdown()
+        } else {
+            return date.smartFormatted
+        }
+    }
+
+    private func formatCountdown() -> String {
+        let absSeconds = abs(Int(secondsRemaining))
+        let hours = absSeconds / 3600
+        let minutes = (absSeconds % 3600) / 60
+
+        var timeStr: String
+        if hours > 0 {
+            timeStr = minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
+        } else {
+            timeStr = "\(minutes)m"
+        }
+
+        return isOverdue ? "\(timeStr) overdue" : "\(timeStr) left"
+    }
+
     private var badgeColor: Color {
         if isCompleted {
             return .secondary
         }
-        
-        if date < Date() {
-            return .red  // Overdue
+
+        if isOverdue {
+            return .red  // Overdue - urgent
+        } else if shouldShowCountdown {
+            return .orange  // Countdown mode - approaching deadline
         } else if Calendar.current.isDateInToday(date) {
-            return .orange  // Due today
+            return .orange  // Due today (but not in countdown threshold yet)
         } else {
             return .secondary
         }
