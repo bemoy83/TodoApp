@@ -46,7 +46,7 @@ struct TimeProgressBar: View {
                 .font(percentageFont)
                 .foregroundStyle(status?.color ?? .secondary)
                 .monospacedDigit()
-                .frame(width: 32, alignment: .trailing)
+                .frame(width: 40, alignment: .trailing)
         }
     }
 
