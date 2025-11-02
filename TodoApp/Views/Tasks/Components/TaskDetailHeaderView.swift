@@ -307,7 +307,7 @@ private struct DateRow: View {
             
             Spacer()
             
-            Text(date.formatted(date: .abbreviated, time: .shortened))
+            Text(date.formatted(date: .abbreviated, time: .omitted))
                 .font(.caption)
                 .foregroundStyle(.primary)
             
