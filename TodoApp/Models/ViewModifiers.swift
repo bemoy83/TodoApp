@@ -32,7 +32,6 @@ struct DetailCardModifier: ViewModifier {
             .background(Color(DesignSystem.Colors.secondaryGroupedBackground))
             .cornerRadius(DesignSystem.CornerRadius.xl)
             .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
-            .padding(.horizontal)
     }
 }
 
