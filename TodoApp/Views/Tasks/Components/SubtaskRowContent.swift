@@ -74,24 +74,13 @@ struct SubtaskRowContent: View {
                         HStack(spacing: 2) {
                             Image(systemName: "clock")
                                 .font(.caption2)
-                            Text(formatMinutes(subtask.totalTimeSpent))
+                            Text(subtask.totalTimeSpent.formattedTime())
                                 .font(.caption2)
                         }
                         .foregroundStyle(.secondary)
                     }
                 }
             }
-        }
-    }
-    
-    private func formatMinutes(_ seconds: Int) -> String {
-        let totalMinutes = seconds / 60
-        let hours = totalMinutes / 60
-        let mins = totalMinutes % 60
-        if hours > 0 {
-            return mins > 0 ? "\(hours)h \(mins)m" : "\(hours)h"
-        } else {
-            return "\(mins)m"
         }
     }
 }

@@ -78,7 +78,7 @@ struct ProjectHeaderView: View {
                                 label: "Done",
                                 color: DesignSystem.Colors.success)
                 ProjectStatCard(icon: "clock.fill",
-                                value: formatMinutes(totalTimeSpent),
+                                value: totalTimeSpent.formattedTime(),
                                 label: "Time",
                                 color: DesignSystem.Colors.warning)
                 ProjectStatCard(icon: "timer",
@@ -89,12 +89,5 @@ struct ProjectHeaderView: View {
             .padding(.horizontal, DesignSystem.Spacing.lg)
         }
         .padding(.vertical, DesignSystem.Spacing.xl)
-    }
-
-    // MARK: - Local helper
-    private func formatMinutes(_ minutes: Int) -> String {
-        let hours = minutes / 60
-        let mins = minutes % 60
-        return hours > 0 ? (mins > 0 ? "\(hours)h \(mins)m" : "\(hours)h") : "\(mins)m"
     }
 }
