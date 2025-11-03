@@ -149,6 +149,44 @@ extension TaskActionAlert {
             ]
         )
     }
+
+    /// Confirm completing parent task with incomplete subtasks.
+    static func confirmCompleteWithSubtasks(
+        task: Task,
+        incompleteCount: Int,
+        onConfirm: @escaping () -> Void
+    ) -> TaskActionAlert {
+        let message = "This will also complete \(incompleteCount) incomplete subtask\(incompleteCount == 1 ? "" : "s")."
+
+        return TaskActionAlert(
+            title: "Complete Task?",
+            message: message,
+            actions: [
+                AlertAction(title: "Cancel", role: .cancel, action: {}),
+                AlertAction(title: "Complete All", role: .none, action: onConfirm)
+            ]
+        )
+    }
+
+    /// Confirm uncompleting parent task with completed subtasks.
+    static func confirmUncompleteWithSubtasks(
+        task: Task,
+        completedCount: Int,
+        onUncompleteAll: @escaping () -> Void,
+        onUncompleteParentOnly: @escaping () -> Void
+    ) -> TaskActionAlert {
+        let message = "This task has \(completedCount) completed subtask\(completedCount == 1 ? "" : "s"). What would you like to do?"
+
+        return TaskActionAlert(
+            title: "Uncomplete Task?",
+            message: message,
+            actions: [
+                AlertAction(title: "Cancel", role: .cancel, action: {}),
+                AlertAction(title: "Just Parent", role: .none, action: onUncompleteParentOnly),
+                AlertAction(title: "Uncomplete All", role: .none, action: onUncompleteAll)
+            ]
+        )
+    }
 }
 
 // MARK: - Optional: Map Executor Errors → Alerts

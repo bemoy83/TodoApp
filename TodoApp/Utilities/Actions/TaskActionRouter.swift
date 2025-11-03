@@ -38,20 +38,70 @@ extension TaskActionRouter {
         do {
             switch action {
             case .complete:
-                do {
-                    try TaskActionExecutor.complete(task, force: false)
-                } catch TaskActionExecError.taskBlocked {
-                    // Show blocking alert with a destructive "Force" that completes anyway.
-                    let alert = TaskActionAlert.blockedTask(task: task, actionName: "complete") {
-                        _ = try? TaskActionExecutor.complete(task, force: true)
-                        if context.hapticsEnabled { HapticManager.success() }
+                // Check for incomplete subtasks
+                let incompleteCount = TaskActionExecutor.countIncompleteSubtasks(task)
+
+                if incompleteCount > 0 {
+                    // Show warning about completing subtasks
+                    let alert = TaskActionAlert.confirmCompleteWithSubtasks(
+                        task: task,
+                        incompleteCount: incompleteCount
+                    ) {
+                        do {
+                            try TaskActionExecutor.completeWithSubtasks(task, force: false)
+                            if context.hapticsEnabled { HapticManager.success() }
+                        } catch TaskActionExecError.taskBlocked {
+                            // If blocked, show force option
+                            let blockAlert = TaskActionAlert.blockedTask(task: task, actionName: "complete") {
+                                _ = try? TaskActionExecutor.completeWithSubtasks(task, force: true)
+                                if context.hapticsEnabled { HapticManager.success() }
+                            }
+                            presentAlert(blockAlert)
+                        } catch {
+                            // Unexpected error
+                        }
                     }
                     presentAlert(alert)
                     return .success(())
+                } else {
+                    // No incomplete subtasks, complete normally
+                    do {
+                        try TaskActionExecutor.complete(task, force: false)
+                    } catch TaskActionExecError.taskBlocked {
+                        // Show blocking alert with a destructive "Force" that completes anyway.
+                        let alert = TaskActionAlert.blockedTask(task: task, actionName: "complete") {
+                            _ = try? TaskActionExecutor.complete(task, force: true)
+                            if context.hapticsEnabled { HapticManager.success() }
+                        }
+                        presentAlert(alert)
+                        return .success(())
+                    }
                 }
 
             case .uncomplete:
-                TaskActionExecutor.uncomplete(task)
+                // Check for completed subtasks
+                let completedCount = TaskActionExecutor.countCompletedSubtasks(task)
+
+                if completedCount > 0 {
+                    // Show alert with options
+                    let alert = TaskActionAlert.confirmUncompleteWithSubtasks(
+                        task: task,
+                        completedCount: completedCount,
+                        onUncompleteAll: {
+                            TaskActionExecutor.uncompleteWithSubtasks(task)
+                            if context.hapticsEnabled { HapticManager.light() }
+                        },
+                        onUncompleteParentOnly: {
+                            TaskActionExecutor.uncomplete(task)
+                            if context.hapticsEnabled { HapticManager.light() }
+                        }
+                    )
+                    presentAlert(alert)
+                    return .success(())
+                } else {
+                    // No completed subtasks, uncomplete normally
+                    TaskActionExecutor.uncomplete(task)
+                }
 
             case .startTimer:
                 do {
