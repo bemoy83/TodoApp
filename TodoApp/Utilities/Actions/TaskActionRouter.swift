@@ -52,48 +52,51 @@ extension TaskActionRouter {
                     }
                 }
 
-                // Check for incomplete subtasks
+                // Check state: incomplete subtasks and blocking status
                 let incompleteCount = TaskActionExecutor.countIncompleteSubtasks(task)
+                let isBlocked = !task.canComplete
 
-                if incompleteCount > 0 {
-                    // Show warning about completing subtasks
+                // Route to appropriate alert based on state
+                if isBlocked && incompleteCount > 0 {
+                    // Blocked AND has subtasks: show combined alert
+                    let alert = TaskActionAlert.blockedTaskWithSubtasks(
+                        task: task,
+                        incompleteCount: incompleteCount
+                    ) {
+                        _ = try? TaskActionExecutor.completeWithSubtasks(task, force: true)
+                        if context.hapticsEnabled { HapticManager.success() }
+                        checkParentCompletion()
+                    }
+                    presentAlert(alert)
+                    return .success(())
+
+                } else if isBlocked {
+                    // Only blocked: show blocking alert
+                    let alert = TaskActionAlert.blockedTask(task: task, actionName: "complete") {
+                        _ = try? TaskActionExecutor.complete(task, force: true)
+                        if context.hapticsEnabled { HapticManager.success() }
+                        checkParentCompletion()
+                    }
+                    presentAlert(alert)
+                    return .success(())
+
+                } else if incompleteCount > 0 {
+                    // Only has subtasks: show subtask warning
                     let alert = TaskActionAlert.confirmCompleteWithSubtasks(
                         task: task,
                         incompleteCount: incompleteCount
                     ) {
-                        do {
-                            try TaskActionExecutor.completeWithSubtasks(task, force: false)
-                            if context.hapticsEnabled { HapticManager.success() }
-                            checkParentCompletion()
-                        } catch TaskActionExecError.taskBlocked {
-                            // If blocked, show force option
-                            let blockAlert = TaskActionAlert.blockedTask(task: task, actionName: "complete") {
-                                _ = try? TaskActionExecutor.completeWithSubtasks(task, force: true)
-                                if context.hapticsEnabled { HapticManager.success() }
-                                checkParentCompletion()
-                            }
-                            presentAlert(blockAlert)
-                        } catch {
-                            // Unexpected error
-                        }
+                        _ = try? TaskActionExecutor.completeWithSubtasks(task, force: false)
+                        if context.hapticsEnabled { HapticManager.success() }
+                        checkParentCompletion()
                     }
                     presentAlert(alert)
                     return .success(())
+
                 } else {
-                    // No incomplete subtasks, complete normally
-                    do {
-                        try TaskActionExecutor.complete(task, force: false)
-                        checkParentCompletion()
-                    } catch TaskActionExecError.taskBlocked {
-                        // Show blocking alert with a destructive "Force" that completes anyway.
-                        let alert = TaskActionAlert.blockedTask(task: task, actionName: "complete") {
-                            _ = try? TaskActionExecutor.complete(task, force: true)
-                            if context.hapticsEnabled { HapticManager.success() }
-                            checkParentCompletion()
-                        }
-                        presentAlert(alert)
-                        return .success(())
-                    }
+                    // Neither blocked nor has subtasks: complete normally
+                    try TaskActionExecutor.complete(task, force: false)
+                    checkParentCompletion()
                 }
 
             case .uncomplete:

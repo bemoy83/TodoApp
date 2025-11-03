@@ -204,6 +204,35 @@ extension TaskActionAlert {
             ]
         )
     }
+
+    /// Alert when a blocked task also has incomplete subtasks.
+    static func blockedTaskWithSubtasks(
+        task: Task,
+        incompleteCount: Int,
+        onForceCompleteAll: @escaping () -> Void
+    ) -> TaskActionAlert {
+        let deps = task.blockingDependencies
+        var message = "This task is blocked and has \(incompleteCount) incomplete subtask\(incompleteCount == 1 ? "" : "s")."
+
+        if !deps.isEmpty {
+            if deps.count == 1 {
+                message += "\n\nBlocked by:\n• \(deps[0].title)"
+            } else {
+                let names = deps.prefix(3).map { $0.title }.joined(separator: "\n• ")
+                let more = deps.count > 3 ? "\n• ... and \(deps.count - 3) more" : ""
+                message += "\n\nBlocked by:\n• \(names)\(more)"
+            }
+        }
+
+        return TaskActionAlert(
+            title: "Task Blocked",
+            message: message,
+            actions: [
+                AlertAction(title: "Cancel", role: .cancel, action: {}),
+                AlertAction(title: "Force Complete All", role: .destructive, action: onForceCompleteAll)
+            ]
+        )
+    }
 }
 
 // MARK: - Optional: Map Executor Errors → Alerts
