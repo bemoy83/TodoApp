@@ -83,6 +83,14 @@ enum TaskActionExecutor {
         }
         return count
     }
+
+    /// Check if all direct subtasks of a task are complete.
+    static func areAllSubtasksComplete(_ task: Task) -> Bool {
+        guard let subtasks = task.subtasks, !subtasks.isEmpty else {
+            return false // No subtasks means not applicable
+        }
+        return subtasks.allSatisfy { $0.isCompleted }
+    }
     
     // MARK: - Timer
     

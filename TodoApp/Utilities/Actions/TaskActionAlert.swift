@@ -187,6 +187,23 @@ extension TaskActionAlert {
             ]
         )
     }
+
+    /// Confirm completing parent task after all subtasks are complete.
+    static func confirmCompleteParent(
+        parentTask: Task,
+        onConfirm: @escaping () -> Void
+    ) -> TaskActionAlert {
+        let message = "All subtasks are now complete. Would you like to also complete \"\(parentTask.title)\"?"
+
+        return TaskActionAlert(
+            title: "Complete Parent Task?",
+            message: message,
+            actions: [
+                AlertAction(title: "Not Now", role: .cancel, action: {}),
+                AlertAction(title: "Complete Parent", role: .none, action: onConfirm)
+            ]
+        )
+    }
 }
 
 // MARK: - Optional: Map Executor Errors → Alerts
