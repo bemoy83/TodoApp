@@ -52,7 +52,7 @@ struct TaskTimeTrackingView: View {
 
             // Timer Button (always shown)
             TimerButton(
-                isActive: hasAnyTimerRunning,
+                isActive: task.hasActiveTimer,
                 isBlocked: task.status == .blocked,
                 action: toggleTimer
             )
