@@ -70,7 +70,7 @@ struct TaskRowMetadataSection: View {
                     // Time estimate badge (auto-switches to countdown mode at 90%+)
                     if let estimate = task.effectiveEstimate {
                         TimeEstimateBadge(
-                            actual: calculations.totalTimeSpent * 60, // Convert minutes to seconds
+                            actual: calculations.totalTimeSpentSeconds,
                             estimated: estimate,
                             isCalculated: task.isUsingCalculatedEstimate,
                             hasActiveTimer: calculations.hasAnyTimerRunning

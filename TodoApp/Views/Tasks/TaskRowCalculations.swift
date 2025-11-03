@@ -32,63 +32,65 @@ struct TaskRowCalculations {
     
     // MARK: - Time Calculations
 
-    /// Total time spent including live sessions (parent + all subtasks recursively)
-    /// Returns time in MINUTES for display
-    var totalTimeSpent: Int {
-        var total = task.directTimeSpent / 60  // Convert seconds to minutes for display
+    /// Total time spent in SECONDS (accurate for progress calculations)
+    var totalTimeSpentSeconds: Int {
+        var total = task.directTimeSpent  // Already in seconds
 
         // Add live session if main task timer is running
         if task.hasActiveTimer {
-            total += currentSessionMinutes
+            total += currentSessionSeconds
         }
 
         // Add time from subtasks (recursive, includes their live sessions)
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         for subtask in subtasks {
-            total += computeTotalTime(for: subtask)
+            total += computeTotalTimeSeconds(for: subtask)
         }
 
-        return max(0, total) // Ensure non-negative
+        return max(0, total)
     }
-    
-    /// Current session minutes for main task
-    private var currentSessionMinutes: Int {
+
+    /// Total time spent in MINUTES for display (backward compatibility)
+    var totalTimeSpent: Int {
+        totalTimeSpentSeconds / 60
+    }
+
+    /// Current session seconds for main task
+    private var currentSessionSeconds: Int {
         guard task.hasActiveTimer,
               let activeEntry = task.timeEntries?.first(where: { $0.endTime == nil }) else {
             return 0
         }
         let elapsed = currentTime.timeIntervalSince(activeEntry.startTime)
-        return max(0, Int(elapsed / 60))
+        return max(0, Int(elapsed))
     }
-    
-    /// Recursive helper to compute total time including live sessions
-    /// Returns time in MINUTES
-    private func computeTotalTime(for task: Task) -> Int {
-        var total = task.directTimeSpent / 60  // Convert seconds to minutes
+
+    /// Recursive helper to compute total time including live sessions in SECONDS
+    private func computeTotalTimeSeconds(for task: Task) -> Int {
+        var total = task.directTimeSpent  // Already in seconds
 
         // Add live session for this specific task
         if task.hasActiveTimer {
             if let activeEntry = task.timeEntries?.first(where: { $0.endTime == nil }) {
                 let elapsed = currentTime.timeIntervalSince(activeEntry.startTime)
-                let minutes = Int(elapsed / 60)
-                total += max(0, minutes)
+                total += max(0, Int(elapsed))
             }
         }
 
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         for subtask in subtasks {
-            total += computeTotalTime(for: subtask)
+            total += computeTotalTimeSeconds(for: subtask)
         }
         return max(0, total)
     }
     
     // MARK: - Time Estimate Progress
-    
+
     /// Live time progress calculation (includes running timers)
+    /// Now uses seconds for precision (matches TaskTimeTrackingView)
     var liveTimeProgress: Double? {
         guard let estimate = task.effectiveEstimate, estimate > 0 else { return nil }
-        let estimateMinutes = estimate / 60  // Convert seconds to minutes
-        return Double(totalTimeSpent) / Double(estimateMinutes)
+        return Double(totalTimeSpentSeconds) / Double(estimate)  // seconds / seconds
     }
     
     /// Live estimate status (includes running timers)
@@ -107,10 +109,8 @@ struct TaskRowCalculations {
     /// Live remaining time (includes running timers) - in minutes
     var liveTimeRemaining: Int? {
         guard let estimate = task.effectiveEstimate else { return nil }
-        let estimateMinutes = estimate / 60  // Convert seconds to minutes
-        let spentMinutes = totalTimeSpent
-        let remainingMinutes = estimateMinutes - spentMinutes
-        return remainingMinutes
+        let remainingSeconds = estimate - totalTimeSpentSeconds  // seconds - seconds
+        return remainingSeconds / 60  // Convert to minutes for display
     }
     
     // MARK: - Timer Status

@@ -39,7 +39,7 @@ struct SettingsView: View {
     }
     
     private var totalTimeTracked: Int {
-        tasks.reduce(0) { $0 + $1.totalTimeSpent }
+        tasks.reduce(0) { $0 + $1.directTimeSpent }
     }
     
     // Check if any tasks or projects need order fixing

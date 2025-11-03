@@ -31,45 +31,41 @@ struct TaskTimeTrackingView: View {
                     progress: liveTimeProgress,
                     status: liveEstimateStatus,
                     isCalculated: task.isUsingCalculatedEstimate,
-                    hasActiveTimer: task.hasActiveTimer
+                    hasActiveTimer: hasAnyTimerRunning
                 )
             }
-            
+
             // Total Time Section (always shown)
             TotalTimeSection(
                 totalTimeSeconds: displayedTotalTimeSeconds,
                 directTimeSeconds: displayedDirectTimeSeconds,
                 hasSubtaskTime: task.directTimeSpent > 0 && displayedTotalTimeSeconds != displayedDirectTimeSeconds
             )
-            
+
             // Active Session (conditional - only if timer running)
-            if task.hasActiveTimer {
+            if hasAnyTimerRunning {
                 ActiveSessionSection(
                     sessionSeconds: currentSessionSeconds,
                     pulseOpacity: timerPulseOpacity
                 )
             }
-            
+
             // Timer Button (always shown)
             TimerButton(
                 isActive: task.hasActiveTimer,
                 isBlocked: task.status == .blocked,
                 action: toggleTimer
             )
-            
+
             // Blocked Warning (conditional - only if blocked and not running)
-            if task.status == .blocked && !task.hasActiveTimer {
+            if task.status == .blocked && !hasAnyTimerRunning {
                 BlockedWarning()
             }
         }
         .detailCardStyle()
         .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
-            if task.hasActiveTimer {
-                currentTime = Date()
-            }
-        }
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
-            if hasAnySubtaskTimerRunning {
+            // Fast update for smooth countdown when any timer is running
+            if hasAnyTimerRunning {
                 currentTime = Date()
             }
         }
@@ -122,11 +118,21 @@ struct TaskTimeTrackingView: View {
         return max(0, total)
     }
     
+    // MARK: - Timer Status
+
+    /// Check if task or any subtask has active timer (includes parent + all subtasks)
+    private var hasAnyTimerRunning: Bool {
+        if task.hasActiveTimer {
+            return true
+        }
+        return hasAnySubtaskTimerRunning
+    }
+
     private var hasAnySubtaskTimerRunning: Bool {
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         return checkSubtasksForTimer(in: subtasks)
     }
-    
+
     private func checkSubtasksForTimer(in subtasks: [Task]) -> Bool {
         for subtask in subtasks {
             if subtask.hasActiveTimer {
