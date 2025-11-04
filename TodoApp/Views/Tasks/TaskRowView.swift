@@ -179,17 +179,6 @@ struct TaskRowView: View {
             isEnabled: !isEditingList,
             onEdit: { showingEditSheet = true },
             onMore: { showingMoreSheet = true },
-            onAddSubtask: {
-                let draft = Task(
-                    title: "",
-                    priority: task.priority,
-                    createdDate: Date(),
-                    parentTask: task,
-                    project: task.project
-                )
-                self.draftSubtask = draft
-                self.showingAddSubtaskSheet = true
-            },
             alert: $currentAlert
         )
         .rowSwipeActions(
