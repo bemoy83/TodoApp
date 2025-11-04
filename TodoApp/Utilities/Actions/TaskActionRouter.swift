@@ -38,20 +38,91 @@ extension TaskActionRouter {
         do {
             switch action {
             case .complete:
-                do {
-                    try TaskActionExecutor.complete(task, force: false)
-                } catch TaskActionExecError.taskBlocked {
-                    // Show blocking alert with a destructive "Force" that completes anyway.
-                    let alert = TaskActionAlert.blockedTask(task: task, actionName: "complete") {
-                        _ = try? TaskActionExecutor.complete(task, force: true)
+                // Helper to check if we should offer to complete parent after subtask completion
+                let checkParentCompletion: () -> Void = {
+                    // Check if this is a subtask and if parent should be offered for completion
+                    if let parent = task.parentTask,
+                       !parent.isCompleted,
+                       TaskActionExecutor.areAllSubtasksComplete(parent) {
+                        let parentAlert = TaskActionAlert.confirmCompleteParent(parentTask: parent) {
+                            _ = try? TaskActionExecutor.complete(parent, force: false)
+                            if context.hapticsEnabled { HapticManager.success() }
+                        }
+                        presentAlert(parentAlert)
+                    }
+                }
+
+                // Check state: incomplete subtasks and blocking status
+                let incompleteCount = TaskActionExecutor.countIncompleteSubtasks(task)
+                let isBlocked = !task.canComplete
+
+                // Route to appropriate alert based on state
+                if isBlocked && incompleteCount > 0 {
+                    // Blocked AND has subtasks: show combined alert
+                    let alert = TaskActionAlert.blockedTaskWithSubtasks(
+                        task: task,
+                        incompleteCount: incompleteCount
+                    ) {
+                        _ = try? TaskActionExecutor.completeWithSubtasks(task, force: true)
                         if context.hapticsEnabled { HapticManager.success() }
+                        checkParentCompletion()
                     }
                     presentAlert(alert)
                     return .success(())
+
+                } else if isBlocked {
+                    // Only blocked: show blocking alert
+                    let alert = TaskActionAlert.blockedTask(task: task, actionName: "complete") {
+                        _ = try? TaskActionExecutor.complete(task, force: true)
+                        if context.hapticsEnabled { HapticManager.success() }
+                        checkParentCompletion()
+                    }
+                    presentAlert(alert)
+                    return .success(())
+
+                } else if incompleteCount > 0 {
+                    // Only has subtasks: show subtask warning
+                    let alert = TaskActionAlert.confirmCompleteWithSubtasks(
+                        task: task,
+                        incompleteCount: incompleteCount
+                    ) {
+                        _ = try? TaskActionExecutor.completeWithSubtasks(task, force: false)
+                        if context.hapticsEnabled { HapticManager.success() }
+                        checkParentCompletion()
+                    }
+                    presentAlert(alert)
+                    return .success(())
+
+                } else {
+                    // Neither blocked nor has subtasks: complete normally
+                    try TaskActionExecutor.complete(task, force: false)
+                    checkParentCompletion()
                 }
 
             case .uncomplete:
-                TaskActionExecutor.uncomplete(task)
+                // Check for completed subtasks
+                let completedCount = TaskActionExecutor.countCompletedSubtasks(task)
+
+                if completedCount > 0 {
+                    // Show alert with options
+                    let alert = TaskActionAlert.confirmUncompleteWithSubtasks(
+                        task: task,
+                        completedCount: completedCount,
+                        onUncompleteAll: {
+                            TaskActionExecutor.uncompleteWithSubtasks(task)
+                            if context.hapticsEnabled { HapticManager.light() }
+                        },
+                        onUncompleteParentOnly: {
+                            TaskActionExecutor.uncomplete(task)
+                            if context.hapticsEnabled { HapticManager.light() }
+                        }
+                    )
+                    presentAlert(alert)
+                    return .success(())
+                } else {
+                    // No completed subtasks, uncomplete normally
+                    TaskActionExecutor.uncomplete(task)
+                }
 
             case .startTimer:
                 do {

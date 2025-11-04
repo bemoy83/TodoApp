@@ -25,6 +25,72 @@ enum TaskActionExecutor {
     static func uncomplete(_ task: Task) {
         task.completedDate = nil
     }
+
+    /// Complete a task and all its incomplete subtasks recursively.
+    /// - Parameters:
+    ///   - task: Task to complete
+    ///   - force: If true, bypasses blocking checks
+    /// - Throws: TaskActionExecError.taskBlocked if task is blocked and force == false
+    static func completeWithSubtasks(_ task: Task, force: Bool = false) throws {
+        // Complete the parent task first
+        try complete(task, force: force)
+
+        // Complete all incomplete subtasks recursively
+        if let subtasks = task.subtasks {
+            for subtask in subtasks where !subtask.isCompleted {
+                try? completeWithSubtasks(subtask, force: force)
+            }
+        }
+    }
+
+    /// Uncomplete a task and all its completed subtasks recursively.
+    static func uncompleteWithSubtasks(_ task: Task) {
+        // Uncomplete the parent task
+        uncomplete(task)
+
+        // Uncomplete all completed subtasks recursively
+        if let subtasks = task.subtasks {
+            for subtask in subtasks where subtask.isCompleted {
+                uncompleteWithSubtasks(subtask)
+            }
+        }
+    }
+
+    /// Count incomplete subtasks recursively.
+    static func countIncompleteSubtasks(_ task: Task) -> Int {
+        guard let subtasks = task.subtasks else { return 0 }
+
+        var count = 0
+        for subtask in subtasks {
+            if !subtask.isCompleted {
+                count += 1
+                count += countIncompleteSubtasks(subtask)
+            }
+        }
+        return count
+    }
+
+    /// Count completed subtasks recursively.
+    static func countCompletedSubtasks(_ task: Task) -> Int {
+        guard let subtasks = task.subtasks else { return 0 }
+
+        var count = 0
+        for subtask in subtasks {
+            if subtask.isCompleted {
+                count += 1
+                count += countCompletedSubtasks(subtask)
+            }
+        }
+        return count
+    }
+
+    /// Check if all direct subtasks of a task are complete.
+    static func areAllSubtasksComplete(_ task: Task) -> Bool {
+        guard let subtasks = task.subtasks, !subtasks.isEmpty else {
+            return false // No subtasks means not applicable
+        }
+        return subtasks.allSatisfy { $0.isCompleted }
+    }
     
     // MARK: - Timer
     

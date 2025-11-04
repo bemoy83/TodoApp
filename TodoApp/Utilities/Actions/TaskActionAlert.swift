@@ -149,6 +149,90 @@ extension TaskActionAlert {
             ]
         )
     }
+
+    /// Confirm completing parent task with incomplete subtasks.
+    static func confirmCompleteWithSubtasks(
+        task: Task,
+        incompleteCount: Int,
+        onConfirm: @escaping () -> Void
+    ) -> TaskActionAlert {
+        let message = "This will also complete \(incompleteCount) incomplete subtask\(incompleteCount == 1 ? "" : "s")."
+
+        return TaskActionAlert(
+            title: "Complete Task?",
+            message: message,
+            actions: [
+                AlertAction(title: "Cancel", role: .cancel, action: {}),
+                AlertAction(title: "Complete All", role: .none, action: onConfirm)
+            ]
+        )
+    }
+
+    /// Confirm uncompleting parent task with completed subtasks.
+    static func confirmUncompleteWithSubtasks(
+        task: Task,
+        completedCount: Int,
+        onUncompleteAll: @escaping () -> Void,
+        onUncompleteParentOnly: @escaping () -> Void
+    ) -> TaskActionAlert {
+        let message = "This task has \(completedCount) completed subtask\(completedCount == 1 ? "" : "s"). What would you like to do?"
+
+        return TaskActionAlert(
+            title: "Uncomplete Task?",
+            message: message,
+            actions: [
+                AlertAction(title: "Cancel", role: .cancel, action: {}),
+                AlertAction(title: "Just Parent", role: .none, action: onUncompleteParentOnly),
+                AlertAction(title: "Uncomplete All", role: .none, action: onUncompleteAll)
+            ]
+        )
+    }
+
+    /// Confirm completing parent task after all subtasks are complete.
+    static func confirmCompleteParent(
+        parentTask: Task,
+        onConfirm: @escaping () -> Void
+    ) -> TaskActionAlert {
+        let message = "All subtasks are now complete. Would you like to also complete \"\(parentTask.title)\"?"
+
+        return TaskActionAlert(
+            title: "Complete Parent Task?",
+            message: message,
+            actions: [
+                AlertAction(title: "Not Now", role: .cancel, action: {}),
+                AlertAction(title: "Complete Parent", role: .none, action: onConfirm)
+            ]
+        )
+    }
+
+    /// Alert when a blocked task also has incomplete subtasks.
+    static func blockedTaskWithSubtasks(
+        task: Task,
+        incompleteCount: Int,
+        onForceCompleteAll: @escaping () -> Void
+    ) -> TaskActionAlert {
+        let deps = task.blockingDependencies
+        var message = "This task is blocked and has \(incompleteCount) incomplete subtask\(incompleteCount == 1 ? "" : "s")."
+
+        if !deps.isEmpty {
+            if deps.count == 1 {
+                message += "\n\nBlocked by:\n• \(deps[0].title)"
+            } else {
+                let names = deps.prefix(3).map { $0.title }.joined(separator: "\n• ")
+                let more = deps.count > 3 ? "\n• ... and \(deps.count - 3) more" : ""
+                message += "\n\nBlocked by:\n• \(names)\(more)"
+            }
+        }
+
+        return TaskActionAlert(
+            title: "Task Blocked",
+            message: message,
+            actions: [
+                AlertAction(title: "Cancel", role: .cancel, action: {}),
+                AlertAction(title: "Force Complete All", role: .destructive, action: onForceCompleteAll)
+            ]
+        )
+    }
 }
 
 // MARK: - Optional: Map Executor Errors → Alerts
