@@ -136,6 +136,16 @@ struct RowContextMenu: ViewModifier {
                         Label("Set Estimate", systemImage: "clock")
                     }
 
+                    // Add Subtask (only for parent tasks)
+                    if task.parentTask == nil, let onAddSubtask {
+                        Button {
+                            onAddSubtask()
+                        } label: {
+                            Label("Add Subtask", systemImage: "plus.circle")
+                        }
+                        .accessibilityLabel("Add Subtask")
+                    }
+
                     // Complete / Uncomplete (uses router)
                     Button {
                         let action: TaskAction = task.isCompleted ? .uncomplete : .complete
@@ -281,7 +291,7 @@ private struct CustomDatePickerSheet: View {
                         selection: $selectedDate,
                         displayedComponents: [.date, .hourAndMinute]
                     )
-                    .datePickerStyle(.graphical)
+                    .datePickerStyle(.wheel)
                 }
 
                 if parentDueDate != nil {

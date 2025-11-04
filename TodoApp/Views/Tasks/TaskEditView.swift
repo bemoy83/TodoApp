@@ -5,31 +5,34 @@ struct TaskEditView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var task: Task
     @Query(sort: \Project.title) private var projects: [Project]
-    
+
     let isNewTask: Bool
     let onSave: (Task) -> Void
     let onCancel: () -> Void
-    
+    let parentTaskForDisplay: Task? // For showing parent info without setting relationship
+
     // Draft mirrors task props to drive the shared form
     @State private var hasDueDate: Bool
     @State private var dueDate: Date
     @State private var selectedProject: Project?
     @State private var notesText: String
-    
+
     // NEW: Time estimate state
     @State private var hasEstimate: Bool
     @State private var estimateHours: Int
     @State private var estimateMinutes: Int
     @State private var hasCustomEstimate: Bool
-    
-    private var isSubtask: Bool { task.parentTask != nil }
-    
+
+    private var isSubtask: Bool { task.parentTask != nil || parentTaskForDisplay != nil }
+
     init(task: Task,
          isNewTask: Bool = false,
+         parentTaskForDisplay: Task? = nil,
          onSave: @escaping (Task) -> Void = { _ in },
          onCancel: @escaping () -> Void = {}) {
         self.task = task
         self.isNewTask = isNewTask
+        self.parentTaskForDisplay = parentTaskForDisplay
         self.onSave = onSave
         self.onCancel = onCancel
         
@@ -64,7 +67,7 @@ struct TaskEditView: View {
                 estimateMinutes: $estimateMinutes,
                 hasCustomEstimate: $hasCustomEstimate,
                 isSubtask: isSubtask,
-                parentTask: task.parentTask,
+                parentTask: task.parentTask ?? parentTaskForDisplay,
                 editingTask: task  // NEW: Pass the task being edited
             )
             .navigationTitle(isSubtask ? (isNewTask ? "New Subtask" : "Edit Subtask")
