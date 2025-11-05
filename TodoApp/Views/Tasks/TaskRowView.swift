@@ -199,6 +199,10 @@ struct TaskRowView: View {
                 parentTask: task
             ) { newSubtask in
                 // Task already inserted by AddTaskView
+                // Calculate and assign order for subtask reordering support
+                let maxOrder = (task.subtasks ?? []).compactMap(\.order).max() ?? -1
+                newSubtask.order = maxOrder + 1
+
                 if task.subtasks == nil { task.subtasks = [] }
                 task.subtasks?.append(newSubtask)
             }
