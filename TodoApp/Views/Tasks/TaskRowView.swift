@@ -184,6 +184,7 @@ struct TaskRowView: View {
                     title: "",
                     priority: task.priority,
                     createdDate: Date(),
+                    parentTask: task,
                     project: task.project
                 )
                 self.draftSubtask = draft
@@ -206,10 +207,7 @@ struct TaskRowView: View {
                 TaskEditView(
                     task: subtask,
                     isNewTask: true,
-                    parentTaskForDisplay: task,
                     onSave: { new in
-                        // Set parentTask relationship only when saving
-                        new.parentTask = task
                         modelContext.insert(new)
                         if task.subtasks == nil { task.subtasks = [] }
                         task.subtasks?.append(new)
@@ -225,11 +223,11 @@ struct TaskRowView: View {
                 onEdit: { showingEditSheet = true },
                 onAddSubtask: {
                     showingMoreSheet = false
-                    // Create draft WITHOUT parentTask to avoid premature relationship
                     let draft = Task(
                         title: "",
                         priority: task.priority,
                         createdDate: Date(),
+                        parentTask: task,
                         project: task.project
                     )
                     DispatchQueue.main.async {
