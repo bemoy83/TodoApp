@@ -10,8 +10,9 @@ struct AddTaskView: View {
     // Context of creation
     let preselectedProject: Project?
     let parentTask: Task?           // if adding a subtask
+    let providedNextOrder: Int?     // optional order for top-level tasks
     let onAdded: ((Task) -> Void)?  // optional callback
-    
+
     // Draft state
     @State private var title: String = ""
     @State private var notes: String = ""
@@ -19,27 +20,20 @@ struct AddTaskView: View {
     @State private var hasDueDate: Bool = false
     @State private var dueDate: Date = .now
     @State private var priority: Int = 2  // Medium
-    
+
     // NEW: Time estimate state
     @State private var hasEstimate: Bool = false
     @State private var estimateHours: Int = 0
     @State private var estimateMinutes: Int = 0
     @State private var hasCustomEstimate: Bool = false
-    
-    // For list creation, compute next order to keep ordering stable
-    @Query private var tasks: [Task]
-    private var nextOrder: Int {
-        // top-level order only (subtasks ordering could be handled by parent)
-        let topLevel = tasks.filter { $0.parentTask == nil }
-        let maxOrder = topLevel.map { $0.order ?? 0 }.max() ?? -1
-        return maxOrder + 1
-    }
-    
+
     init(project: Project? = nil,
          parentTask: Task? = nil,
+         nextOrder: Int? = nil,
          onAdded: ((Task) -> Void)? = nil) {
         self.preselectedProject = project
         self.parentTask = parentTask
+        self.providedNextOrder = nextOrder
         self.onAdded = onAdded
         _selectedProject = State(initialValue: project)
     }
@@ -91,7 +85,7 @@ struct AddTaskView: View {
             createdDate: .now,
             parentTask: parentTask,
             project: parentTask?.project ?? selectedProject,
-            order: parentTask == nil ? nextOrder : nil,
+            order: parentTask == nil ? providedNextOrder : nil,
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
             estimatedSeconds: finalEstimate,
             hasCustomEstimate: hasCustomEstimate && finalEstimate != nil
