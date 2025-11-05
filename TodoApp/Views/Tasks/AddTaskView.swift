@@ -72,11 +72,22 @@ struct AddTaskView: View {
     private func addTask() {
         // Trim whitespace and set to nil if empty
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         // Calculate time estimate (convert hours/minutes to seconds for storage)
         let totalMinutes = hasEstimate ? (estimateHours * 60) + estimateMinutes : nil
         let totalSeconds = totalMinutes.map { $0 * 60 }
         let finalEstimate = (totalSeconds ?? 0) > 0 ? totalSeconds : nil
+
+        // Calculate order based on context
+        let taskOrder: Int?
+        if let parent = parentTask {
+            // Subtask: calculate order from parent's existing subtasks
+            let maxOrder = (parent.subtasks ?? []).compactMap(\.order).max() ?? -1
+            taskOrder = maxOrder + 1
+        } else {
+            // Top-level task: use provided order or nil
+            taskOrder = providedNextOrder
+        }
 
         let task = Task(
             title: title,
@@ -85,7 +96,7 @@ struct AddTaskView: View {
             createdDate: .now,
             parentTask: parentTask,
             project: parentTask?.project ?? selectedProject,
-            order: parentTask == nil ? providedNextOrder : nil,
+            order: taskOrder,
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
             estimatedSeconds: finalEstimate,
             hasCustomEstimate: hasCustomEstimate && finalEstimate != nil
