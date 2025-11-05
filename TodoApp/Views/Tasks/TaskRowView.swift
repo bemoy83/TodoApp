@@ -16,7 +16,6 @@ struct TaskRowView: View {
     @State private var showingMoreSheet = false
     @State private var showingAddSubtaskSheet = false
 
-    @State private var draftSubtask: Task?
     @State private var currentAlert: TaskActionAlert?
     @State private var currentTime = Date()
 
@@ -180,14 +179,6 @@ struct TaskRowView: View {
             onEdit: { showingEditSheet = true },
             onMore: { showingMoreSheet = true },
             onAddSubtask: {
-                let draft = Task(
-                    title: "",
-                    priority: task.priority,
-                    createdDate: Date(),
-                    parentTask: task,
-                    project: task.project
-                )
-                self.draftSubtask = draft
                 self.showingAddSubtaskSheet = true
             },
             alert: $currentAlert
@@ -202,19 +193,11 @@ struct TaskRowView: View {
         .sheet(isPresented: $showingEditSheet) {
             TaskEditView(task: task)
         }
-        .sheet(isPresented: $showingAddSubtaskSheet, onDismiss: { draftSubtask = nil }) {
-            if let subtask = draftSubtask {
-                TaskEditView(
-                    task: subtask,
-                    isNewTask: true,
-                    onSave: { new in
-                        modelContext.insert(new)
-                        if task.subtasks == nil { task.subtasks = [] }
-                        task.subtasks?.append(new)
-                        HapticManager.success()
-                    },
-                    onCancel: { }
-                )
+        .sheet(isPresented: $showingAddSubtaskSheet) {
+            AddTaskView(parentTask: task) { newSubtask in
+                if task.subtasks == nil { task.subtasks = [] }
+                task.subtasks?.append(newSubtask)
+                HapticManager.success()
             }
         }
         .sheet(isPresented: $showingMoreSheet) {
@@ -223,15 +206,7 @@ struct TaskRowView: View {
                 onEdit: { showingEditSheet = true },
                 onAddSubtask: {
                     showingMoreSheet = false
-                    let draft = Task(
-                        title: "",
-                        priority: task.priority,
-                        createdDate: Date(),
-                        parentTask: task,
-                        project: task.project
-                    )
                     DispatchQueue.main.async {
-                        self.draftSubtask = draft
                         self.showingAddSubtaskSheet = true
                     }
                 }
