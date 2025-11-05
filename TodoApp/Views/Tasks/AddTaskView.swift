@@ -10,7 +10,6 @@ struct AddTaskView: View {
     // Context of creation
     let preselectedProject: Project?
     let parentTask: Task?           // if adding a subtask
-    let providedNextOrder: Int?     // optional order for top-level tasks
     let onAdded: ((Task) -> Void)?  // optional callback
 
     // Draft state
@@ -27,13 +26,20 @@ struct AddTaskView: View {
     @State private var estimateMinutes: Int = 0
     @State private var hasCustomEstimate: Bool = false
 
+    // For list creation, compute next order to keep ordering stable
+    @Query private var tasks: [Task]
+    private var nextOrder: Int {
+        // top-level order only (subtasks ordering could be handled by parent)
+        let topLevel = tasks.filter { $0.parentTask == nil }
+        let maxOrder = topLevel.map { $0.order ?? 0 }.max() ?? -1
+        return maxOrder + 1
+    }
+
     init(project: Project? = nil,
          parentTask: Task? = nil,
-         nextOrder: Int? = nil,
          onAdded: ((Task) -> Void)? = nil) {
         self.preselectedProject = project
         self.parentTask = parentTask
-        self.providedNextOrder = nextOrder
         self.onAdded = onAdded
         _selectedProject = State(initialValue: project)
     }
@@ -78,17 +84,6 @@ struct AddTaskView: View {
         let totalSeconds = totalMinutes.map { $0 * 60 }
         let finalEstimate = (totalSeconds ?? 0) > 0 ? totalSeconds : nil
 
-        // Calculate order based on context
-        let taskOrder: Int?
-        if let parent = parentTask {
-            // Subtask: calculate order from parent's existing subtasks
-            let maxOrder = (parent.subtasks ?? []).compactMap(\.order).max() ?? -1
-            taskOrder = maxOrder + 1
-        } else {
-            // Top-level task: use provided order or nil
-            taskOrder = providedNextOrder
-        }
-
         let task = Task(
             title: title,
             priority: priority,
@@ -96,7 +91,7 @@ struct AddTaskView: View {
             createdDate: .now,
             parentTask: parentTask,
             project: parentTask?.project ?? selectedProject,
-            order: taskOrder,
+            order: parentTask == nil ? nextOrder : nil,
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
             estimatedSeconds: finalEstimate,
             hasCustomEstimate: hasCustomEstimate && finalEstimate != nil

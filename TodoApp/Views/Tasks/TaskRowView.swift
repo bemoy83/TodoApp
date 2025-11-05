@@ -194,10 +194,13 @@ struct TaskRowView: View {
             TaskEditView(task: task)
         }
         .sheet(isPresented: $showingAddSubtaskSheet) {
-            AddTaskView(parentTask: task) { newSubtask in
+            AddTaskView(
+                project: task.project,
+                parentTask: task
+            ) { newSubtask in
+                // Task already inserted by AddTaskView
                 if task.subtasks == nil { task.subtasks = [] }
                 task.subtasks?.append(newSubtask)
-                HapticManager.success()
             }
         }
         .sheet(isPresented: $showingMoreSheet) {
