@@ -122,61 +122,83 @@ private struct DependencyTaskRow: View {
         task.parentTask != nil
     }
 
-    private var priorityColor: Color {
-        Priority(rawValue: task.priority)?.color ?? .gray
+    private var priority: Priority {
+        Priority(rawValue: task.priority) ?? .medium
     }
 
     var body: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            // Priority color accent bar
-            RoundedRectangle(cornerRadius: 2)
-                .fill(priorityColor)
-                .frame(width: 3, height: 32)
+        HStack(spacing: 0) {
+            // Indentation for subtasks
+            if isSubtask {
+                Color.clear
+                    .frame(width: 16)
+            }
 
-            // Task icon - different for tasks vs subtasks
-            Image(systemName: isSubtask ? "arrow.turn.down.right" : "doc.text")
-                .font(.body)
-                .foregroundStyle(isSubtask ? .secondary : .primary)
-                .frame(width: 24)
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                // Project color bar (consistent with TaskListView)
+                if let project = task.project {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color(hex: project.color))
+                        .frame(width: 3, height: 32)
+                } else {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 3, height: 32)
+                }
 
-            // Task info
-            VStack(alignment: .leading, spacing: 4) {
-                // Task title
-                Text(task.title)
+                // Task icon - different for tasks vs subtasks
+                Image(systemName: isSubtask ? "arrow.turn.down.right" : "doc.text")
                     .font(.body)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
+                    .foregroundStyle(isSubtask ? .secondary : .primary)
+                    .frame(width: 24)
 
-                // Hierarchy info: parent task for subtasks, project for top-level
-                if isSubtask {
-                    if let parent = task.parentTask {
+                // Task info
+                VStack(alignment: .leading, spacing: 4) {
+                    // Task title
+                    Text(task.title)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+
+                    // Hierarchy info: parent task for subtasks, project for top-level
+                    if isSubtask {
+                        if let parent = task.parentTask {
+                            HStack(spacing: 4) {
+                                Image(systemName: "folder")
+                                    .font(.caption2)
+                                Text(parent.title)
+                                    .font(.caption)
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+                    } else if let project = task.project {
                         HStack(spacing: 4) {
-                            Image(systemName: "folder")
-                                .font(.caption2)
-                            Text(parent.title)
+                            Circle()
+                                .fill(Color(hex: project.color))
+                                .frame(width: 6, height: 6)
+                            Text(project.title)
                                 .font(.caption)
                         }
                         .foregroundStyle(.secondary)
                     }
-                } else if let project = task.project {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color(hex: project.color))
-                            .frame(width: 6, height: 6)
-                        Text(project.title)
-                            .font(.caption)
-                    }
-                    .foregroundStyle(.secondary)
                 }
+
+                Spacer()
+
+                // Priority indicator (consistent with TaskListView)
+                // Show for non-medium priorities (urgent, high, low)
+                if priority != .medium {
+                    Image(systemName: priority.icon)
+                        .font(.caption)
+                        .foregroundStyle(priority.color)
+                }
+
+                // Status indicator
+                Image(systemName: task.status.icon)
+                    .font(.caption)
+                    .foregroundStyle(Color(task.status.color))
             }
-
-            Spacer()
-
-            // Status indicator
-            Image(systemName: task.status.icon)
-                .font(.caption)
-                .foregroundStyle(Color(task.status.color))
+            .padding(.vertical, 4)
         }
-        .padding(.vertical, 4)
     }
 }
