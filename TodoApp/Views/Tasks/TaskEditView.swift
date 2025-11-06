@@ -5,25 +5,25 @@ struct TaskEditView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var task: Task
     @Query(sort: \Project.title) private var projects: [Project]
-    
+
     let isNewTask: Bool
     let onSave: (Task) -> Void
     let onCancel: () -> Void
-    
+
     // Draft mirrors task props to drive the shared form
     @State private var hasDueDate: Bool
     @State private var dueDate: Date
     @State private var selectedProject: Project?
     @State private var notesText: String
-    
+
     // NEW: Time estimate state
     @State private var hasEstimate: Bool
     @State private var estimateHours: Int
     @State private var estimateMinutes: Int
     @State private var hasCustomEstimate: Bool
-    
+
     private var isSubtask: Bool { task.parentTask != nil }
-    
+
     init(task: Task,
          isNewTask: Bool = false,
          onSave: @escaping (Task) -> Void = { _ in },

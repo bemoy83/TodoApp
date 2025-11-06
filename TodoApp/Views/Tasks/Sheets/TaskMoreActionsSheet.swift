@@ -2,7 +2,8 @@ import SwiftUI
 import SwiftData
 
 /// Quick Actions / "More" for a Task. Executes via TaskActionRouter.
-/// Shows: Edit, Add Subtask (if top-level), Duplicate, Priority, Move to Project, Delete.
+/// Shows: Edit, Add Subtask, Duplicate, Add Dependency, Delete.
+/// Cleaned up duplicates: Priority (now in context menu + TaskEditView), Move to Project (in TaskEditView).
 struct TaskMoreActionsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -12,15 +13,21 @@ struct TaskMoreActionsSheet: View {
     // Projects are top-level containers; subtasks inherit parent project.
     @Query(sort: \Project.order, order: .forward) private var projects: [Project]
 
+    // All tasks for dependency picker
+    @Query(sort: \Task.order) private var allTasks: [Task]
+
     // Navigation callbacks owned by parent (edit + add-subtask UIs)
     var onEdit: () -> Void
     var onAddSubtask: () -> Void
 
     // Alert state for executor-backed router path
     @State private var currentAlert: TaskActionAlert?
-    
+
     // ✅ NEW: State for move to task picker
     @State private var showingMoveToTaskPicker = false
+
+    // ✅ NEW: State for dependency picker
+    @State private var showingDependencyPicker = false
 
     var body: some View {
         let router = TaskActionRouter()
@@ -80,72 +87,24 @@ struct TaskMoreActionsSheet: View {
                     }
                 }
                 
-                // ✅ NEW: Organization section for subtasks
-                if task.parentTask != nil {
-                    Section("Organization") {
+                // ✅ Relationships section
+                Section("Relationships") {
+                    // Add Dependency
+                    Button {
+                        showingDependencyPicker = true
+                    } label: {
+                        Label("Add Dependency", systemImage: "arrow.triangle.branch")
+                    }
+                    .accessibilityLabel("Add Dependency")
+
+                    // Move to Another Task (subtasks only)
+                    if task.parentTask != nil {
                         Button {
                             showingMoveToTaskPicker = true
                         } label: {
                             Label("Move to Another Task", systemImage: "arrow.left.arrow.right")
                         }
                         .accessibilityLabel("Move to Another Task")
-                    }
-                }
-
-                // Priority routes via executor; dismiss if no alert was shown
-                Section("Priority") {
-                    ForEach(Priority.allCases, id: \.self) { level in
-                        Button {
-                            var alerted = false
-                            _ = router.performWithExecutor(.setPriority(level.rawValue), on: task, context: ctx) { alert in
-                                alerted = true
-                                currentAlert = wrapForAutoDismiss(alert)
-                            }
-                            if !alerted {
-                                dismiss()
-                            }
-                        } label: {
-                            HStack {
-                                Label(level.label, systemImage: level.icon)
-                                    .foregroundStyle(priorityColor(for: level))
-                                Spacer()
-                                if task.priority == level.rawValue {
-                                    Image(systemName: "checkmark").accessibilityLabel("Selected")
-                                }
-                            }
-                        }
-                        .accessibilityLabel("\(level.label) Priority")
-                    }
-                }
-
-                // Move to Project (top-level tasks only)
-                if task.parentTask == nil, !projects.isEmpty {
-                    Section("Move to Project") {
-                        ForEach(projects) { project in
-                            Button {
-                                var alerted = false
-                                _ = router.performWithExecutor(.moveToProject(project), on: task, context: ctx) { alert in
-                                    alerted = true
-                                    currentAlert = wrapForAutoDismiss(alert)
-                                }
-                                if !alerted {
-                                    dismiss()
-                                }
-                            } label: {
-                                HStack(spacing: DesignSystem.Spacing.md) {
-                                    Circle()
-                                        .fill(Color(hex: project.color))
-                                        .frame(width: 12, height: 12)
-                                        .accessibilityHidden(true)
-                                    Text(project.title)
-                                    Spacer()
-                                    if task.project?.id == project.id {
-                                        Image(systemName: "checkmark").accessibilityLabel("Current Project")
-                                    }
-                                }
-                            }
-                            .accessibilityLabel("Move to project \(project.title)")
-                        }
                     }
                 }
 
@@ -173,6 +132,10 @@ struct TaskMoreActionsSheet: View {
         .sheet(isPresented: $showingMoveToTaskPicker) {
             MoveToTaskPicker(task: task)
         }
+        // ✅ NEW: Sheet for adding dependencies
+        .sheet(isPresented: $showingDependencyPicker) {
+            DependencyPickerView(task: task, allTasks: allTasks)
+        }
     }
 
     // MARK: - Helpers
@@ -192,14 +155,6 @@ struct TaskMoreActionsSheet: View {
         )
     }
 
-    private func priorityColor(for level: Priority) -> Color {
-        switch level {
-        case .urgent: return DesignSystem.Colors.priorityUrgent
-        case .high:   return DesignSystem.Colors.priorityHigh
-        case .medium: return DesignSystem.Colors.priorityMedium
-        case .low:    return DesignSystem.Colors.priorityLow
-        }
-    }
 }
 
 // Hash helper for parameterized actions

@@ -11,7 +11,7 @@ struct AddTaskView: View {
     let preselectedProject: Project?
     let parentTask: Task?           // if adding a subtask
     let onAdded: ((Task) -> Void)?  // optional callback
-    
+
     // Draft state
     @State private var title: String = ""
     @State private var notes: String = ""
@@ -19,13 +19,13 @@ struct AddTaskView: View {
     @State private var hasDueDate: Bool = false
     @State private var dueDate: Date = .now
     @State private var priority: Int = 2  // Medium
-    
+
     // NEW: Time estimate state
     @State private var hasEstimate: Bool = false
     @State private var estimateHours: Int = 0
     @State private var estimateMinutes: Int = 0
     @State private var hasCustomEstimate: Bool = false
-    
+
     // For list creation, compute next order to keep ordering stable
     @Query private var tasks: [Task]
     private var nextOrder: Int {
@@ -34,7 +34,7 @@ struct AddTaskView: View {
         let maxOrder = topLevel.map { $0.order ?? 0 }.max() ?? -1
         return maxOrder + 1
     }
-    
+
     init(project: Project? = nil,
          parentTask: Task? = nil,
          onAdded: ((Task) -> Void)? = nil) {
@@ -78,7 +78,7 @@ struct AddTaskView: View {
     private func addTask() {
         // Trim whitespace and set to nil if empty
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         // Calculate time estimate (convert hours/minutes to seconds for storage)
         let totalMinutes = hasEstimate ? (estimateHours * 60) + estimateMinutes : nil
         let totalSeconds = totalMinutes.map { $0 * 60 }
