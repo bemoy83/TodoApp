@@ -291,7 +291,6 @@ private struct CustomDatePickerSheet: View {
                         selection: $selectedDate,
                         displayedComponents: [.date, .hourAndMinute]
                     )
-                    .datePickerStyle(.wheel)
                 }
 
                 if parentDueDate != nil {
@@ -351,35 +350,35 @@ private struct CustomEstimatePickerSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    HStack {
-                        Picker("Hours", selection: $hours) {
-                            ForEach(0..<25) { hour in
-                                Text("\(hour)").tag(hour)
+                    // Native iOS-style time picker matching TaskComposerForm
+                    DatePicker(
+                        "Set Time Estimate",
+                        selection: Binding(
+                            get: {
+                                Calendar.current.date(
+                                    from: DateComponents(
+                                        hour: hours,
+                                        minute: minutes
+                                    )
+                                ) ?? Date()
+                            },
+                            set: { newValue in
+                                let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+                                hours = components.hour ?? 0
+                                minutes = components.minute ?? 0
                             }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-
-                        Text("h")
-                            .foregroundStyle(.secondary)
-
-                        Picker("Minutes", selection: $minutes) {
-                            ForEach([0, 15, 30, 45], id: \.self) { minute in
-                                Text("\(minute)").tag(minute)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-
-                        Text("m")
-                            .foregroundStyle(.secondary)
-                    }
+                        ),
+                        displayedComponents: [.hourAndMinute]
+                    )
+                    .labelsHidden()
+                    .datePickerStyle(.wheel)
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
 
                 Section {
                     HStack {
-                        Image(systemName: "info.circle")
-                            .foregroundStyle(.blue)
+                        Image(systemName: "clock")
+                            .foregroundStyle(.secondary)
                         Text("Total: \(formatTime())")
                             .font(.subheadline)
                             .fontWeight(.medium)
