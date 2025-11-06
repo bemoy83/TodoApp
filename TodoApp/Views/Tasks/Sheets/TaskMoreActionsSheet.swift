@@ -134,7 +134,10 @@ struct TaskMoreActionsSheet: View {
         }
         // ✅ NEW: Sheet for adding dependencies
         .sheet(isPresented: $showingDependencyPicker) {
-            DependencyPickerView(task: task, allTasks: allTasks)
+            DependencyPickerView(
+                task: task,
+                allTasks: TaskService.availableDependencies(for: task, from: allTasks)
+            )
         }
     }
 
