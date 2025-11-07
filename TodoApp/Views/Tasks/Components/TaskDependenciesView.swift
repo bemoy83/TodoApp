@@ -247,18 +247,20 @@ private struct DependencyRow: View {
 
             Spacer()
 
-            // Remove button
-            Button {
-                withAnimation {
-                    onRemove()
-                    HapticManager.medium()
+            // Remove button (only in edit mode)
+            if isEditMode {
+                Button {
+                    withAnimation {
+                        onRemove()
+                        HapticManager.medium()
+                    }
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.red)
                 }
-            } label: {
-                Image(systemName: isEditMode ? "minus.circle.fill" : "xmark.circle.fill")
-                    .font(isEditMode ? .title3 : .subheadline)
-                    .foregroundStyle(isEditMode ? .red : .secondary)
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.vertical, DesignSystem.Spacing.xs)
         .contentShape(Rectangle())
@@ -272,17 +274,17 @@ private struct SubtaskDependencyRow: View {
     let dependencies: [Task]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-            // Subtask link
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // Subtask link - larger tap target
             NavigationLink(destination: TaskDetailView(task: subtask)) {
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     Image(systemName: "arrow.turn.down.right")
-                        .font(.subheadline)
+                        .font(.body)
                         .foregroundStyle(.secondary)
                         .frame(width: 28)
 
                     Text(subtask.title)
-                        .font(.subheadline)
+                        .font(.body)
                         .fontWeight(.medium)
                         .foregroundStyle(.primary)
 
@@ -292,25 +294,28 @@ private struct SubtaskDependencyRow: View {
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
+                .padding(.vertical, DesignSystem.Spacing.xs)
             }
             .buttonStyle(.plain)
 
-            // Dependencies list
+            // Dependencies list - improved spacing and tap targets
             ForEach(dependencies) { dependency in
                 NavigationLink(destination: TaskDetailView(task: dependency)) {
-                    HStack(spacing: DesignSystem.Spacing.xs) {
+                    HStack(spacing: DesignSystem.Spacing.sm) {
                         Text("↳")
                             .font(.body)
                             .foregroundStyle(.orange)
                             .frame(width: 28, alignment: .trailing)
 
-                        Text("blocked by:")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("blocked by:")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
-                        Text(dependency.title)
-                            .font(.caption)
-                            .foregroundStyle(.primary)
+                            Text(dependency.title)
+                                .font(.subheadline)
+                                .foregroundStyle(.primary)
+                        }
 
                         Spacer()
 
@@ -318,11 +323,11 @@ private struct SubtaskDependencyRow: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
+                    .padding(.vertical, DesignSystem.Spacing.xs)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.vertical, DesignSystem.Spacing.xs)
     }
 }
 
