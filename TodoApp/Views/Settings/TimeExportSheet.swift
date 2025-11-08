@@ -53,6 +53,10 @@ struct TimeExportSheet: View {
         filteredTimeEntries.count
     }
 
+    private var sortedProjects: [Project] {
+        allProjects.sorted { $0.title < $1.title }
+    }
+
     private var filteredTimeEntries: [TimeEntry] {
         var entries = allTimeEntries.filter { $0.endTime != nil } // Only completed entries
 
@@ -94,8 +98,8 @@ struct TimeExportSheet: View {
                 Section {
                     Picker("Project", selection: $selectedProject) {
                         Text("All Projects").tag(nil as Project?)
-                        ForEach(allProjects.sorted { $0.name < $1.name }, id: \.id) { project in
-                            Text(project.name).tag(project as Project?)
+                        ForEach(sortedProjects) { project in
+                            Text(project.title).tag(project as Project?)
                         }
                     }
                 } header: {
@@ -230,7 +234,7 @@ struct TimeExportSheet: View {
                   let task = entry.task else { continue }
 
             let taskName = task.title.replacingOccurrences(of: "\"", with: "\"\"") // Escape quotes
-            let projectName = task.project?.name.replacingOccurrences(of: "\"", with: "\"\"") ?? "No Project"
+            let projectName = task.project?.title.replacingOccurrences(of: "\"", with: "\"\"") ?? "No Project"
             let startTimeStr = dateFormatter.string(from: entry.startTime)
             let endTimeStr = dateFormatter.string(from: endTime)
             let dateStr = dateOnlyFormatter.string(from: entry.startTime)
