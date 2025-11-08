@@ -38,6 +38,9 @@ struct TaskDetailView: View {
                 // Time tracking remains the canonical place for timer controls
                 TaskTimeTrackingView(task: task)
 
+                // Time entries management
+                TimeEntriesView(task: task)
+
                 TaskSubtasksView(task: task)
 
                 TaskDependenciesView(task: task, allTasks: allTasks)
