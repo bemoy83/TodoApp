@@ -39,7 +39,10 @@ struct TaskTimeTrackingView: View {
             TotalTimeSection(
                 totalTimeSeconds: displayedTotalTimeSeconds,
                 directTimeSeconds: displayedDirectTimeSeconds,
-                hasSubtaskTime: task.directTimeSpent > 0 && displayedTotalTimeSeconds != displayedDirectTimeSeconds
+                hasSubtaskTime: task.directTimeSpent > 0 && displayedTotalTimeSeconds != displayedDirectTimeSeconds,
+                totalPersonHours: displayedTotalPersonHours,
+                directPersonHours: displayedDirectPersonHours,
+                hasPersonnelTracking: hasPersonnelTracking
             )
 
             // Active Session (conditional - only if timer running)
@@ -187,6 +190,84 @@ struct TaskTimeTrackingView: View {
         return max(0, Int(elapsed))
     }
 
+    // MARK: - Person-Hours Calculations
+
+    /// Calculate direct person-hours for this task (including active timer)
+    private var displayedDirectPersonHours: Double {
+        guard let entries = task.timeEntries else { return 0.0 }
+
+        var totalPersonSeconds = 0.0
+
+        for entry in entries {
+            let endTime = entry.endTime ?? (entry.endTime == nil && task.hasActiveTimer ? currentTime : nil)
+            guard let end = endTime else { continue }
+
+            let duration = end.timeIntervalSince(entry.startTime)
+            totalPersonSeconds += duration * Double(entry.personnelCount)
+        }
+
+        return totalPersonSeconds / 3600  // Convert to hours
+    }
+
+    /// Calculate total person-hours including all subtasks
+    private var displayedTotalPersonHours: Double {
+        var total = displayedDirectPersonHours
+
+        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
+        for subtask in subtasks {
+            total += computePersonHours(for: subtask)
+        }
+
+        return total
+    }
+
+    /// Recursively calculate person-hours for a task and its subtasks
+    private func computePersonHours(for task: Task) -> Double {
+        guard let entries = task.timeEntries else { return 0.0 }
+
+        var totalPersonSeconds = 0.0
+
+        for entry in entries {
+            let endTime = entry.endTime ?? (entry.endTime == nil && task.hasActiveTimer ? currentTime : nil)
+            guard let end = endTime else { continue }
+
+            let duration = end.timeIntervalSince(entry.startTime)
+            totalPersonSeconds += duration * Double(entry.personnelCount)
+        }
+
+        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
+        for subtask in subtasks {
+            totalPersonSeconds += computePersonHours(for: subtask) * 3600  // Convert back to seconds for addition
+        }
+
+        return totalPersonSeconds / 3600  // Convert to hours
+    }
+
+    /// Check if any entries have personnel > 1
+    private var hasPersonnelTracking: Bool {
+        // Check direct entries
+        if let entries = task.timeEntries, entries.contains(where: { $0.personnelCount > 1 }) {
+            return true
+        }
+
+        // Check subtask entries
+        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
+        return checkSubtasksForPersonnel(in: subtasks)
+    }
+
+    private func checkSubtasksForPersonnel(in subtasks: [Task]) -> Bool {
+        for subtask in subtasks {
+            if let entries = subtask.timeEntries, entries.contains(where: { $0.personnelCount > 1 }) {
+                return true
+            }
+            let nestedSubtasks = allTasks.filter { $0.parentTask?.id == subtask.id }
+            if checkSubtasksForPersonnel(in: nestedSubtasks) {
+                return true
+            }
+        }
+        return false
+    }
+
     private var liveTimeProgress: Double? {
         guard let estimate = task.effectiveEstimate, estimate > 0 else { return nil }
         return Double(displayedTotalTimeSeconds) / Double(estimate)  // estimate is already in seconds!
@@ -299,6 +380,26 @@ private struct TotalTimeSection: View {
     let totalTimeSeconds: Int
     let directTimeSeconds: Int
     let hasSubtaskTime: Bool
+    let totalPersonHours: Double
+    let directPersonHours: Double
+    let hasPersonnelTracking: Bool
+
+    private var formattedTotalPersonHours: String {
+        String(format: "%.1f hrs", totalPersonHours)
+    }
+
+    private var formattedDirectPersonHours: String {
+        String(format: "%.1f", directPersonHours)
+    }
+
+    private var formattedSubtaskPersonHours: String {
+        let subtask = totalPersonHours - directPersonHours
+        return String(format: "%.1f", subtask)
+    }
+
+    private var hasSubtaskPersonHours: Bool {
+        totalPersonHours > directPersonHours
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -328,6 +429,32 @@ private struct TotalTimeSection: View {
                 }
 
                 Spacer()
+            }
+
+            // Person-Hours (only show if personnel tracking is used)
+            if hasPersonnelTracking {
+                HStack {
+                    Image(systemName: "person.2.fill")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(formattedTotalPersonHours)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(DesignSystem.Colors.info)
+
+                        // Breakdown if has subtask person-hours
+                        if hasSubtaskPersonHours {
+                            Text("\(formattedDirectPersonHours) direct, \(formattedSubtaskPersonHours) from subtasks")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Spacer()
+                }
             }
         }
         .padding(.horizontal)
