@@ -66,7 +66,49 @@ final class TaskService {
     }
     
     // MARK: - Task Dependencies
-    
+
+    /// Validates if moving a task to a new parent would create circular dependencies
+    /// - Parameters:
+    ///   - task: The task being moved
+    ///   - newParent: The target parent task
+    /// - Returns: Validation result with details if invalid
+    static func canMoveTask(_ task: Task, toParent newParent: Task) -> MoveValidationResult {
+        // Check direct circular dependency: task depends on new parent
+        if let dependencies = task.dependsOn, dependencies.contains(where: { $0.id == newParent.id }) {
+            return .circularDependency(
+                task: task,
+                dependency: newParent,
+                reason: "'\(task.title)' depends on '\(newParent.title)'"
+            )
+        }
+
+        // Check reverse: new parent depends on this task
+        if let parentDeps = newParent.dependsOn, parentDeps.contains(where: { $0.id == task.id }) {
+            return .circularDependency(
+                task: task,
+                dependency: newParent,
+                reason: "'\(newParent.title)' depends on '\(task.title)'"
+            )
+        }
+
+        // Check if any of task's dependencies would create a circular chain
+        // If task depends on X, and newParent depends on task, this creates: newParent -> task -> X
+        // But we need to check if X depends on newParent (creating a cycle)
+        if let dependencies = task.dependsOn {
+            for dependency in dependencies {
+                if taskDependsOn(task: dependency, target: newParent) {
+                    return .circularDependency(
+                        task: task,
+                        dependency: dependency,
+                        reason: "'\(dependency.title)' depends on '\(newParent.title)'"
+                    )
+                }
+            }
+        }
+
+        return .valid
+    }
+
     /// Checks if a dependency can be added without creating circular references
     /// - Parameters:
     ///   - from: The task that will depend on another
@@ -402,14 +444,31 @@ final class TaskService {
     enum EstimateValidationResult {
         case valid
         case invalid(String)
-        
+
         var isValid: Bool {
             if case .valid = self { return true }
             return false
         }
-        
+
         var errorMessage: String? {
             if case .invalid(let message) = self { return message }
+            return nil
+        }
+    }
+
+    enum MoveValidationResult {
+        case valid
+        case circularDependency(task: Task, dependency: Task, reason: String)
+
+        var isValid: Bool {
+            if case .valid = self { return true }
+            return false
+        }
+
+        var errorMessage: String? {
+            if case .circularDependency(let task, let dependency, let reason) = self {
+                return "Moving '\(task.title)' would create a circular dependency: \(reason)"
+            }
             return nil
         }
     }

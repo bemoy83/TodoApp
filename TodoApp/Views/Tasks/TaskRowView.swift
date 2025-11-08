@@ -236,32 +236,29 @@ private struct LeadingGutter: View {
     let statusIcon: String
     let statusColor: Color
 
-    private let gutterWidth: CGFloat = 36
-    
-
     var body: some View {
-        ZStack(alignment: .leading) {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            // Project color bar (consistent with DependencyPickerView)
             if let color {
-                RoundedRectangle(cornerRadius: DesignSystem.Spacing.xs)
+                RoundedRectangle(cornerRadius: 2)
                     .fill(color)
-                    .frame(width: DesignSystem.Spacing.xs)
-                    .frame(height: DesignSystem.Spacing.lg)
-                    .padding(.vertical, DesignSystem.Spacing.lg)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-                    .alignmentGuide(.top) { d in d[.top] }
+                    .frame(width: 3, height: 32)
+            } else {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 3, height: 32)
             }
+
+            // Status toggle button
             Button(action: onToggle) {
                 Image(systemName: statusIcon)
-                    .font(.title3)
+                    .font(.body)
                     .foregroundStyle(statusColor)
-                    .frame(width: DesignSystem.Spacing.xxl, height: DesignSystem.Spacing.xxl)
+                    .frame(width: 24, height: 24)
                     .contentTransition(.symbolEffect(.replace))
                     .animation(.smooth(duration: 0.3), value: statusIcon)
             }
             .buttonStyle(.plain)
-            .padding(.leading, DesignSystem.Spacing.sm)  // Reduced from .md
         }
-        .frame(width: gutterWidth, alignment: .leading)
     }
 }

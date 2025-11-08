@@ -96,10 +96,51 @@ struct MoveToTaskPicker: View {
     }
     
     // MARK: - Actions
-    
+
     private func moveTask(to newParent: Task) {
-        // ... validation ...
-        
+        // Validate move for circular dependencies
+        let validation = TaskService.canMoveTask(task, toParent: newParent)
+
+        switch validation {
+        case .valid:
+            // No issues, proceed with move
+            performMove(to: newParent)
+
+        case .circularDependency(let movingTask, let dependency, let reason):
+            // Check if this is a direct dependency that can be auto-removed
+            let canAutoFix = task.dependsOn?.contains(where: { $0.id == newParent.id }) ?? false
+
+            if canAutoFix {
+                // Offer to remove the blocking dependency
+                currentAlert = TaskActionAlert(
+                    title: "Circular Dependency Detected",
+                    message: "Moving '\(movingTask.title)' to '\(newParent.title)' would create a circular dependency because \(reason).\n\nWould you like to remove the dependency and move the task?",
+                    actions: [
+                        AlertAction(title: "Cancel", role: .cancel) { },
+                        AlertAction(title: "Remove Dependency & Move", role: .destructive) {
+                            // Remove the circular dependency
+                            TaskService.removeDependency(from: self.task, to: newParent)
+                            // Proceed with move
+                            self.performMove(to: newParent)
+                        }
+                    ]
+                )
+            } else {
+                // Complex circular dependency that can't be auto-fixed
+                currentAlert = TaskActionAlert(
+                    title: "Cannot Move Task",
+                    message: "Moving '\(movingTask.title)' to '\(newParent.title)' would create a circular dependency: \(reason)\n\nPlease remove the conflicting dependencies manually before moving this task.",
+                    actions: [
+                        AlertAction(title: "OK", role: .cancel) { }
+                    ]
+                )
+            }
+
+            HapticManager.warning()
+        }
+    }
+
+    private func performMove(to newParent: Task) {
         // Store old parent reference
         let oldParent = task.parentTask
         
