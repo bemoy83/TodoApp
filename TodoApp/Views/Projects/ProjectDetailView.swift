@@ -38,7 +38,13 @@ struct ProjectDetailView: View {
             total + computeTotalTime(for: task)
         }
     }
-    
+
+    private var totalPersonHours: Double {
+        projectTasks.reduce(0.0) { total, task in
+            total + computePersonHours(for: task)
+        }
+    }
+
     private func computeTotalTime(for task: Task) -> Int {
         var total = task.directTimeSpent
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
@@ -46,6 +52,25 @@ struct ProjectDetailView: View {
             total += computeTotalTime(for: subtask)
         }
         return total
+    }
+
+    private func computePersonHours(for task: Task) -> Double {
+        guard let entries = task.timeEntries else { return 0.0 }
+
+        var totalPersonSeconds = 0.0
+
+        for entry in entries {
+            guard let endTime = entry.endTime else { continue }
+            let duration = endTime.timeIntervalSince(entry.startTime)
+            totalPersonSeconds += duration * Double(entry.personnelCount)
+        }
+
+        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
+        for subtask in subtasks {
+            totalPersonSeconds += computePersonHours(for: subtask) * 3600  // Convert back to seconds
+        }
+
+        return totalPersonSeconds / 3600  // Convert to hours
     }
     
     private var activeTimerCount: Int {
@@ -68,7 +93,7 @@ struct ProjectDetailView: View {
                     totalTasks: projectTasks.count,
                     completedTasks: completedTasks.count,
                     totalTimeSpent: totalTimeSpent,
-                    activeTimers: activeTimerCount
+                    totalPersonHours: totalPersonHours
                 )
             }
             .listRowBackground(Color.clear)

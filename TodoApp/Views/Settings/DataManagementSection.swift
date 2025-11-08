@@ -25,12 +25,12 @@ struct DataManagementSection: View {
     
     var body: some View {
         Section {
-            // Export Data (placeholder)
+            // Export Time Data
             Button(action: onExport) {
                 HStack {
-                    Image(systemName: "square.and.arrow.up")
+                    Image(systemName: "clock.arrow.circlepath")
                         .foregroundStyle(DesignSystem.Colors.info)
-                    Text("Export Data")
+                    Text("Export Time Data")
                         .foregroundStyle(DesignSystem.Colors.primary)
                 }
             }
