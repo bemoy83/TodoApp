@@ -10,6 +10,7 @@ struct EditTimeEntrySheet: View {
 
     @State private var startDate: Date
     @State private var endDate: Date
+    @State private var personnelCount: Int
     @State private var showingValidationError = false
     @State private var validationMessage = ""
 
@@ -17,6 +18,7 @@ struct EditTimeEntrySheet: View {
         self.entry = entry
         _startDate = State(initialValue: entry.startTime)
         _endDate = State(initialValue: entry.endTime ?? Date())
+        _personnelCount = State(initialValue: entry.personnelCount)
     }
 
     private var isValid: Bool {
@@ -30,6 +32,14 @@ struct EditTimeEntrySheet: View {
     private var formattedDuration: String {
         let seconds = Int(duration)
         return seconds.formattedTime(showSeconds: true)
+    }
+
+    private var personHours: Double {
+        (duration / 3600) * Double(personnelCount)
+    }
+
+    private var formattedPersonHours: String {
+        String(format: "%.1f", personHours)
     }
 
     var body: some View {
@@ -52,6 +62,24 @@ struct EditTimeEntrySheet: View {
                 }
 
                 Section {
+                    Stepper(value: $personnelCount, in: 1...20) {
+                        HStack {
+                            Image(systemName: "person.2.fill")
+                                .foregroundStyle(.secondary)
+                            Text("Personnel")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(personnelCount)")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                } header: {
+                    Text("Crew Size")
+                } footer: {
+                    Text("Number of people working during this time")
+                }
+
+                Section {
                     HStack {
                         Text("Duration")
                             .foregroundStyle(.secondary)
@@ -60,8 +88,19 @@ struct EditTimeEntrySheet: View {
                             .fontWeight(.medium)
                             .foregroundStyle(isValid ? .primary : Color.red)
                     }
+
+                    if personnelCount > 1 {
+                        HStack {
+                            Text("Person-Hours")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text(formattedPersonHours + " hrs")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(DesignSystem.Colors.info)
+                        }
+                    }
                 } header: {
-                    Text("Calculated Duration")
+                    Text("Calculated Time")
                 }
 
                 if !isValid {
@@ -100,6 +139,7 @@ struct EditTimeEntrySheet: View {
         withAnimation {
             entry.startTime = startDate
             entry.endTime = endDate
+            entry.personnelCount = personnelCount
             try? modelContext.save()
         }
 

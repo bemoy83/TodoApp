@@ -10,6 +10,7 @@ struct ManualTimeEntrySheet: View {
 
     @State private var startDate = Date().addingTimeInterval(-3600) // Default: 1 hour ago
     @State private var endDate = Date()
+    @State private var personnelCount = 1
     @State private var showingValidationError = false
     @State private var validationMessage = ""
 
@@ -24,6 +25,14 @@ struct ManualTimeEntrySheet: View {
     private var formattedDuration: String {
         let seconds = Int(duration)
         return seconds.formattedTime(showSeconds: true)
+    }
+
+    private var personHours: Double {
+        (duration / 3600) * Double(personnelCount)
+    }
+
+    private var formattedPersonHours: String {
+        String(format: "%.1f", personHours)
     }
 
     var body: some View {
@@ -48,6 +57,24 @@ struct ManualTimeEntrySheet: View {
                 }
 
                 Section {
+                    Stepper(value: $personnelCount, in: 1...20) {
+                        HStack {
+                            Image(systemName: "person.2.fill")
+                                .foregroundStyle(.secondary)
+                            Text("Personnel")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(personnelCount)")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                } header: {
+                    Text("Crew Size")
+                } footer: {
+                    Text("Number of people working during this time")
+                }
+
+                Section {
                     HStack {
                         Text("Duration")
                             .foregroundStyle(.secondary)
@@ -56,8 +83,19 @@ struct ManualTimeEntrySheet: View {
                             .fontWeight(.medium)
                             .foregroundStyle(isValid ? .primary : Color.red)
                     }
+
+                    if personnelCount > 1 {
+                        HStack {
+                            Text("Person-Hours")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text(formattedPersonHours + " hrs")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(DesignSystem.Colors.info)
+                        }
+                    }
                 } header: {
-                    Text("Calculated Duration")
+                    Text("Calculated Time")
                 }
 
                 if !isValid {
@@ -97,6 +135,7 @@ struct ManualTimeEntrySheet: View {
             startTime: startDate,
             endTime: endDate,
             createdDate: Date(),
+            personnelCount: personnelCount,
             task: task
         )
 
