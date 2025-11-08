@@ -54,7 +54,7 @@ struct ManualTimeEntrySheet: View {
                         Spacer()
                         Text(formattedDuration)
                             .fontWeight(.medium)
-                            .foregroundStyle(isValid ? .primary : .red)
+                            .foregroundStyle(isValid ? .primary : Color.red)
                     }
                 } header: {
                     Text("Calculated Duration")
@@ -63,7 +63,7 @@ struct ManualTimeEntrySheet: View {
                 if !isValid {
                     Section {
                         Label("End time must be after start time", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Color.red)
                     }
                 }
             }
