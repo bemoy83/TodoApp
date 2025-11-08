@@ -274,7 +274,7 @@ private struct SubtaskDependencyRow: View {
     let dependencies: [Task]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
             // Subtask link - larger tap target
             NavigationLink(destination: TaskDetailView(task: subtask)) {
                 HStack(spacing: DesignSystem.Spacing.sm) {
@@ -298,7 +298,7 @@ private struct SubtaskDependencyRow: View {
             }
             .buttonStyle(.plain)
 
-            // Dependencies list - improved spacing and tap targets
+            // Dependencies list - nested under subtask
             ForEach(dependencies) { dependency in
                 NavigationLink(destination: TaskDetailView(task: dependency)) {
                     HStack(spacing: DesignSystem.Spacing.sm) {
@@ -323,11 +323,12 @@ private struct SubtaskDependencyRow: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
-                    .padding(.vertical, DesignSystem.Spacing.xs)
+                    .padding(.vertical, 4)
                 }
                 .buttonStyle(.plain)
             }
         }
+        .padding(.vertical, DesignSystem.Spacing.xs)
     }
 }
 
