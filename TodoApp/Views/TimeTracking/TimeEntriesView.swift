@@ -117,6 +117,14 @@ private struct TimeEntryRow: View {
         return seconds.formattedTime(showSeconds: false)
     }
 
+    private var personHours: Double {
+        (duration / 3600) * Double(entry.personnelCount)
+    }
+
+    private var formattedPersonHours: String {
+        String(format: "%.1f hrs", personHours)
+    }
+
     private var formattedDate: String {
         let calendar = Calendar.current
         let now = Date()
@@ -166,6 +174,18 @@ private struct TimeEntryRow: View {
                 Text(formattedTimeRange)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                // Personnel badge (only show when > 1)
+                if entry.personnelCount > 1 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.2.fill")
+                            .font(.caption2)
+                        Text("\(entry.personnelCount) people · \(formattedPersonHours)")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(DesignSystem.Colors.info)
+                    .padding(.top, 2)
+                }
             }
 
             Spacer()
