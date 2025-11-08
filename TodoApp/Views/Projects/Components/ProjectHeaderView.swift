@@ -13,11 +13,18 @@ struct ProjectHeaderView: View {
     let totalTasks: Int
     let completedTasks: Int
     let totalTimeSpent: Int
-    let activeTimers: Int
+    let totalPersonHours: Double
 
     private var completionPercentage: Double {
         guard totalTasks > 0 else { return 0 }
         return Double(completedTasks) / Double(totalTasks)
+    }
+
+    private var formattedPersonHours: String {
+        if totalPersonHours == 0 {
+            return "0"
+        }
+        return String(format: "%.1f", totalPersonHours)
     }
 
     var body: some View {
@@ -81,10 +88,10 @@ struct ProjectHeaderView: View {
                                 value: totalTimeSpent.formattedTime(),
                                 label: "Time",
                                 color: DesignSystem.Colors.warning)
-                ProjectStatCard(icon: "timer",
-                                value: "\(activeTimers)",
-                                label: "Active",
-                                color: DesignSystem.Colors.timerActive)
+                ProjectStatCard(icon: "person.2.fill",
+                                value: formattedPersonHours,
+                                label: "Person-Hrs",
+                                color: DesignSystem.Colors.info)
             }
             .padding(.horizontal, DesignSystem.Spacing.lg)
         }
