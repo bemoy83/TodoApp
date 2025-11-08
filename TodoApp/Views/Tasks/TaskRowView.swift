@@ -120,24 +120,21 @@ struct TaskRowView: View {
                                 ) : nil
                         )
                         
-                        // Expand/collapse chevron
+                        // Expand/collapse chevron (centered)
                         if calculations.hasSubtasks {
-                            HStack {
-                                Spacer()
-                                Button {
-                                    HapticManager.light()
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        expansionState.toggle(task.id)
-                                    }
-                                } label: {
-                                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .contentTransition(.symbolEffect(.replace))
+                            Button {
+                                HapticManager.light()
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    expansionState.toggle(task.id)
                                 }
-                                .buttonStyle(.plain)
-                                Spacer()
+                            } label: {
+                                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .contentTransition(.symbolEffect(.replace))
                             }
+                            .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity, alignment: .center)
                         }
                     }
                 } else {
@@ -233,15 +230,15 @@ private struct LeadingGutter: View {
 
     var body: some View {
         HStack(spacing: DesignSystem.Spacing.xs) {
-            // Project color bar (slim, full height)
+            // Project color bar (slim, fixed height for alignment)
             if let color {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(color)
-                    .frame(width: 3)
+                    .frame(width: 3, height: 32)
             } else {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color.gray.opacity(0.3))
-                    .frame(width: 3)
+                    .frame(width: 3, height: 32)
             }
 
             // Status toggle button (centered to row)

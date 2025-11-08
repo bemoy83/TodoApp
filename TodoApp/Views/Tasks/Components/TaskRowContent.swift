@@ -90,11 +90,21 @@ struct TaskRowProgressBar: View {
     private var timeProgressBar: some View {
         Group {
             if let _ = task.effectiveEstimate, let progress = calculations.liveTimeProgress {
-                TimeProgressBar(
-                    progress: progress,
-                    status: calculations.liveEstimateStatus,
-                    height: DesignSystem.Spacing.xs
-                )
+                HStack(spacing: DesignSystem.Spacing.xs) {
+                    TimeProgressBar(
+                        progress: progress,
+                        status: calculations.liveEstimateStatus,
+                        height: DesignSystem.Spacing.xs
+                    )
+
+                    // Subtask badge (shows even during time tracking)
+                    if let badge = subtaskBadge {
+                        SubtasksBadge(
+                            completed: badge.completed,
+                            total: badge.total
+                        )
+                    }
+                }
             }
         }
     }
