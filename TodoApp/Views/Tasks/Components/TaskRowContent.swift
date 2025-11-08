@@ -5,13 +5,7 @@ struct TaskRowTitleSection: View {
     let task: Task
     let shouldShowPriority: Bool
     let taskPriority: Priority
-    let subtaskBadge: SubtaskBadgeData?
-    
-    struct SubtaskBadgeData {
-        let completed: Int
-        let total: Int
-    }
-    
+
     var body: some View {
         HStack(spacing: DesignSystem.Spacing.sm) {
             if shouldShowPriority {
@@ -25,16 +19,6 @@ struct TaskRowTitleSection: View {
                 .strikethrough(task.isCompleted)
                 .foregroundStyle(task.isCompleted ? DesignSystem.Colors.secondary : DesignSystem.Colors.primary)
                 .lineLimit(2)
-            
-            Spacer()
-            
-            // Subtask badge on title row
-            if let badge = subtaskBadge {
-                SubtasksBadge(
-                    completed: badge.completed,
-                    total: badge.total
-                )
-            }
         }
     }
 }
@@ -86,7 +70,13 @@ struct TaskRowMetadataSection: View {
 struct TaskRowProgressBar: View {
     let task: Task
     let calculations: TaskRowCalculations
-    
+    let subtaskBadge: SubtaskBadgeData?
+
+    struct SubtaskBadgeData {
+        let completed: Int
+        let total: Int
+    }
+
     var body: some View {
         Group {
             if calculations.shouldShowTimeProgress {
@@ -96,7 +86,7 @@ struct TaskRowProgressBar: View {
             }
         }
     }
-    
+
     private var timeProgressBar: some View {
         Group {
             if let _ = task.effectiveEstimate, let progress = calculations.liveTimeProgress {
@@ -108,7 +98,7 @@ struct TaskRowProgressBar: View {
             }
         }
     }
-    
+
     private var subtaskProgressBar: some View {
         HStack(spacing: DesignSystem.Spacing.xs) {
             GeometryReader { geometry in
@@ -116,7 +106,7 @@ struct TaskRowProgressBar: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(.tertiarySystemFill))
                         .frame(height: DesignSystem.Spacing.xs)
-                    
+
                     RoundedRectangle(cornerRadius: 2)
                         .fill(calculations.subtaskProgressColor(isCompleted: task.isCompleted))
                         .frame(
@@ -127,12 +117,20 @@ struct TaskRowProgressBar: View {
                 }
             }
             .frame(height: DesignSystem.Spacing.xs)
-            
+
             Text("\(Int(calculations.subtaskProgressPercentage * 100))%")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
                 .frame(width: 32, alignment: .trailing)
+
+            // Subtask badge next to percentage
+            if let badge = subtaskBadge {
+                SubtasksBadge(
+                    completed: badge.completed,
+                    total: badge.total
+                )
+            }
         }
     }
 }

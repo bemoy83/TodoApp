@@ -93,18 +93,13 @@ struct TaskRowView: View {
             HStack(spacing: DesignSystem.Spacing.xs) {
                 if hasMetadata {
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                        // Title with priority and subtask badge
+                        // Title with priority
                         TaskRowTitleSection(
                             task: task,
                             shouldShowPriority: shouldShowPriority,
-                            taskPriority: taskPriority,
-                            subtaskBadge: calculations.hasSubtasks ?
-                                TaskRowTitleSection.SubtaskBadgeData(
-                                    completed: calculations.completedDirectSubtaskCount,
-                                    total: calculations.subtaskCount
-                                ) : nil
+                            taskPriority: taskPriority
                         )
-                        
+
                         // Badges (only shown if has content)
                         TaskRowMetadataSection(
                             task: task,
@@ -113,11 +108,16 @@ struct TaskRowView: View {
                             effectiveDueDate: effectiveDueDate,
                             isDueDateInherited: isDueDateInherited
                         )
-                        
-                        // Progress bar
+
+                        // Progress bar with subtask badge
                         TaskRowProgressBar(
                             task: task,
-                            calculations: calculations
+                            calculations: calculations,
+                            subtaskBadge: calculations.hasSubtasks ?
+                                TaskRowProgressBar.SubtaskBadgeData(
+                                    completed: calculations.completedDirectSubtaskCount,
+                                    total: calculations.subtaskCount
+                                ) : nil
                         )
                         
                         // Expand/collapse chevron
@@ -145,12 +145,7 @@ struct TaskRowView: View {
                     TaskRowTitleSection(
                         task: task,
                         shouldShowPriority: shouldShowPriority,
-                        taskPriority: taskPriority,
-                        subtaskBadge: calculations.hasSubtasks ?
-                            TaskRowTitleSection.SubtaskBadgeData(
-                                completed: calculations.completedDirectSubtaskCount,
-                                total: calculations.subtaskCount
-                            ) : nil
+                        taskPriority: taskPriority
                     )
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -237,28 +232,29 @@ private struct LeadingGutter: View {
     let statusColor: Color
 
     var body: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            // Project color bar (consistent with DependencyPickerView)
+        HStack(spacing: DesignSystem.Spacing.xs) {
+            // Project color bar (slim, full height)
             if let color {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(color)
-                    .frame(width: 3, height: 32)
+                    .frame(width: 3)
             } else {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color.gray.opacity(0.3))
-                    .frame(width: 3, height: 32)
+                    .frame(width: 3)
             }
 
-            // Status toggle button
+            // Status toggle button (centered to row)
             Button(action: onToggle) {
                 Image(systemName: statusIcon)
-                    .font(.body)
+                    .font(.title3)
                     .foregroundStyle(statusColor)
-                    .frame(width: 24, height: 24)
+                    .frame(width: 28, height: 28)
                     .contentTransition(.symbolEffect(.replace))
                     .animation(.smooth(duration: 0.3), value: statusIcon)
             }
             .buttonStyle(.plain)
         }
+        .frame(maxHeight: .infinity, alignment: .center)
     }
 }
