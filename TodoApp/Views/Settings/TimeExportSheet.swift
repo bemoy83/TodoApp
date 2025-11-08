@@ -94,7 +94,7 @@ struct TimeExportSheet: View {
                 Section {
                     Picker("Project", selection: $selectedProject) {
                         Text("All Projects").tag(nil as Project?)
-                        ForEach(allProjects.sorted { $0.name < $1.name }) { project in
+                        ForEach(allProjects.sorted { $0.name < $1.name }, id: \.id) { project in
                             Text(project.name).tag(project as Project?)
                         }
                     }
