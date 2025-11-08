@@ -24,6 +24,7 @@ struct SettingsView: View {
     
     // State for alerts and toasts
     @State private var showingClearDataAlert = false
+    @State private var showingExportSheet = false
     @State private var showingToast = false
     @State private var toastMessage = ""
     @State private var isClearing = false
@@ -67,7 +68,7 @@ struct SettingsView: View {
                     isClearing: isClearing,
                     isFixingOrder: isFixingOrder,
                     showFixOrderButton: needsOrderFix,
-                    onExport: { showToast("Export feature coming soon!") },
+                    onExport: { showingExportSheet = true },
                     onClearData: { showingClearDataAlert = true },
                     onFixOrder: { assignOrderToExistingTasks() }
                 )
@@ -85,6 +86,9 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("This will permanently delete all projects, tasks, and time entries. This action cannot be undone.")
+            }
+            .sheet(isPresented: $showingExportSheet) {
+                TimeExportSheet()
             }
             .overlay(alignment: .bottom) {
                 if showingToast {
