@@ -171,7 +171,11 @@ struct TaskRowView: View {
             onEdit: { showingEditSheet = true },
             onMore: { showingMoreSheet = true },
             onAddSubtask: {
-                self.showingAddSubtaskSheet = true
+                // Small delay to let context menu fully dismiss before presenting sheet
+                // Prevents @Query timeout in AddTaskView from nested modal state
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    self.showingAddSubtaskSheet = true
+                }
             },
             alert: $currentAlert
         )
