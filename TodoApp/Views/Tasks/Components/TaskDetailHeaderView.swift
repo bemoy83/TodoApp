@@ -100,12 +100,10 @@ struct TaskDetailHeaderView: View {
                         isDueDateInherited: isDueDateInherited
                     )
                 }
-                
-                // Project & Priority Section (conditional - only if has project)
-                if task.project != nil {
-                    ProjectPrioritySection(task: task)
-                }
-                
+
+                // Organization Section (always shown - priority is always relevant)
+                OrganizationSection(task: task)
+
                 // Notes Section (conditional - only if has notes)
                 if let notes = task.notes, !notes.isEmpty {
                     NotesSection(notes: notes, isExpanded: $notesExpanded)
@@ -320,45 +318,45 @@ private struct DateRow: View {
     }
 }
 
-// MARK: - Project & Priority Section
+// MARK: - Organization Section
 
-private struct ProjectPrioritySection: View {
+private struct OrganizationSection: View {
     @Bindable var task: Task
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Organization")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
-            
+
             VStack(spacing: DesignSystem.Spacing.xs) {
-                // Project
+                // Project (conditional - only if task has project)
                 if let project = task.project {
                     HStack {
                         Image(systemName: "folder.fill")
                             .font(.body)
                             .foregroundStyle(Color(hex: project.color))
                             .frame(width: 28)
-                        
+
                         Text("Project")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        
+
                         Spacer()
-                        
+
                         Text(project.title)
                             .font(.subheadline)
                             .foregroundStyle(.primary)
-                        
+
                         Image(systemName: "chevron.right")
                             .font(.subheadline)
                             .foregroundStyle(.tertiary)
                     }
                     .padding(.vertical, 2)
                 }
-                
-                // Priority
+
+                // Priority (always shown)
                 Menu {
                     ForEach([Priority.urgent, .high, .medium, .low], id: \.self) { priority in
                         Button {
@@ -374,17 +372,17 @@ private struct ProjectPrioritySection: View {
                             .font(.body)
                             .foregroundStyle(Priority(rawValue: task.priority)?.color ?? .gray)
                             .frame(width: 28)
-                        
+
                         Text("Priority")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        
+
                         Spacer()
-                        
+
                         Text(Priority(rawValue: task.priority)?.label ?? "Medium")
                             .font(.subheadline)
                             .foregroundStyle(Priority(rawValue: task.priority)?.color ?? .gray)
-                        
+
                         Image(systemName: "chevron.right")
                             .font(.subheadline)
                             .foregroundStyle(.tertiary)

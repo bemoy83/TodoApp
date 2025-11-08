@@ -71,7 +71,11 @@ struct DependencyPickerView: View {
                                 Button {
                                     addDependency(potentialDependency)
                                 } label: {
-                                    DependencyTaskRow(task: potentialDependency)
+                                    TaskPickerRow(
+                                        task: potentialDependency,
+                                        showPriority: true,
+                                        showStatus: true
+                                    )
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -110,87 +114,5 @@ struct DependencyPickerView: View {
         } catch {
             print("Failed to add dependency: \(error.localizedDescription)")
         }
-    }
-}
-
-// MARK: - Dependency Task Row
-
-private struct DependencyTaskRow: View {
-    let task: Task
-
-    private var isSubtask: Bool {
-        task.parentTask != nil
-    }
-
-    private var priority: Priority {
-        Priority(rawValue: task.priority) ?? .medium
-    }
-
-    var body: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            // Project color bar (consistent with TaskListView)
-            if let project = task.project {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color(hex: project.color))
-                    .frame(width: 3, height: 32)
-            } else {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 3, height: 32)
-            }
-
-            // Task icon - different for tasks vs subtasks
-            Image(systemName: isSubtask ? "arrow.turn.down.right" : "doc.text")
-                .font(.body)
-                .foregroundStyle(isSubtask ? .secondary : .primary)
-                .frame(width: 24)
-
-            // Task info
-            VStack(alignment: .leading, spacing: 4) {
-                // Task title
-                Text(task.title)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-
-                // Hierarchy info: parent task for subtasks, project for top-level
-                if isSubtask {
-                    if let parent = task.parentTask {
-                        HStack(spacing: 4) {
-                            Image(systemName: "folder")
-                                .font(.caption2)
-                            Text(parent.title)
-                                .font(.caption)
-                        }
-                        .foregroundStyle(.secondary)
-                    }
-                } else if let project = task.project {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color(hex: project.color))
-                            .frame(width: 6, height: 6)
-                        Text(project.title)
-                            .font(.caption)
-                    }
-                    .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            // Priority indicator (consistent with TaskListView)
-            // Show for non-medium priorities (urgent, high, low)
-            if priority != .medium {
-                Image(systemName: priority.icon)
-                    .font(.caption)
-                    .foregroundStyle(priority.color)
-            }
-
-            // Status indicator
-            Image(systemName: task.status.icon)
-                .font(.caption)
-                .foregroundStyle(Color(task.status.color))
-        }
-        .padding(.vertical, 4)
     }
 }
