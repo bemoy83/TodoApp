@@ -89,7 +89,7 @@ struct MoveToTaskPicker: View {
             Button {
                 moveTask(to: parentTask)
             } label: {
-                TaskPickerRow(task: parentTask)
+                TaskPickerRow(task: parentTask, showSubtaskCount: true)
             }
             .buttonStyle(.plain)
         }
@@ -195,49 +195,6 @@ struct MoveToTaskPicker: View {
             return false
         }
     }
-// MARK: - Task Picker Row
-
-private struct TaskPickerRow: View {
-    let task: Task
-    
-    var body: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            // Project color indicator
-            if let project = task.project {
-                RoundedRectangle(cornerRadius: DesignSystem.Spacing.xxs)
-                    .fill(Color(hex: project.color))
-                    .frame(width: DesignSystem.Spacing.xs, height: 16)
-            }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(task.title)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                
-                if let project = task.project {
-                    Text(project.title)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            
-            Spacer()
-            
-            // Subtask count badge
-            if task.subtaskCount > 0 {
-                Text("\(task.subtaskCount)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, DesignSystem.Spacing.xs)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(Color(.tertiarySystemFill))
-                    )
-            }
-        }
-    }
-}
 
 // MARK: - Preview
 

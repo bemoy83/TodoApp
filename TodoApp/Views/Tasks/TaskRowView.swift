@@ -77,7 +77,7 @@ struct TaskRowView: View {
     // MARK: - Body
     
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: DesignSystem.Spacing.xs) {
             LeadingGutter(
                 color: task.project.map { Color(hex: $0.color) },
                 onToggle: {
@@ -93,18 +93,13 @@ struct TaskRowView: View {
             HStack(spacing: DesignSystem.Spacing.xs) {
                 if hasMetadata {
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                        // Title with priority and subtask badge
+                        // Title with priority
                         TaskRowTitleSection(
                             task: task,
                             shouldShowPriority: shouldShowPriority,
-                            taskPriority: taskPriority,
-                            subtaskBadge: calculations.hasSubtasks ?
-                                TaskRowTitleSection.SubtaskBadgeData(
-                                    completed: calculations.completedDirectSubtaskCount,
-                                    total: calculations.subtaskCount
-                                ) : nil
+                            taskPriority: taskPriority
                         )
-                        
+
                         // Badges (only shown if has content)
                         TaskRowMetadataSection(
                             task: task,
@@ -113,31 +108,33 @@ struct TaskRowView: View {
                             effectiveDueDate: effectiveDueDate,
                             isDueDateInherited: isDueDateInherited
                         )
-                        
-                        // Progress bar
+
+                        // Progress bar with subtask badge
                         TaskRowProgressBar(
                             task: task,
-                            calculations: calculations
+                            calculations: calculations,
+                            subtaskBadge: calculations.hasSubtasks ?
+                                TaskRowProgressBar.SubtaskBadgeData(
+                                    completed: calculations.completedDirectSubtaskCount,
+                                    total: calculations.subtaskCount
+                                ) : nil
                         )
                         
-                        // Expand/collapse chevron
+                        // Expand/collapse chevron (centered)
                         if calculations.hasSubtasks {
-                            HStack {
-                                Spacer()
-                                Button {
-                                    HapticManager.light()
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        expansionState.toggle(task.id)
-                                    }
-                                } label: {
-                                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .contentTransition(.symbolEffect(.replace))
+                            Button {
+                                HapticManager.light()
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    expansionState.toggle(task.id)
                                 }
-                                .buttonStyle(.plain)
-                                Spacer()
+                            } label: {
+                                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .contentTransition(.symbolEffect(.replace))
                             }
+                            .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity, alignment: .center)
                         }
                     }
                 } else {
@@ -145,12 +142,7 @@ struct TaskRowView: View {
                     TaskRowTitleSection(
                         task: task,
                         shouldShowPriority: shouldShowPriority,
-                        taskPriority: taskPriority,
-                        subtaskBadge: calculations.hasSubtasks ?
-                            TaskRowTitleSection.SubtaskBadgeData(
-                                completed: calculations.completedDirectSubtaskCount,
-                                total: calculations.subtaskCount
-                            ) : nil
+                        taskPriority: taskPriority
                     )
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -179,7 +171,11 @@ struct TaskRowView: View {
             onEdit: { showingEditSheet = true },
             onMore: { showingMoreSheet = true },
             onAddSubtask: {
-                self.showingAddSubtaskSheet = true
+                // Small delay to let context menu fully dismiss before presenting sheet
+                // Prevents @Query timeout in AddTaskView from nested modal state
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    self.showingAddSubtaskSheet = true
+                }
             },
             alert: $currentAlert
         )
@@ -237,8 +233,8 @@ private struct LeadingGutter: View {
     let statusColor: Color
 
     var body: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            // Project color bar (consistent with DependencyPickerView)
+        HStack(spacing: DesignSystem.Spacing.xs) {
+            // Project color bar (slim, fixed height for alignment)
             if let color {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(color)
@@ -249,16 +245,17 @@ private struct LeadingGutter: View {
                     .frame(width: 3, height: 32)
             }
 
-            // Status toggle button
+            // Status toggle button (centered between bar and content)
             Button(action: onToggle) {
                 Image(systemName: statusIcon)
-                    .font(.body)
+                    .font(.title3)
                     .foregroundStyle(statusColor)
-                    .frame(width: 24, height: 24)
+                    .frame(width: 28, height: 28)
                     .contentTransition(.symbolEffect(.replace))
                     .animation(.smooth(duration: 0.3), value: statusIcon)
             }
             .buttonStyle(.plain)
         }
+        .frame(maxHeight: .infinity, alignment: .center)
     }
 }
