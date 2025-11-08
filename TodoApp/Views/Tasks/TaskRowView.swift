@@ -77,7 +77,7 @@ struct TaskRowView: View {
     // MARK: - Body
     
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: DesignSystem.Spacing.xs) {
             LeadingGutter(
                 color: task.project.map { Color(hex: $0.color) },
                 onToggle: {
@@ -241,7 +241,7 @@ private struct LeadingGutter: View {
                     .frame(width: 3, height: 32)
             }
 
-            // Status toggle button (centered to row)
+            // Status toggle button (centered between bar and content)
             Button(action: onToggle) {
                 Image(systemName: statusIcon)
                     .font(.title3)
