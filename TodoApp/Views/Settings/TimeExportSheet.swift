@@ -219,7 +219,7 @@ struct TimeExportSheet: View {
     }
 
     private func generateCSV() -> String {
-        var csv = "Task,Project,Start Time,End Time,Duration (minutes),Duration (hours),Date,Notes\n"
+        var csv = "Task,Project,Start Time,End Time,Duration (minutes),Duration (hours),Personnel,Person-Hours,Date,Notes\n"
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .short
@@ -243,9 +243,13 @@ struct TimeExportSheet: View {
             let minutes = Int(duration / 60)
             let hours = String(format: "%.2f", duration / 3600)
 
+            // Personnel and person-hours calculation
+            let personnel = entry.personnelCount
+            let personHours = String(format: "%.2f", (duration / 3600) * Double(personnel))
+
             let notes = task.notes?.replacingOccurrences(of: "\"", with: "\"\"") ?? ""
 
-            csv += "\"\(taskName)\",\"\(projectName)\",\"\(startTimeStr)\",\"\(endTimeStr)\",\(minutes),\(hours),\"\(dateStr)\",\"\(notes)\"\n"
+            csv += "\"\(taskName)\",\"\(projectName)\",\"\(startTimeStr)\",\"\(endTimeStr)\",\(minutes),\(hours),\(personnel),\(personHours),\"\(dateStr)\",\"\(notes)\"\n"
         }
 
         return csv
