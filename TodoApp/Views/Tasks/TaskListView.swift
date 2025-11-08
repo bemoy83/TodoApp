@@ -15,9 +15,6 @@ struct TaskListView: View {
     
     @StateObject private var expansionState = TaskExpansionState.shared
     
-    // NEW: Trigger to force list refresh when timers are running
-    @State private var refreshTrigger = false
-    
     // MARK: - Filtering (top-level tasks only)
     private var filteredTasks: [Task] {
         var result = tasks.filter { $0.parentTask == nil }
@@ -150,11 +147,6 @@ struct TaskListView: View {
             .navigationDestination(item: $selectedTask) { task in
                 TaskDetailView(task: task)
             }
-            .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
-                // Toggle refresh trigger to force row updates
-                refreshTrigger.toggle()
-            }
-            .id(refreshTrigger) // Force List to refresh when trigger changes
         }
         .environmentObject(expansionState)
     }
