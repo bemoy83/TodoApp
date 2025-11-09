@@ -25,6 +25,7 @@ struct SettingsView: View {
     // State for alerts and toasts
     @State private var showingClearDataAlert = false
     @State private var showingExportSheet = false
+    @State private var showingReportSheet = false
     @State private var showingToast = false
     @State private var toastMessage = ""
     @State private var isClearing = false
@@ -69,6 +70,7 @@ struct SettingsView: View {
                     isFixingOrder: isFixingOrder,
                     showFixOrderButton: needsOrderFix,
                     onExport: { showingExportSheet = true },
+                    onGenerateReport: { showingReportSheet = true },
                     onClearData: { showingClearDataAlert = true },
                     onFixOrder: { assignOrderToExistingTasks() }
                 )
@@ -89,6 +91,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showingExportSheet) {
                 TimeExportSheet()
+            }
+            .sheet(isPresented: $showingReportSheet) {
+                ReportTemplatesSheet()
             }
             .overlay(alignment: .bottom) {
                 if showingToast {

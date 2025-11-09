@@ -1,0 +1,540 @@
+import Foundation
+
+// MARK: - Report Generator
+
+struct ReportGenerator {
+
+    // MARK: - Main Generation Method
+
+    static func generate(from data: ReportData) -> String {
+        switch data.template {
+        case .weeklySummary:
+            return generateWeeklySummary(data: data)
+        case .monthlySummary:
+            return generateMonthlySummary(data: data)
+        case .projectPerformance:
+            return generateProjectPerformance(data: data)
+        case .personnelUtilization:
+            return generatePersonnelUtilization(data: data)
+        case .taskEfficiency:
+            return generateTaskEfficiency(data: data)
+        }
+    }
+
+    // MARK: - Weekly Summary Report
+
+    private static func generateWeeklySummary(data: ReportData) -> String {
+        let entries = data.filteredTimeEntries
+        let tasks = data.filteredTasks
+
+        let completedTasks = tasks.filter { $0.isCompleted }
+        let totalHours = entries.reduce(0.0) { total, entry in
+            guard let end = entry.endTime else { return total }
+            return total + end.timeIntervalSince(entry.startTime) / 3600
+        }
+        let totalPersonHours = entries.reduce(0.0) { total, entry in
+            guard let end = entry.endTime else { return total }
+            let hours = end.timeIntervalSince(entry.startTime) / 3600
+            return total + (hours * Double(entry.personnelCount))
+        }
+
+        switch data.format {
+        case .markdown:
+            return generateWeeklySummaryMarkdown(
+                entries: entries,
+                tasks: tasks,
+                completedTasks: completedTasks,
+                totalHours: totalHours,
+                totalPersonHours: totalPersonHours,
+                data: data
+            )
+        case .plainText:
+            return generateWeeklySummaryPlainText(
+                entries: entries,
+                tasks: tasks,
+                completedTasks: completedTasks,
+                totalHours: totalHours,
+                totalPersonHours: totalPersonHours,
+                data: data
+            )
+        case .csv:
+            return generateWeeklySummaryCSV(
+                entries: entries,
+                tasks: tasks,
+                data: data
+            )
+        }
+    }
+
+    private static func generateWeeklySummaryMarkdown(
+        entries: [TimeEntry],
+        tasks: [Task],
+        completedTasks: [Task],
+        totalHours: Double,
+        totalPersonHours: Double,
+        data: ReportData
+    ) -> String {
+        var md = "# Weekly Summary Report\n\n"
+        md += "*Generated: \(formatDate(Date()))*\n\n"
+        md += "## Overview\n\n"
+        md += "- **Period**: \(formatDateRange(data.effectiveDateRange))\n"
+        md += "- **Tasks Completed**: \(completedTasks.count) of \(tasks.count)\n"
+        md += "- **Total Hours**: \(String(format: "%.1f", totalHours)) hrs\n"
+        md += "- **Person-Hours**: \(String(format: "%.1f", totalPersonHours)) hrs\n\n"
+
+        // Completed Tasks
+        if !completedTasks.isEmpty {
+            md += "## Completed Tasks\n\n"
+            for task in completedTasks.sorted(by: { $0.completedDate! > $1.completedDate! }) {
+                let projectName = task.project?.title ?? "No Project"
+                let hours = Double(task.totalTimeSpent) / 3600
+                md += "- **\(task.title)** (\(projectName)) - \(String(format: "%.1f", hours)) hrs\n"
+            }
+            md += "\n"
+        }
+
+        // Project Breakdown
+        let projectGroups = Dictionary(grouping: entries, by: { $0.task?.project?.title ?? "No Project" })
+        if !projectGroups.isEmpty {
+            md += "## Time by Project\n\n"
+            md += "| Project | Hours | Person-Hours |\n"
+            md += "|---------|-------|-------------|\n"
+
+            for (project, projectEntries) in projectGroups.sorted(by: { $0.key < $1.key }) {
+                let hours = projectEntries.reduce(0.0) { total, entry in
+                    guard let end = entry.endTime else { return total }
+                    return total + end.timeIntervalSince(entry.startTime) / 3600
+                }
+                let personHours = projectEntries.reduce(0.0) { total, entry in
+                    guard let end = entry.endTime else { return total }
+                    let h = end.timeIntervalSince(entry.startTime) / 3600
+                    return total + (h * Double(entry.personnelCount))
+                }
+                md += "| \(project) | \(String(format: "%.1f", hours)) | \(String(format: "%.1f", personHours)) |\n"
+            }
+        }
+
+        return md
+    }
+
+    private static func generateWeeklySummaryPlainText(
+        entries: [TimeEntry],
+        tasks: [Task],
+        completedTasks: [Task],
+        totalHours: Double,
+        totalPersonHours: Double,
+        data: ReportData
+    ) -> String {
+        var text = "WEEKLY SUMMARY REPORT\n"
+        text += "Generated: \(formatDate(Date()))\n\n"
+        text += "OVERVIEW\n"
+        text += "========\n"
+        text += "Period: \(formatDateRange(data.effectiveDateRange))\n"
+        text += "Tasks Completed: \(completedTasks.count) of \(tasks.count)\n"
+        text += "Total Hours: \(String(format: "%.1f", totalHours)) hrs\n"
+        text += "Person-Hours: \(String(format: "%.1f", totalPersonHours)) hrs\n\n"
+
+        if !completedTasks.isEmpty {
+            text += "COMPLETED TASKS\n"
+            text += "===============\n"
+            for task in completedTasks.sorted(by: { $0.completedDate! > $1.completedDate! }) {
+                let projectName = task.project?.title ?? "No Project"
+                let hours = Double(task.totalTimeSpent) / 3600
+                text += "- \(task.title) (\(projectName)) - \(String(format: "%.1f", hours)) hrs\n"
+            }
+            text += "\n"
+        }
+
+        return text
+    }
+
+    private static func generateWeeklySummaryCSV(
+        entries: [TimeEntry],
+        tasks: [Task],
+        data: ReportData
+    ) -> String {
+        var csv = "Report Type,Weekly Summary\n"
+        csv += "Generated,\(formatDate(Date()))\n"
+        csv += "Period,\(formatDateRange(data.effectiveDateRange))\n\n"
+        csv += "Task,Project,Status,Completed Date,Hours,Person-Hours\n"
+
+        for task in tasks.sorted(by: { $0.createdDate > $1.createdDate }) {
+            let projectName = task.project?.title ?? "No Project"
+            let status = task.isCompleted ? "Completed" : "Active"
+            let completedDate = task.completedDate != nil ? formatDate(task.completedDate!) : ""
+            let hours = String(format: "%.2f", Double(task.totalTimeSpent) / 3600)
+
+            // Calculate person-hours for this task
+            let personHours = task.timeEntries?.reduce(0.0) { total, entry in
+                guard let end = entry.endTime else { return total }
+                let h = end.timeIntervalSince(entry.startTime) / 3600
+                return total + (h * Double(entry.personnelCount))
+            } ?? 0.0
+
+            csv += "\"\(task.title)\",\"\(projectName)\",\(status),\(completedDate),\(hours),\(String(format: "%.2f", personHours))\n"
+        }
+
+        return csv
+    }
+
+    // MARK: - Monthly Summary Report
+
+    private static func generateMonthlySummary(data: ReportData) -> String {
+        // Similar to weekly but with more detailed breakdowns
+        let entries = data.filteredTimeEntries
+        let tasks = data.filteredTasks
+        let completedTasks = tasks.filter { $0.isCompleted }
+
+        let totalHours = entries.reduce(0.0) { total, entry in
+            guard let end = entry.endTime else { return total }
+            return total + end.timeIntervalSince(entry.startTime) / 3600
+        }
+
+        let totalPersonHours = entries.reduce(0.0) { total, entry in
+            guard let end = entry.endTime else { return total }
+            let hours = end.timeIntervalSince(entry.startTime) / 3600
+            return total + (hours * Double(entry.personnelCount))
+        }
+
+        switch data.format {
+        case .markdown:
+            var md = "# Monthly Summary Report\n\n"
+            md += "*Generated: \(formatDate(Date()))*\n\n"
+            md += "## Overview\n\n"
+            md += "- **Period**: \(formatDateRange(data.effectiveDateRange))\n"
+            md += "- **Total Tasks**: \(tasks.count)\n"
+            md += "- **Completed**: \(completedTasks.count) (\(Int(Double(completedTasks.count) / Double(max(tasks.count, 1)) * 100))%)\n"
+            md += "- **Total Hours**: \(String(format: "%.1f", totalHours)) hrs\n"
+            md += "- **Person-Hours**: \(String(format: "%.1f", totalPersonHours)) hrs\n\n"
+
+            // Project breakdown
+            let projectGroups = Dictionary(grouping: tasks, by: { $0.project?.title ?? "No Project" })
+            md += "## Project Performance\n\n"
+            md += "| Project | Tasks | Completed | Hours | Person-Hours |\n"
+            md += "|---------|-------|-----------|-------|-------------|\n"
+
+            for (project, projectTasks) in projectGroups.sorted(by: { $0.key < $1.key }) {
+                let completed = projectTasks.filter { $0.isCompleted }.count
+                let hours = projectTasks.reduce(0.0) { total, task in
+                    total + Double(task.totalTimeSpent) / 3600
+                }
+                let personHours = projectTasks.reduce(0.0) { total, task in
+                    (task.timeEntries ?? []).reduce(total) { sum, entry in
+                        guard let end = entry.endTime else { return sum }
+                        let h = end.timeIntervalSince(entry.startTime) / 3600
+                        return sum + (h * Double(entry.personnelCount))
+                    }
+                }
+                md += "| \(project) | \(projectTasks.count) | \(completed) | \(String(format: "%.1f", hours)) | \(String(format: "%.1f", personHours)) |\n"
+            }
+
+            return md
+
+        case .plainText:
+            var text = "MONTHLY SUMMARY REPORT\n"
+            text += "Generated: \(formatDate(Date()))\n\n"
+            text += "OVERVIEW\n"
+            text += "========\n"
+            text += "Period: \(formatDateRange(data.effectiveDateRange))\n"
+            text += "Total Tasks: \(tasks.count)\n"
+            text += "Completed: \(completedTasks.count)\n"
+            text += "Total Hours: \(String(format: "%.1f", totalHours)) hrs\n"
+            text += "Person-Hours: \(String(format: "%.1f", totalPersonHours)) hrs\n"
+            return text
+
+        case .csv:
+            return generateMonthlySummaryCSV(tasks: tasks, data: data)
+        }
+    }
+
+    private static func generateMonthlySummaryCSV(tasks: [Task], data: ReportData) -> String {
+        var csv = "Report Type,Monthly Summary\n"
+        csv += "Generated,\(formatDate(Date()))\n"
+        csv += "Period,\(formatDateRange(data.effectiveDateRange))\n\n"
+        csv += "Project,Total Tasks,Completed Tasks,Completion %,Total Hours,Person-Hours\n"
+
+        let projectGroups = Dictionary(grouping: tasks, by: { $0.project?.title ?? "No Project" })
+
+        for (project, projectTasks) in projectGroups.sorted(by: { $0.key < $1.key }) {
+            let completed = projectTasks.filter { $0.isCompleted }.count
+            let completionPct = Int(Double(completed) / Double(max(projectTasks.count, 1)) * 100)
+            let hours = projectTasks.reduce(0.0) { total, task in
+                total + Double(task.totalTimeSpent) / 3600
+            }
+            let personHours = projectTasks.reduce(0.0) { total, task in
+                (task.timeEntries ?? []).reduce(total) { sum, entry in
+                    guard let end = entry.endTime else { return sum }
+                    let h = end.timeIntervalSince(entry.startTime) / 3600
+                    return sum + (h * Double(entry.personnelCount))
+                }
+            }
+            csv += "\"\(project)\",\(projectTasks.count),\(completed),\(completionPct)%,\(String(format: "%.2f", hours)),\(String(format: "%.2f", personHours))\n"
+        }
+
+        return csv
+    }
+
+    // MARK: - Project Performance Report
+
+    private static func generateProjectPerformance(data: ReportData) -> String {
+        guard let project = data.selectedProject else {
+            return "Error: No project selected"
+        }
+
+        let projectTasks = data.tasks.filter { $0.project?.id == project.id }
+        let completedTasks = projectTasks.filter { $0.isCompleted }
+        let totalHours = projectTasks.reduce(0.0) { total, task in
+            total + Double(task.totalTimeSpent) / 3600
+        }
+        let totalPersonHours = projectTasks.reduce(0.0) { total, task in
+            (task.timeEntries ?? []).reduce(total) { sum, entry in
+                guard let end = entry.endTime else { return sum }
+                let h = end.timeIntervalSince(entry.startTime) / 3600
+                return sum + (h * Double(entry.personnelCount))
+            }
+        }
+
+        switch data.format {
+        case .markdown:
+            var md = "# Project Performance Report\n\n"
+            md += "## \(project.title)\n\n"
+            md += "*Generated: \(formatDate(Date()))*\n\n"
+            md += "### Overview\n\n"
+            md += "- **Total Tasks**: \(projectTasks.count)\n"
+            md += "- **Completed**: \(completedTasks.count) (\(Int(Double(completedTasks.count) / Double(max(projectTasks.count, 1)) * 100))%)\n"
+            md += "- **In Progress**: \(projectTasks.count - completedTasks.count)\n"
+            md += "- **Total Hours**: \(String(format: "%.1f", totalHours)) hrs\n"
+            md += "- **Person-Hours**: \(String(format: "%.1f", totalPersonHours)) hrs\n\n"
+
+            // Task list
+            if !projectTasks.isEmpty {
+                md += "### Tasks\n\n"
+                md += "| Task | Status | Hours | Person-Hours |\n"
+                md += "|------|--------|-------|-------------|\n"
+
+                for task in projectTasks.sorted(by: { $0.createdDate > $1.createdDate }) {
+                    let status = task.isCompleted ? "✓ Done" : "○ Active"
+                    let hours = Double(task.totalTimeSpent) / 3600
+                    let personHours = (task.timeEntries ?? []).reduce(0.0) { sum, entry in
+                        guard let end = entry.endTime else { return sum }
+                        let h = end.timeIntervalSince(entry.startTime) / 3600
+                        return sum + (h * Double(entry.personnelCount))
+                    }
+                    md += "| \(task.title) | \(status) | \(String(format: "%.1f", hours)) | \(String(format: "%.1f", personHours)) |\n"
+                }
+            }
+
+            return md
+
+        case .plainText:
+            var text = "PROJECT PERFORMANCE REPORT\n"
+            text += "==========================\n"
+            text += "Project: \(project.title)\n"
+            text += "Generated: \(formatDate(Date()))\n\n"
+            text += "OVERVIEW\n"
+            text += "--------\n"
+            text += "Total Tasks: \(projectTasks.count)\n"
+            text += "Completed: \(completedTasks.count)\n"
+            text += "Total Hours: \(String(format: "%.1f", totalHours)) hrs\n"
+            text += "Person-Hours: \(String(format: "%.1f", totalPersonHours)) hrs\n"
+            return text
+
+        case .csv:
+            var csv = "Report Type,Project Performance\n"
+            csv += "Project,\(project.title)\n"
+            csv += "Generated,\(formatDate(Date()))\n\n"
+            csv += "Task,Status,Created,Completed,Hours,Person-Hours\n"
+
+            for task in projectTasks.sorted(by: { $0.createdDate > $1.createdDate }) {
+                let status = task.isCompleted ? "Completed" : "Active"
+                let created = formatDate(task.createdDate)
+                let completed = task.completedDate != nil ? formatDate(task.completedDate!) : ""
+                let hours = String(format: "%.2f", Double(task.totalTimeSpent) / 3600)
+                let personHours = (task.timeEntries ?? []).reduce(0.0) { sum, entry in
+                    guard let end = entry.endTime else { return sum }
+                    let h = end.timeIntervalSince(entry.startTime) / 3600
+                    return sum + (h * Double(entry.personnelCount))
+                }
+                csv += "\"\(task.title)\",\(status),\(created),\(completed),\(hours),\(String(format: "%.2f", personHours))\n"
+            }
+
+            return csv
+        }
+    }
+
+    // MARK: - Personnel Utilization Report
+
+    private static func generatePersonnelUtilization(data: ReportData) -> String {
+        let entries = data.filteredTimeEntries
+
+        // Group by personnel count
+        let personnelGroups = Dictionary(grouping: entries, by: { $0.personnelCount })
+
+        switch data.format {
+        case .markdown:
+            var md = "# Personnel Utilization Report\n\n"
+            md += "*Generated: \(formatDate(Date()))*\n"
+            md += "*Period: \(formatDateRange(data.effectiveDateRange))*\n\n"
+
+            md += "## Summary\n\n"
+            let totalPersonHours = entries.reduce(0.0) { total, entry in
+                guard let end = entry.endTime else { return total }
+                let hours = end.timeIntervalSince(entry.startTime) / 3600
+                return total + (hours * Double(entry.personnelCount))
+            }
+            md += "- **Total Person-Hours**: \(String(format: "%.1f", totalPersonHours)) hrs\n"
+            md += "- **Time Entries**: \(entries.count)\n\n"
+
+            // Breakdown by crew size
+            md += "## Crew Size Breakdown\n\n"
+            md += "| Crew Size | Entries | Total Hours | Person-Hours |\n"
+            md += "|-----------|---------|-------------|-------------|\n"
+
+            for (count, groupEntries) in personnelGroups.sorted(by: { $0.key < $1.key }) {
+                let hours = groupEntries.reduce(0.0) { total, entry in
+                    guard let end = entry.endTime else { return total }
+                    return total + end.timeIntervalSince(entry.startTime) / 3600
+                }
+                let personHours = hours * Double(count)
+                md += "| \(count) \(count == 1 ? "person" : "people") | \(groupEntries.count) | \(String(format: "%.1f", hours)) | \(String(format: "%.1f", personHours)) |\n"
+            }
+
+            return md
+
+        case .plainText:
+            var text = "PERSONNEL UTILIZATION REPORT\n"
+            text += "Generated: \(formatDate(Date()))\n"
+            text += "Period: \(formatDateRange(data.effectiveDateRange))\n\n"
+
+            let totalPersonHours = entries.reduce(0.0) { total, entry in
+                guard let end = entry.endTime else { return total }
+                let hours = end.timeIntervalSince(entry.startTime) / 3600
+                return total + (hours * Double(entry.personnelCount))
+            }
+            text += "Total Person-Hours: \(String(format: "%.1f", totalPersonHours)) hrs\n"
+            text += "Time Entries: \(entries.count)\n"
+            return text
+
+        case .csv:
+            var csv = "Report Type,Personnel Utilization\n"
+            csv += "Generated,\(formatDate(Date()))\n"
+            csv += "Period,\(formatDateRange(data.effectiveDateRange))\n\n"
+            csv += "Task,Project,Date,Crew Size,Hours,Person-Hours\n"
+
+            for entry in entries.sorted(by: { $0.startTime > $1.startTime }) {
+                guard let end = entry.endTime else { continue }
+                let taskName = entry.task?.title ?? "Unknown"
+                let projectName = entry.task?.project?.title ?? "No Project"
+                let date = formatDate(entry.startTime)
+                let hours = end.timeIntervalSince(entry.startTime) / 3600
+                let personHours = hours * Double(entry.personnelCount)
+
+                csv += "\"\(taskName)\",\"\(projectName)\",\(date),\(entry.personnelCount),\(String(format: "%.2f", hours)),\(String(format: "%.2f", personHours))\n"
+            }
+
+            return csv
+        }
+    }
+
+    // MARK: - Task Efficiency Report
+
+    private static func generateTaskEfficiency(data: ReportData) -> String {
+        let tasks = data.filteredTasks.filter { $0.effectiveEstimate != nil }
+
+        switch data.format {
+        case .markdown:
+            var md = "# Task Efficiency Report\n\n"
+            md += "*Generated: \(formatDate(Date()))*\n"
+            md += "*Period: \(formatDateRange(data.effectiveDateRange))*\n\n"
+
+            if tasks.isEmpty {
+                md += "*No tasks with estimates found in this period.*\n"
+                return md
+            }
+
+            // Summary
+            let onTrack = tasks.filter { $0.estimateStatus == .onTrack }.count
+            let warning = tasks.filter { $0.estimateStatus == .warning }.count
+            let over = tasks.filter { $0.estimateStatus == .over }.count
+
+            md += "## Summary\n\n"
+            md += "- **On Track**: \(onTrack) tasks\n"
+            md += "- **Warning**: \(warning) tasks (75-100% time used)\n"
+            md += "- **Over Estimate**: \(over) tasks\n\n"
+
+            // Task details
+            md += "## Task Details\n\n"
+            md += "| Task | Project | Estimated | Actual | Status |\n"
+            md += "|------|---------|-----------|--------|--------|\n"
+
+            for task in tasks.sorted(by: { ($0.timeProgress ?? 0) > ($1.timeProgress ?? 0) }) {
+                let projectName = task.project?.title ?? "No Project"
+                let estimated = String(format: "%.1f", Double(task.effectiveEstimate ?? 0) / 3600)
+                let actual = String(format: "%.1f", Double(task.totalTimeSpent) / 3600)
+                let progress = Int((task.timeProgress ?? 0) * 100)
+                let status = progress > 100 ? "🔴 Over" : progress > 75 ? "⚠️ Warning" : "✅ On Track"
+
+                md += "| \(task.title) | \(projectName) | \(estimated)h | \(actual)h | \(status) (\(progress)%) |\n"
+            }
+
+            return md
+
+        case .plainText:
+            var text = "TASK EFFICIENCY REPORT\n"
+            text += "Generated: \(formatDate(Date()))\n"
+            text += "Period: \(formatDateRange(data.effectiveDateRange))\n\n"
+
+            if tasks.isEmpty {
+                text += "No tasks with estimates found in this period.\n"
+                return text
+            }
+
+            for task in tasks {
+                let estimated = String(format: "%.1f", Double(task.effectiveEstimate ?? 0) / 3600)
+                let actual = String(format: "%.1f", Double(task.totalTimeSpent) / 3600)
+                let progress = Int((task.timeProgress ?? 0) * 100)
+                text += "- \(task.title): \(actual)h / \(estimated)h (\(progress)%)\n"
+            }
+
+            return text
+
+        case .csv:
+            var csv = "Report Type,Task Efficiency\n"
+            csv += "Generated,\(formatDate(Date()))\n"
+            csv += "Period,\(formatDateRange(data.effectiveDateRange))\n\n"
+            csv += "Task,Project,Estimated Hours,Actual Hours,Progress %,Status\n"
+
+            for task in tasks.sorted(by: { $0.createdDate > $1.createdDate }) {
+                let projectName = task.project?.title ?? "No Project"
+                let estimated = String(format: "%.2f", Double(task.effectiveEstimate ?? 0) / 3600)
+                let actual = String(format: "%.2f", Double(task.totalTimeSpent) / 3600)
+                let progress = Int((task.timeProgress ?? 0) * 100)
+                let status = progress > 100 ? "Over" : progress > 75 ? "Warning" : "On Track"
+
+                csv += "\"\(task.title)\",\"\(projectName)\",\(estimated),\(actual),\(progress),\(status)\n"
+            }
+
+            return csv
+        }
+    }
+
+    // MARK: - Helper Functions
+
+    private static func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    private static func formatDateRange(_ range: (start: Date, end: Date)) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+
+        if range.start == Date.distantPast && range.end == Date.distantFuture {
+            return "All Time"
+        }
+
+        return "\(formatter.string(from: range.start)) - \(formatter.string(from: range.end))"
+    }
+}
