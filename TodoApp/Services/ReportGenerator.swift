@@ -207,8 +207,8 @@ struct ReportGenerator {
             md += "- **Total Hours**: \(String(format: "%.1f", totalHours)) hrs\n"
             md += "- **Person-Hours**: \(String(format: "%.1f", totalPersonHours)) hrs\n\n"
 
-            // Project breakdown
-            let projectGroups = Dictionary(grouping: tasks, by: { $0.project?.title ?? "No Project" })
+            // Project breakdown - using effective project to handle subtask inheritance
+            let projectGroups = Dictionary(grouping: tasks, by: { getEffectiveProject(for: $0)?.title ?? "No Project" })
             md += "## Project Performance\n\n"
             md += "| Project | Tasks | Completed | Hours | Person-Hours |\n"
             md += "|---------|-------|-----------|-------|-------------|\n"
@@ -218,12 +218,9 @@ struct ReportGenerator {
                 let hours = projectTasks.reduce(0.0) { total, task in
                     total + Double(task.totalTimeSpent) / 3600
                 }
+                // Use recursive person-hours calculation including subtasks
                 let personHours = projectTasks.reduce(0.0) { total, task in
-                    (task.timeEntries ?? []).reduce(total) { sum, entry in
-                        guard let end = entry.endTime else { return sum }
-                        let h = end.timeIntervalSince(entry.startTime) / 3600
-                        return sum + (h * Double(entry.personnelCount))
-                    }
+                    total + computePersonHours(for: task, allTasks: data.tasks)
                 }
                 md += "| \(project) | \(projectTasks.count) | \(completed) | \(String(format: "%.1f", hours)) | \(String(format: "%.1f", personHours)) |\n"
             }
@@ -253,7 +250,8 @@ struct ReportGenerator {
         csv += "Period,\(formatDateRange(data.effectiveDateRange))\n\n"
         csv += "Project,Total Tasks,Completed Tasks,Completion %,Total Hours,Person-Hours\n"
 
-        let projectGroups = Dictionary(grouping: tasks, by: { $0.project?.title ?? "No Project" })
+        // Use effective project to handle subtask inheritance
+        let projectGroups = Dictionary(grouping: tasks, by: { getEffectiveProject(for: $0)?.title ?? "No Project" })
 
         for (project, projectTasks) in projectGroups.sorted(by: { $0.key < $1.key }) {
             let completed = projectTasks.filter { $0.isCompleted }.count
@@ -261,12 +259,9 @@ struct ReportGenerator {
             let hours = projectTasks.reduce(0.0) { total, task in
                 total + Double(task.totalTimeSpent) / 3600
             }
+            // Use recursive person-hours calculation
             let personHours = projectTasks.reduce(0.0) { total, task in
-                (task.timeEntries ?? []).reduce(total) { sum, entry in
-                    guard let end = entry.endTime else { return sum }
-                    let h = end.timeIntervalSince(entry.startTime) / 3600
-                    return sum + (h * Double(entry.personnelCount))
-                }
+                total + computePersonHours(for: task, allTasks: data.tasks)
             }
             csv += "\"\(project)\",\(projectTasks.count),\(completed),\(completionPct)%,\(String(format: "%.2f", hours)),\(String(format: "%.2f", personHours))\n"
         }
@@ -281,17 +276,15 @@ struct ReportGenerator {
             return "Error: No project selected"
         }
 
-        let projectTasks = data.tasks.filter { $0.project?.id == project.id }
+        // Include both direct tasks and subtasks (which inherit project from parent)
+        let projectTasks = data.tasks.filter { getEffectiveProject(for: $0)?.id == project.id }
         let completedTasks = projectTasks.filter { $0.isCompleted }
         let totalHours = projectTasks.reduce(0.0) { total, task in
             total + Double(task.totalTimeSpent) / 3600
         }
+        // Use recursive person-hours calculation including all subtasks
         let totalPersonHours = projectTasks.reduce(0.0) { total, task in
-            (task.timeEntries ?? []).reduce(total) { sum, entry in
-                guard let end = entry.endTime else { return sum }
-                let h = end.timeIntervalSince(entry.startTime) / 3600
-                return sum + (h * Double(entry.personnelCount))
-            }
+            total + computePersonHours(for: task, allTasks: data.tasks)
         }
 
         switch data.format {
@@ -315,11 +308,8 @@ struct ReportGenerator {
                 for task in projectTasks.sorted(by: { $0.createdDate > $1.createdDate }) {
                     let status = task.isCompleted ? "✓ Done" : "○ Active"
                     let hours = Double(task.totalTimeSpent) / 3600
-                    let personHours = (task.timeEntries ?? []).reduce(0.0) { sum, entry in
-                        guard let end = entry.endTime else { return sum }
-                        let h = end.timeIntervalSince(entry.startTime) / 3600
-                        return sum + (h * Double(entry.personnelCount))
-                    }
+                    // Use recursive person-hours calculation to include subtasks
+                    let personHours = computePersonHours(for: task, allTasks: data.tasks)
                     md += "| \(task.title) | \(status) | \(String(format: "%.1f", hours)) | \(String(format: "%.1f", personHours)) |\n"
                 }
             }
@@ -350,11 +340,8 @@ struct ReportGenerator {
                 let created = formatDate(task.createdDate)
                 let completed = task.completedDate != nil ? formatDate(task.completedDate!) : ""
                 let hours = String(format: "%.2f", Double(task.totalTimeSpent) / 3600)
-                let personHours = (task.timeEntries ?? []).reduce(0.0) { sum, entry in
-                    guard let end = entry.endTime else { return sum }
-                    let h = end.timeIntervalSince(entry.startTime) / 3600
-                    return sum + (h * Double(entry.personnelCount))
-                }
+                // Use recursive person-hours calculation to include subtasks
+                let personHours = computePersonHours(for: task, allTasks: data.tasks)
                 csv += "\"\(task.title)\",\(status),\(created),\(completed),\(hours),\(String(format: "%.2f", personHours))\n"
             }
 
@@ -536,5 +523,43 @@ struct ReportGenerator {
         }
 
         return "\(formatter.string(from: range.start)) - \(formatter.string(from: range.end))"
+    }
+
+    /// Get the effective project for a task (handles subtask inheritance from parent)
+    private static func getEffectiveProject(for task: Task) -> Project? {
+        // If task has direct project, return it
+        if let project = task.project {
+            return project
+        }
+
+        // Otherwise, check parent task's project (subtasks inherit from parent)
+        if let parent = task.parentTask {
+            return getEffectiveProject(for: parent)
+        }
+
+        return nil
+    }
+
+    /// Recursively calculate person-hours for a task and all its subtasks
+    /// This matches the logic from TaskTimeTrackingView
+    private static func computePersonHours(for task: Task, allTasks: [Task]) -> Double {
+        guard let entries = task.timeEntries else { return 0.0 }
+
+        var totalPersonSeconds = 0.0
+
+        // Calculate direct person-hours from time entries
+        for entry in entries {
+            guard let end = entry.endTime else { continue }
+            let duration = end.timeIntervalSince(entry.startTime)
+            totalPersonSeconds += duration * Double(entry.personnelCount)
+        }
+
+        // Recursively add person-hours from subtasks
+        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
+        for subtask in subtasks {
+            totalPersonSeconds += computePersonHours(for: subtask, allTasks: allTasks) * 3600  // Convert hours back to seconds
+        }
+
+        return totalPersonSeconds / 3600  // Convert to hours
     }
 }
