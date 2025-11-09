@@ -92,7 +92,7 @@ struct TodaysTimeEntriesDetailView: View {
     }
 }
 
-struct TimeEntryRow: View {
+private struct TimeEntryRow: View {
     let entry: TimeEntry
 
     private var taskTitle: String {

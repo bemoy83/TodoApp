@@ -51,7 +51,7 @@ struct CompletedTasksDetailView: View {
     }
 }
 
-struct CompletedTaskRow: View {
+private struct CompletedTaskRow: View {
     let task: Task
 
     private var completedTime: String {
