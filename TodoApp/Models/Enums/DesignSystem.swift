@@ -53,7 +53,8 @@ enum DesignSystem {
         // Text Colors
         static let primary = Color.primary
         static let secondary = Color.secondary
-        
+        static let tertiary = Color(.tertiaryLabel)
+
         // Borders and Separators
         static let separator = Color(.separator)
         static let border = Color(.separator).opacity(0.5)
