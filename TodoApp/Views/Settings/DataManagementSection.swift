@@ -20,6 +20,7 @@ struct DataManagementSection: View {
     let isFixingOrder: Bool
     let showFixOrderButton: Bool
     let onExport: () -> Void
+    let onGenerateReport: () -> Void
     let onClearData: () -> Void
     let onFixOrder: () -> Void
     
@@ -34,7 +35,17 @@ struct DataManagementSection: View {
                         .foregroundStyle(DesignSystem.Colors.primary)
                 }
             }
-            
+
+            // Generate Reports
+            Button(action: onGenerateReport) {
+                HStack {
+                    Image(systemName: "chart.bar.doc.horizontal")
+                        .foregroundStyle(DesignSystem.Colors.success)
+                    Text("Generate Reports")
+                        .foregroundStyle(DesignSystem.Colors.primary)
+                }
+            }
+
             // Fix Task Order (only show if needed)
             if showFixOrderButton {
                 Button(action: onFixOrder) {
