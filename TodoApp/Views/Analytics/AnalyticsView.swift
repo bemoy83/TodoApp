@@ -8,6 +8,9 @@ struct AnalyticsView: View {
     @Query private var allTimeEntries: [TimeEntry]
 
     @State private var showingActiveTimersDetail = false
+    @State private var showingCompletedTasksDetail = false
+    @State private var showingHoursDetail = false
+    @State private var showingPersonHoursDetail = false
     @State private var showingOverdueTasksDetail = false
     @State private var showingBlockedTasksDetail = false
     @State private var showingNoEstimatesDetail = false
@@ -76,6 +79,15 @@ struct AnalyticsView: View {
             .sheet(isPresented: $showingActiveTimersDetail) {
                 ActiveTimersDetailView(tasks: allTasks.filter { $0.hasActiveTimer })
             }
+            .sheet(isPresented: $showingCompletedTasksDetail) {
+                CompletedTasksDetailView(tasks: allTasks)
+            }
+            .sheet(isPresented: $showingHoursDetail) {
+                TodaysTimeEntriesDetailView(entries: allTimeEntries)
+            }
+            .sheet(isPresented: $showingPersonHoursDetail) {
+                TodaysTimeEntriesDetailView(entries: allTimeEntries)
+            }
             .sheet(isPresented: $showingOverdueTasksDetail) {
                 TaskListDetailView(
                     title: "Overdue Tasks",
@@ -126,9 +138,9 @@ struct AnalyticsView: View {
                 subtitle: todaysActivity.activeTimers > 0 ?
                     "\(todaysActivity.activePersonnel) \(todaysActivity.activePersonnel == 1 ? "person" : "people")" : "no timers",
                 color: DesignSystem.Colors.info,
-                onTap: todaysActivity.activeTimers > 0 ? {
+                onTap: {
                     showingActiveTimersDetail = true
-                } : nil
+                }
             )
 
             // Tasks Completed
@@ -137,7 +149,10 @@ struct AnalyticsView: View {
                 value: "\(todaysActivity.tasksCompletedToday)",
                 label: "Completed",
                 subtitle: todaysActivity.tasksCompletedToday == 1 ? "task" : "tasks",
-                color: DesignSystem.Colors.success
+                color: DesignSystem.Colors.success,
+                onTap: {
+                    showingCompletedTasksDetail = true
+                }
             )
 
             // Hours Today
@@ -146,7 +161,10 @@ struct AnalyticsView: View {
                 value: String(format: "%.1f", todaysActivity.hoursLoggedToday),
                 label: "Hours Logged",
                 subtitle: "today",
-                color: Color(hex: "#5856D6") // Indigo
+                color: Color(hex: "#5856D6"), // Indigo
+                onTap: {
+                    showingHoursDetail = true
+                }
             )
 
             // Person-Hours Today
@@ -155,7 +173,10 @@ struct AnalyticsView: View {
                 value: String(format: "%.1f", todaysActivity.personHoursToday),
                 label: "Person-Hours",
                 subtitle: "today",
-                color: Color(hex: "#AF52DE") // Purple
+                color: Color(hex: "#AF52DE"), // Purple
+                onTap: {
+                    showingPersonHoursDetail = true
+                }
             )
         }
     }
