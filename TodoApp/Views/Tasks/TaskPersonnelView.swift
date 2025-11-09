@@ -19,17 +19,11 @@ struct TaskPersonnelView: View {
                 .padding(.horizontal)
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                if task.expectedPersonnelCount == nil {
-                    // Empty state
-                    Text("No assigned personnel")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                } else {
-                    // Show assigned personnel
+                // Three states: direct assignment, calculated from subtasks, or empty
+                if let direct = task.expectedPersonnelCount {
+                    // State 1: Direct assignment (tappable to edit)
                     Button {
-                        selectedCount = task.expectedPersonnelCount ?? 1
+                        selectedCount = direct
                         showingPersonnelPicker = true
                         HapticManager.selection()
                     } label: {
@@ -40,7 +34,7 @@ struct TaskPersonnelView: View {
                                 .frame(width: 28)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("\(task.expectedPersonnelCount!) \(task.expectedPersonnelCount == 1 ? "person" : "people")")
+                                Text("\(direct) \(direct == 1 ? "person" : "people")")
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(.primary)
@@ -63,20 +57,72 @@ struct TaskPersonnelView: View {
 
                     Divider()
                         .padding(.horizontal)
+                } else if let range = effectivePersonnelRange {
+                    // State 2: Calculated from subtasks (tappable to override)
+                    Button {
+                        selectedCount = range.min
+                        showingPersonnelPicker = true
+                        HapticManager.selection()
+                    } label: {
+                        HStack {
+                            Image(systemName: "person.2.fill")
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                if range.min == range.max {
+                                    Text("\(range.min) \(range.min == 1 ? "person" : "people")")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.primary)
+                                } else {
+                                    Text("\(range.min)-\(range.max) people")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.primary)
+                                }
+
+                                Text("From subtasks")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .italic()
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.horizontal)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+                        .padding(.horizontal)
+                } else {
+                    // State 3: Empty state
+                    Text("No assigned personnel")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
                 }
 
-                // Action area
+                // Action area - button text changes based on state
                 Button {
-                    selectedCount = task.expectedPersonnelCount ?? 1
+                    selectedCount = task.expectedPersonnelCount ?? effectivePersonnelRange?.min ?? 1
                     showingPersonnelPicker = true
                     HapticManager.selection()
                 } label: {
                     HStack(spacing: DesignSystem.Spacing.sm) {
-                        Image(systemName: task.expectedPersonnelCount == nil ? "plus.circle.fill" : "pencil.circle.fill")
+                        Image(systemName: buttonIcon)
                             .font(.body)
                             .foregroundStyle(.blue)
 
-                        Text(task.expectedPersonnelCount == nil ? "Add Personnel" : "Edit Personnel")
+                        Text(buttonText)
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(.blue)
@@ -128,6 +174,42 @@ struct TaskPersonnelView: View {
 
     // MARK: - Computed Properties
 
+    /// Calculate effective personnel range from subtasks (only when not directly set)
+    private var effectivePersonnelRange: (min: Int, max: Int)? {
+        // If directly set, don't calculate from subtasks
+        guard task.expectedPersonnelCount == nil else {
+            return nil
+        }
+
+        // Collect all subtask expected personnel counts
+        let counts = collectSubtaskExpectedPersonnel()
+        guard !counts.isEmpty else { return nil }
+
+        return (min: counts.min() ?? 1, max: counts.max() ?? 1)
+    }
+
+    /// Button text based on state
+    private var buttonText: String {
+        if task.expectedPersonnelCount != nil {
+            return "Edit Personnel"
+        } else if effectivePersonnelRange != nil {
+            return "Set Personnel"
+        } else {
+            return "Add Personnel"
+        }
+    }
+
+    /// Button icon based on state
+    private var buttonIcon: String {
+        if task.expectedPersonnelCount != nil {
+            return "pencil.circle.fill"
+        } else if effectivePersonnelRange != nil {
+            return "square.and.pencil"
+        } else {
+            return "plus.circle.fill"
+        }
+    }
+
     private var hasSubtasks: Bool {
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         return !subtasks.isEmpty
@@ -154,6 +236,30 @@ struct TaskPersonnelView: View {
             }
         }
         return false
+    }
+
+    // MARK: - Expected Personnel from Subtasks
+
+    /// Collect all expectedPersonnelCount values from subtasks recursively
+    private func collectSubtaskExpectedPersonnel() -> [Int] {
+        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
+        return collectExpectedCounts(from: subtasks)
+    }
+
+    /// Recursively collect expected personnel counts from subtasks
+    private func collectExpectedCounts(from subtasks: [Task]) -> [Int] {
+        var counts: [Int] = []
+
+        for subtask in subtasks {
+            if let expected = subtask.expectedPersonnelCount {
+                counts.append(expected)
+            }
+
+            let nestedSubtasks = allTasks.filter { $0.parentTask?.id == subtask.id }
+            counts.append(contentsOf: collectExpectedCounts(from: nestedSubtasks))
+        }
+
+        return counts
     }
 
     // MARK: - Personnel Statistics
@@ -473,6 +579,27 @@ private struct PersonHoursSection: View {
     container.mainContext.insert(entry2)
 
     return TaskPersonnelView(task: task)
+        .modelContainer(container)
+        .padding()
+}
+
+#Preview("From Subtasks") {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Task.self, TimeEntry.self, configurations: config)
+
+    let parentTask = Task(title: "Parent Task")
+
+    let subtask1 = Task(title: "Subtask 1", expectedPersonnelCount: 3)
+    subtask1.parentTask = parentTask
+
+    let subtask2 = Task(title: "Subtask 2", expectedPersonnelCount: 5)
+    subtask2.parentTask = parentTask
+
+    container.mainContext.insert(parentTask)
+    container.mainContext.insert(subtask1)
+    container.mainContext.insert(subtask2)
+
+    return TaskPersonnelView(task: parentTask)
         .modelContainer(container)
         .padding()
 }
