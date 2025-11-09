@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+internal import Combine
 
 struct AnalyticsView: View {
     @Query private var allTasks: [Task]

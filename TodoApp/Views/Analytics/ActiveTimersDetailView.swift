@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+internal import Combine
 
 /// Detail view showing all active timers with live elapsed time
 struct ActiveTimersDetailView: View {

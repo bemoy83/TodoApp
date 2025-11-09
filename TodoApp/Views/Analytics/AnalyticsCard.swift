@@ -69,7 +69,7 @@ struct AnalyticsCard: View {
                     if let subtitle = subtitle {
                         Text(subtitle)
                             .font(DesignSystem.Typography.caption)
-                            .foregroundStyle(DesignSystem.Colors.tertiary)
+                            .foregroundStyle(.tertiary)
                     }
                 }
             }
