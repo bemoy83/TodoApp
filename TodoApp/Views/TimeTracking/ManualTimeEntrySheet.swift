@@ -16,8 +16,8 @@ struct ManualTimeEntrySheet: View {
 
     init(task: Task) {
         self.task = task
-        // Pre-fill with task's expected personnel count
-        _personnelCount = State(initialValue: task.expectedPersonnelCount)
+        // Pre-fill with task's expected personnel count (defaults to 1 if not set)
+        _personnelCount = State(initialValue: task.expectedPersonnelCount ?? 1)
     }
 
     private var isValid: Bool {

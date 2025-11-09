@@ -80,7 +80,7 @@ final class Task {
     var hasCustomEstimate: Bool = false // true = user overrode auto-sum
 
     // Personnel planning
-    var expectedPersonnelCount: Int = 1 // Expected crew size for this task
+    var expectedPersonnelCount: Int? // Expected crew size for this task (nil = not set, defaults to 1 in calculations)
 
     // Relationship to project
     @Relationship(deleteRule: .nullify)
@@ -117,7 +117,7 @@ final class Task {
         notes: String? = nil,
         estimatedSeconds: Int? = nil,
         hasCustomEstimate: Bool = false,
-        expectedPersonnelCount: Int = 1
+        expectedPersonnelCount: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -388,7 +388,7 @@ final class Task {
         let newEntry = TimeEntry(
             startTime: Date.now,
             endTime: nil,
-            personnelCount: self.expectedPersonnelCount,
+            personnelCount: self.expectedPersonnelCount ?? 1,
             task: self
         )
 

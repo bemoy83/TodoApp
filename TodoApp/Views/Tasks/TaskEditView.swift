@@ -23,7 +23,8 @@ struct TaskEditView: View {
     @State private var hasCustomEstimate: Bool
 
     // Personnel state
-    @State private var expectedPersonnelCount: Int
+    @State private var hasPersonnel: Bool
+    @State private var expectedPersonnelCount: Int?
 
     private var isSubtask: Bool { task.parentTask != nil }
 
@@ -50,6 +51,7 @@ struct TaskEditView: View {
         _hasCustomEstimate = State(initialValue: task.hasCustomEstimate)
 
         // Initialize personnel state
+        _hasPersonnel = State(initialValue: task.expectedPersonnelCount != nil)
         _expectedPersonnelCount = State(initialValue: task.expectedPersonnelCount)
     }
     
@@ -69,6 +71,7 @@ struct TaskEditView: View {
                 estimateHours: $estimateHours,
                 estimateMinutes: $estimateMinutes,
                 hasCustomEstimate: $hasCustomEstimate,
+                hasPersonnel: $hasPersonnel,
                 expectedPersonnelCount: $expectedPersonnelCount,
                 isSubtask: isSubtask,
                 parentTask: task.parentTask,
@@ -107,8 +110,8 @@ struct TaskEditView: View {
             task.hasCustomEstimate = false
         }
 
-        // Save personnel count
-        task.expectedPersonnelCount = expectedPersonnelCount
+        // Save personnel count (only if toggle is on)
+        task.expectedPersonnelCount = hasPersonnel ? expectedPersonnelCount : nil
 
         onSave(task)
         dismiss()

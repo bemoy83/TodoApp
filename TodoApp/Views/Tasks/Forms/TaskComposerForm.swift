@@ -19,7 +19,8 @@ struct TaskComposerForm: View {
     @Binding var hasCustomEstimate: Bool
 
     // Personnel bindings
-    @Binding var expectedPersonnelCount: Int
+    @Binding var hasPersonnel: Bool
+    @Binding var expectedPersonnelCount: Int?
 
     // Context
     let isSubtask: Bool
@@ -345,22 +346,38 @@ struct TaskComposerForm: View {
 
             // Personnel
             Section("Personnel") {
-                HStack {
-                    Image(systemName: "person.2.fill")
-                        .foregroundStyle(DesignSystem.Colors.info)
-                        .font(.body)
+                Toggle("Set Expected Personnel", isOn: $hasPersonnel)
 
-                    Stepper("Expected crew size: \(expectedPersonnelCount)", value: $expectedPersonnelCount, in: 1...20)
-                        .font(DesignSystem.Typography.body)
-                }
+                // Show picker when personnel is enabled
+                if hasPersonnel {
+                    Picker("Expected crew size", selection: Binding(
+                        get: { expectedPersonnelCount ?? 1 },
+                        set: { expectedPersonnelCount = $0 }
+                    )) {
+                        ForEach(1...20, id: \.self) { count in
+                            Text("\(count) \(count == 1 ? "person" : "people")")
+                                .tag(count)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(height: 120)
 
-                HStack {
-                    Image(systemName: "info.circle")
-                        .font(.caption2)
-                    Text("Pre-fills time entry forms with this count")
-                        .font(.caption2)
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .font(.caption2)
+                        Text("Pre-fills time entry forms with this count")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.secondary)
+                } else {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .font(.caption2)
+                        Text("Defaults to 1 person if not set")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.secondary)
                 }
-                .foregroundStyle(.secondary)
             }
         }
         .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
