@@ -388,9 +388,10 @@ final class Task {
         let newEntry = TimeEntry(
             startTime: Date.now,
             endTime: nil,
+            personnelCount: self.expectedPersonnelCount,
             task: self
         )
-        
+
         if timeEntries == nil {
             timeEntries = []
         }
