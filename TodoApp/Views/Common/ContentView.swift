@@ -8,12 +8,17 @@ struct ContentView: View {
                 .tabItem {
                     Label("Tasks", systemImage: "checklist")
                 }
-            
+
             ProjectListView()
                 .tabItem {
                     Label("Projects", systemImage: "folder.fill")
                 }
-            
+
+            AnalyticsView()
+                .tabItem {
+                    Label("Analytics", systemImage: "chart.bar.fill")
+                }
+
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
