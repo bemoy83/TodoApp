@@ -280,3 +280,123 @@ extension View {
         }
     }
 }
+
+// MARK: - Tappable Stat Card
+
+/// Tappable wrapper for stat cards (analytics use case)
+struct TappableStatCard: View {
+    let icon: String
+    let value: String
+    let label: String
+    let subtitle: String?
+    let color: Color
+    let onTap: (() -> Void)?
+
+    init(
+        icon: String,
+        value: String,
+        label: String,
+        subtitle: String? = nil,
+        color: Color,
+        onTap: (() -> Void)? = nil
+    ) {
+        self.icon = icon
+        self.value = value
+        self.label = label
+        self.subtitle = subtitle
+        self.color = color
+        self.onTap = onTap
+    }
+
+    var body: some View {
+        Button(action: {
+            if let onTap = onTap {
+                HapticManager.light()
+                onTap()
+            }
+        }) {
+            VStack(spacing: DesignSystem.Spacing.sm) {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(color)
+                    Spacer()
+                    if onTap != nil {
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(DesignSystem.Colors.tertiary)
+                    }
+                }
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+                    Text(value)
+                        .font(DesignSystem.Typography.title2)
+                        .foregroundStyle(DesignSystem.Colors.primary)
+                    Text(label)
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundStyle(DesignSystem.Colors.secondary)
+                    if let subtitle = subtitle {
+                        Text(subtitle)
+                            .font(DesignSystem.Typography.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .statCardStyle()
+        }
+        .buttonStyle(.plain)
+        .disabled(onTap == nil)
+    }
+}
+
+// MARK: - Attention Card
+
+/// Compact horizontal card for attention-needed items
+struct AttentionCard: View {
+    let title: String
+    let count: Int
+    let icon: String
+    let color: Color
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: {
+            HapticManager.light()
+            onTap()
+        }) {
+            HStack(spacing: DesignSystem.Spacing.md) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundStyle(color)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        Circle()
+                            .fill(color.opacity(0.15))
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(DesignSystem.Typography.body)
+                        .foregroundStyle(DesignSystem.Colors.primary)
+
+                    Text("\(count) \(count == 1 ? "task" : "tasks")")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundStyle(DesignSystem.Colors.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(DesignSystem.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
+                    .fill(Color(UIColor.systemBackground))
+            )
+            .designShadow(DesignSystem.Shadow.sm)
+        }
+        .buttonStyle(.plain)
+    }
+}

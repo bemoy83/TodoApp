@@ -119,12 +119,12 @@ struct AnalyticsView: View {
             GridItem(.flexible())
         ], spacing: DesignSystem.Spacing.md) {
             // Active Timers
-            AnalyticsCard(
-                title: "Active Timers",
-                value: "\(todaysActivity.activeTimers)",
-                subtitle: todaysActivity.activePersonnel > 0 ?
-                    "\(todaysActivity.activePersonnel) \(todaysActivity.activePersonnel == 1 ? "person" : "people") working" : nil,
+            TappableStatCard(
                 icon: "timer",
+                value: "\(todaysActivity.activeTimers)",
+                label: "Active Timers",
+                subtitle: todaysActivity.activePersonnel > 0 ?
+                    "\(todaysActivity.activePersonnel) \(todaysActivity.activePersonnel == 1 ? "person" : "people")" : nil,
                 color: DesignSystem.Colors.info,
                 onTap: todaysActivity.activeTimers > 0 ? {
                     showingActiveTimersDetail = true
@@ -132,29 +132,29 @@ struct AnalyticsView: View {
             )
 
             // Tasks Completed
-            AnalyticsCard(
-                title: "Completed",
-                value: "\(todaysActivity.tasksCompletedToday)",
-                subtitle: todaysActivity.tasksCompletedToday == 1 ? "task" : "tasks",
+            TappableStatCard(
                 icon: "checkmark.circle.fill",
+                value: "\(todaysActivity.tasksCompletedToday)",
+                label: "Completed",
+                subtitle: todaysActivity.tasksCompletedToday == 1 ? "task" : "tasks",
                 color: DesignSystem.Colors.success
             )
 
             // Hours Today
-            AnalyticsCard(
-                title: "Hours Logged",
-                value: String(format: "%.1f", todaysActivity.hoursLoggedToday),
-                subtitle: "today",
+            TappableStatCard(
                 icon: "clock.fill",
+                value: String(format: "%.1f", todaysActivity.hoursLoggedToday),
+                label: "Hours Logged",
+                subtitle: "today",
                 color: Color(hex: "#5856D6") // Indigo
             )
 
             // Person-Hours Today
-            AnalyticsCard(
-                title: "Person-Hours",
-                value: String(format: "%.1f", todaysActivity.personHoursToday),
-                subtitle: "today",
+            TappableStatCard(
                 icon: "person.2.fill",
+                value: String(format: "%.1f", todaysActivity.personHoursToday),
+                label: "Person-Hours",
+                subtitle: "today",
                 color: Color(hex: "#AF52DE") // Purple
             )
         }
@@ -267,57 +267,6 @@ struct SectionHeader: View {
 
             Spacer()
         }
-    }
-}
-
-// MARK: - Attention Card
-
-struct AttentionCard: View {
-    let title: String
-    let count: Int
-    let icon: String
-    let color: Color
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: {
-            HapticManager.light()
-            onTap()
-        }) {
-            HStack(spacing: DesignSystem.Spacing.md) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(color)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        Circle()
-                            .fill(color.opacity(0.15))
-                    )
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(DesignSystem.Typography.body)
-                        .foregroundStyle(DesignSystem.Colors.primary)
-
-                    Text("\(count) \(count == 1 ? "task" : "tasks")")
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundStyle(DesignSystem.Colors.secondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(DesignSystem.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                    .fill(Color(UIColor.systemBackground))
-            )
-            .designShadow(DesignSystem.Shadow.sm)
-        }
-        .buttonStyle(.plain)
     }
 }
 
