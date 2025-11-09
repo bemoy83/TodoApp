@@ -123,8 +123,8 @@ struct AnalyticsView: View {
                 icon: "timer",
                 value: "\(todaysActivity.activeTimers)",
                 label: "Active Timers",
-                subtitle: todaysActivity.activePersonnel > 0 ?
-                    "\(todaysActivity.activePersonnel) \(todaysActivity.activePersonnel == 1 ? "person" : "people")" : nil,
+                subtitle: todaysActivity.activeTimers > 0 ?
+                    "\(todaysActivity.activePersonnel) \(todaysActivity.activePersonnel == 1 ? "person" : "people")" : "no timers",
                 color: DesignSystem.Colors.info,
                 onTap: todaysActivity.activeTimers > 0 ? {
                     showingActiveTimersDetail = true
