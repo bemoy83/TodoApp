@@ -78,7 +78,10 @@ final class Task {
     // Time estimation (stored in seconds for accuracy)
     var estimatedSeconds: Int? // nil = no estimate set
     var hasCustomEstimate: Bool = false // true = user overrode auto-sum
-    
+
+    // Personnel planning
+    var expectedPersonnelCount: Int = 1 // Expected crew size for this task
+
     // Relationship to project
     @Relationship(deleteRule: .nullify)
     var project: Project?
@@ -113,7 +116,8 @@ final class Task {
         order: Int? = nil,
         notes: String? = nil,
         estimatedSeconds: Int? = nil,
-        hasCustomEstimate: Bool = false
+        hasCustomEstimate: Bool = false,
+        expectedPersonnelCount: Int = 1
     ) {
         self.id = id
         self.title = title
@@ -127,6 +131,7 @@ final class Task {
         self.notes = notes
         self.estimatedSeconds = estimatedSeconds
         self.hasCustomEstimate = hasCustomEstimate
+        self.expectedPersonnelCount = expectedPersonnelCount
         self.subtasks = nil
         self.timeEntries = nil
         self.dependsOn = nil

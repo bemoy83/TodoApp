@@ -26,6 +26,9 @@ struct AddTaskView: View {
     @State private var estimateMinutes: Int = 0
     @State private var hasCustomEstimate: Bool = false
 
+    // Personnel state
+    @State private var expectedPersonnelCount: Int = 1
+
     // For list creation, compute next order to keep ordering stable
     @Query private var tasks: [Task]
     private var nextOrder: Int {
@@ -57,6 +60,7 @@ struct AddTaskView: View {
                 estimateHours: $estimateHours,
                 estimateMinutes: $estimateMinutes,
                 hasCustomEstimate: $hasCustomEstimate,
+                expectedPersonnelCount: $expectedPersonnelCount,
                 isSubtask: parentTask != nil,
                 parentTask: parentTask,
                 editingTask: nil  // NEW: Not editing existing, so nil
@@ -94,7 +98,8 @@ struct AddTaskView: View {
             order: parentTask == nil ? nextOrder : nil,
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
             estimatedSeconds: finalEstimate,
-            hasCustomEstimate: hasCustomEstimate && finalEstimate != nil
+            hasCustomEstimate: hasCustomEstimate && finalEstimate != nil,
+            expectedPersonnelCount: expectedPersonnelCount
         )
         modelContext.insert(task)
         onAdded?(task)

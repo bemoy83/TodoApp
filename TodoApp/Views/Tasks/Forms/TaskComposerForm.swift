@@ -17,7 +17,10 @@ struct TaskComposerForm: View {
     @Binding var estimateHours: Int
     @Binding var estimateMinutes: Int
     @Binding var hasCustomEstimate: Bool
-    
+
+    // Personnel bindings
+    @Binding var expectedPersonnelCount: Int
+
     // Context
     let isSubtask: Bool
     let parentTask: Task?
@@ -338,6 +341,26 @@ struct TaskComposerForm: View {
                     }
                 }
                 .pickerStyle(.menu)
+            }
+
+            // Personnel
+            Section("Personnel") {
+                HStack {
+                    Image(systemName: "person.2.fill")
+                        .foregroundStyle(DesignSystem.Colors.info)
+                        .font(.body)
+
+                    Stepper("Expected crew size: \(expectedPersonnelCount)", value: $expectedPersonnelCount, in: 1...20)
+                        .font(DesignSystem.Typography.body)
+                }
+
+                HStack {
+                    Image(systemName: "info.circle")
+                        .font(.caption2)
+                    Text("Pre-fills time entry forms with this count")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.secondary)
             }
         }
         .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {

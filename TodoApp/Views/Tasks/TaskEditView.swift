@@ -22,6 +22,9 @@ struct TaskEditView: View {
     @State private var estimateMinutes: Int
     @State private var hasCustomEstimate: Bool
 
+    // Personnel state
+    @State private var expectedPersonnelCount: Int
+
     private var isSubtask: Bool { task.parentTask != nil }
 
     init(task: Task,
@@ -45,6 +48,9 @@ struct TaskEditView: View {
         _estimateHours = State(initialValue: estimateMinutes / 60)
         _estimateMinutes = State(initialValue: estimateMinutes % 60)
         _hasCustomEstimate = State(initialValue: task.hasCustomEstimate)
+
+        // Initialize personnel state
+        _expectedPersonnelCount = State(initialValue: task.expectedPersonnelCount)
     }
     
     var body: some View {
@@ -63,6 +69,7 @@ struct TaskEditView: View {
                 estimateHours: $estimateHours,
                 estimateMinutes: $estimateMinutes,
                 hasCustomEstimate: $hasCustomEstimate,
+                expectedPersonnelCount: $expectedPersonnelCount,
                 isSubtask: isSubtask,
                 parentTask: task.parentTask,
                 editingTask: task  // NEW: Pass the task being edited
@@ -99,7 +106,10 @@ struct TaskEditView: View {
             task.estimatedSeconds = nil
             task.hasCustomEstimate = false
         }
-        
+
+        // Save personnel count
+        task.expectedPersonnelCount = expectedPersonnelCount
+
         onSave(task)
         dismiss()
     }
