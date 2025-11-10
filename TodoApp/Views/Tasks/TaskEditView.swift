@@ -112,7 +112,7 @@ struct TaskEditView: View {
         // Handle time estimate
         if estimateByEffort && effortHours > 0 {
             // Effort-based: calculate duration from effort ÷ personnel
-            let personnel = hasPersonnel ? expectedPersonnelCount : 1
+            let personnel = expectedPersonnelCount ?? 1
             let durationHours = effortHours / Double(personnel)
             task.estimatedSeconds = Int(durationHours * 3600) // Convert to seconds
             task.hasCustomEstimate = true
