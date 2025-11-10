@@ -105,34 +105,21 @@ struct TaskEditView: View {
     private func handleSave() {
         task.dueDate = hasDueDate ? dueDate : nil
 
-        // Trim whitespace and set to nil if empty
-        let trimmedNotes = notesText.trimmingCharacters(in: .whitespacesAndNewlines)
-        task.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
+        // Process notes
+        task.notes = TaskEstimator.processNotes(notesText)
 
-        // Handle time estimate
-        if estimateByEffort && effortHours > 0 {
-            // Effort-based: calculate duration from effort ÷ personnel
-            let personnel = expectedPersonnelCount ?? 1
-            let durationHours = effortHours / Double(personnel)
-            task.estimatedSeconds = Int(durationHours * 3600) // Convert to seconds
-            task.hasCustomEstimate = true
-            task.effortHours = effortHours
-        } else if hasEstimate {
-            // Duration-based: convert hours/minutes to seconds
-            let totalMinutes = (estimateHours * 60) + estimateMinutes
-            let totalSeconds = totalMinutes * 60
-            task.estimatedSeconds = totalSeconds > 0 ? totalSeconds : nil
-            task.hasCustomEstimate = hasCustomEstimate
-            task.effortHours = nil
-        } else {
-            // No estimate
-            task.estimatedSeconds = nil
-            task.hasCustomEstimate = false
-            task.effortHours = nil
-        }
-
-        // Save personnel count (only if toggle is on)
-        task.expectedPersonnelCount = hasPersonnel ? expectedPersonnelCount : nil
+        // Calculate and apply estimate
+        let estimate = TaskEstimator.calculateEstimate(
+            estimateByEffort: estimateByEffort,
+            effortHours: effortHours,
+            hasEstimate: hasEstimate,
+            estimateHours: estimateHours,
+            estimateMinutes: estimateMinutes,
+            hasCustomEstimate: hasCustomEstimate,
+            hasPersonnel: hasPersonnel,
+            expectedPersonnelCount: expectedPersonnelCount
+        )
+        TaskEstimator.applyEstimate(to: task, result: estimate)
 
         onSave(task)
         dismiss()
