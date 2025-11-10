@@ -35,7 +35,9 @@ struct AddTaskView: View {
     @State private var effortHours: Double = 0
 
     // For list creation, compute next order to keep ordering stable
-    @Query private var tasks: [Task]
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }) private var tasks: [Task]
     private var nextOrder: Int {
         // top-level order only (subtasks ordering could be handled by parent)
         let topLevel = tasks.filter { $0.parentTask == nil }

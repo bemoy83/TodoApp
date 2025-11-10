@@ -12,8 +12,10 @@ struct TaskExpandedSubtasksView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.editMode) private var editMode
     @Bindable var parentTask: Task
-    
-    @Query(sort: \Task.order) private var allTasks: [Task]
+
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
     
     @State private var currentAlert: TaskActionAlert?
     

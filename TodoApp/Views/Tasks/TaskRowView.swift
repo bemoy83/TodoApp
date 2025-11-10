@@ -6,8 +6,10 @@ struct TaskRowView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.editMode) private var editMode
     @ObservedObject private var expansionState = TaskExpansionState.shared
-    
-    @Query(sort: \Task.order) private var allTasks: [Task]
+
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
 
     @Bindable var task: Task
     var onOpen: () -> Void = {}

@@ -14,7 +14,9 @@ struct TaskMoreActionsSheet: View {
     @Query(sort: \Project.order, order: .forward) private var projects: [Project]
 
     // All tasks for dependency picker
-    @Query(sort: \Task.order) private var allTasks: [Task]
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
 
     // Navigation callbacks owned by parent (edit + add-subtask UIs)
     var onEdit: () -> Void

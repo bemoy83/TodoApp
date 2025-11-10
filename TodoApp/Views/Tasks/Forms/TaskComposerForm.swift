@@ -33,9 +33,11 @@ struct TaskComposerForm: View {
     
     // Project list for the picker (when not a subtask)
     @Query(sort: \Project.title) private var projects: [Project]
-    
+
     // Query all tasks to calculate subtask estimates without accessing relationships
-    @Query(sort: \Task.order) private var allTasks: [Task]
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
     
     @State private var showingDateValidationAlert = false
     @State private var showingEstimateValidationAlert = false

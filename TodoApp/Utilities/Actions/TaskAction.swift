@@ -16,6 +16,8 @@ enum TaskAction: Equatable {
     case addSubtask                // intent only; UI handled elsewhere
     case delete
     case edit   // navigation intent; router just signals it
+    case archive               // archive completed task (hide from main views)
+    case unarchive            // restore archived task to main views
 
     // MARK: - Metadata
 
@@ -56,6 +58,10 @@ enum TaskAction: Equatable {
             return .init(label: "Delete", systemImage: "trash.fill", isDestructive: true, preferredTint: DesignSystem.Colors.error)
         case .edit:
             return .init(label: "Edit", systemImage: "pencil", preferredTint: nil)
+        case .archive:
+            return .init(label: "Archive", systemImage: "archivebox", preferredTint: nil)
+        case .unarchive:
+            return .init(label: "Unarchive", systemImage: "tray.and.arrow.up", preferredTint: nil)
         }
     }
 }

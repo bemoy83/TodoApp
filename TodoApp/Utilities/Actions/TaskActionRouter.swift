@@ -176,6 +176,43 @@ extension TaskActionRouter {
             case .edit:
                 // Intent-only; UI presents edit surface.
                 break
+
+            case .archive:
+                // Query all tasks for validation
+                let descriptor = FetchDescriptor<Task>()
+                guard let allTasks = try? context.modelContext.fetch(descriptor) else {
+                    throw TaskActionExecError.cannotArchive(
+                        blockingIssues: ["Unable to fetch tasks for validation"],
+                        warnings: []
+                    )
+                }
+
+                do {
+                    try TaskActionExecutor.archive(task, allTasks: allTasks, context: context.modelContext)
+                } catch TaskActionExecError.archiveWarning(let warnings) {
+                    // Show warning alert with option to proceed
+                    let alert = TaskActionAlert.confirmArchiveWithWarnings(task: task, warnings: warnings) {
+                        // Force archive by directly calling ArchiveManager
+                        ArchiveManager.archive(task: task, allTasks: allTasks, modelContext: context.modelContext)
+                        if context.hapticsEnabled { HapticManager.selection() }
+                    }
+                    presentAlert(alert)
+                    return .success(())
+                } catch TaskActionExecError.cannotArchive(let issues, _) {
+                    // Show blocking issues alert
+                    let alert = TaskActionAlert.cannotArchive(task: task, issues: issues)
+                    presentAlert(alert)
+                    return .success(())
+                }
+
+            case .unarchive:
+                // Query all tasks
+                let descriptor = FetchDescriptor<Task>()
+                guard let allTasks = try? context.modelContext.fetch(descriptor) else {
+                    // Fail silently or show error - for now just break
+                    break
+                }
+                TaskActionExecutor.unarchive(task, allTasks: allTasks, context: context.modelContext)
             }
 
             // Fire haptics after successful execution (no-op for intent-only actions).
@@ -203,6 +240,8 @@ extension TaskActionRouter {
         case .setPriority, .moveToProject:
             HapticManager.selection()
         case .addSubtask, .edit:
+            HapticManager.selection()
+        case .archive, .unarchive:
             HapticManager.selection()
         }
     }

@@ -10,7 +10,9 @@ struct TaskDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     @Bindable var task: Task
-    @Query private var allTasks: [Task]
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }) private var allTasks: [Task]
 
     @State private var showingEditSheet = false
     @State private var showingMoreSheet = false

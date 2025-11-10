@@ -4,8 +4,10 @@ import SwiftData
 struct TaskSubtasksView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var task: Task
-    
-    @Query(sort: \Task.order) private var allTasks: [Task]
+
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
 
     @State private var showingAddSubtask = false
     @State private var editingSubtask: Task?

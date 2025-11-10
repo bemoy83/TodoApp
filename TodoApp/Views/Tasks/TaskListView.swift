@@ -4,7 +4,9 @@ internal import Combine
 
 struct TaskListView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var tasks: [Task]
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }) private var tasks: [Task]
     
     @State private var searchText = ""
     @State private var selectedFilter: TaskFilter = .all
@@ -180,8 +182,10 @@ private struct TaskListRow: View {
     @ObservedObject var expansionState: TaskExpansionState
     let task: Task
     let isEditMode: Bool
-    
-    @Query(sort: \Task.order) private var allTasks: [Task]
+
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
     
     private var hasSubtasks: Bool {
         allTasks.contains { $0.parentTask?.id == task.id }
