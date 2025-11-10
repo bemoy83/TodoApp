@@ -439,20 +439,28 @@ struct TaskComposerForm: View {
     }
     
     private func validateSubtaskDueDate(_ newDate: Date) {
-        guard isSubtask, let parentDue = parentDueDate else { return }
-        if newDate > parentDue {
+        let result = TaskFormValidator.validateSubtaskDueDate(
+            subtaskDate: newDate,
+            parentDate: parentDueDate,
+            isSubtask: isSubtask
+        )
+
+        if !result.isValid {
             showingDateValidationAlert = true
         }
     }
-    
-    private func validateEstimate() {
-        guard !isSubtask, hasCustomEstimate else { return }
-        guard let subtaskTotal = taskSubtaskEstimateTotal, subtaskTotal > 0 else { return }
-        
-        let totalMinutes = (estimateHours * 60) + estimateMinutes
 
-        if totalMinutes > 0 && totalMinutes < subtaskTotal {
-            estimateValidationMessage = "Custom estimate (\((totalMinutes * 60).formattedTime())) cannot be less than subtask estimates total (\((subtaskTotal * 60).formattedTime()))."
+    private func validateEstimate() {
+        let result = TaskFormValidator.validateCustomEstimate(
+            estimateHours: estimateHours,
+            estimateMinutes: estimateMinutes,
+            subtaskTotalMinutes: taskSubtaskEstimateTotal,
+            hasCustomEstimate: hasCustomEstimate,
+            isSubtask: isSubtask
+        )
+
+        if !result.isValid, let message = result.errorMessage {
+            estimateValidationMessage = message
             showingEstimateValidationAlert = true
         }
     }
