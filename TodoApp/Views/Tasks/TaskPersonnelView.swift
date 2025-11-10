@@ -55,6 +55,32 @@ struct TaskPersonnelView: View {
                     }
                     .buttonStyle(.plain)
 
+                    // Show mismatch warning if subtask personnel differs
+                    if hasMismatch, let subtaskRange = subtaskPersonnelRange {
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                                .frame(width: 28)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                if subtaskRange.min == subtaskRange.max {
+                                    Text("Subtasks: \(subtaskRange.min) \(subtaskRange.min == 1 ? "person" : "people")")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                } else {
+                                    Text("Subtasks range: \(subtaskRange.min)-\(subtaskRange.max) people")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                }
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 4)
+                    }
+
                     Divider()
                         .padding(.horizontal)
                 } else if let range = effectivePersonnelRange {
@@ -174,18 +200,32 @@ struct TaskPersonnelView: View {
 
     // MARK: - Computed Properties
 
-    /// Calculate effective personnel range from subtasks (only when not directly set)
-    private var effectivePersonnelRange: (min: Int, max: Int)? {
-        // If directly set, don't calculate from subtasks
-        guard task.expectedPersonnelCount == nil else {
-            return nil
-        }
-
+    /// Calculate personnel range from subtasks (always calculated for comparison)
+    private var subtaskPersonnelRange: (min: Int, max: Int)? {
         // Collect all subtask expected personnel counts
         let counts = collectSubtaskExpectedPersonnel()
         guard !counts.isEmpty else { return nil }
 
         return (min: counts.min() ?? 1, max: counts.max() ?? 1)
+    }
+
+    /// Effective range to use when parent not set
+    private var effectivePersonnelRange: (min: Int, max: Int)? {
+        guard task.expectedPersonnelCount == nil else {
+            return nil
+        }
+        return subtaskPersonnelRange
+    }
+
+    /// Check if parent personnel doesn't match subtask range
+    private var hasMismatch: Bool {
+        guard let parent = task.expectedPersonnelCount,
+              let subtaskRange = subtaskPersonnelRange else {
+            return false
+        }
+
+        // Mismatch if parent is outside subtask range
+        return parent < subtaskRange.min || parent > subtaskRange.max
     }
 
     /// Button text based on state
@@ -598,6 +638,31 @@ private struct PersonHoursSection: View {
     container.mainContext.insert(parentTask)
     container.mainContext.insert(subtask1)
     container.mainContext.insert(subtask2)
+
+    return TaskPersonnelView(task: parentTask)
+        .modelContainer(container)
+        .padding()
+}
+
+#Preview("Mismatch - Parent vs Subtasks") {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Task.self, TimeEntry.self, configurations: config)
+
+    let parentTask = Task(title: "Build Deck", expectedPersonnelCount: 3)
+
+    let subtask1 = Task(title: "Pour foundation", expectedPersonnelCount: 2)
+    subtask1.parentTask = parentTask
+
+    let subtask2 = Task(title: "Install boards", expectedPersonnelCount: 5)
+    subtask2.parentTask = parentTask
+
+    let subtask3 = Task(title: "Apply finish", expectedPersonnelCount: 1)
+    subtask3.parentTask = parentTask
+
+    container.mainContext.insert(parentTask)
+    container.mainContext.insert(subtask1)
+    container.mainContext.insert(subtask2)
+    container.mainContext.insert(subtask3)
 
     return TaskPersonnelView(task: parentTask)
         .modelContainer(container)
