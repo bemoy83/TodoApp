@@ -496,10 +496,64 @@ struct PersonnelRecommendationView: View {
     let currentSelection: Int?
     let onSelect: (Int) -> Void
 
-    private var availableHours: Int {
+    private var availableHours: Double {
+        let calendar = Calendar.current
         let now = Date()
-        let days = Calendar.current.dateComponents([.day], from: now, to: deadline).day ?? 0
-        return max(days * 8, 1) // Assume 8-hour workdays, minimum 1 hour
+
+        // Work hours: 7 AM to 3 PM (8 hours)
+        let workdayStart = 7 // 07:00
+        let workdayEnd = 15   // 15:00
+        let workdayHours = Double(workdayEnd - workdayStart)
+
+        // If deadline is in the past, return minimum
+        guard deadline > now else { return 1.0 }
+
+        var totalHours: Double = 0.0
+        var currentDate = calendar.startOfDay(for: now)
+        let deadlineDay = calendar.startOfDay(for: deadline)
+
+        // Process each day from now to deadline
+        while currentDate <= deadlineDay {
+            if calendar.isDate(currentDate, inSameDayAs: now) {
+                // Today: count from now until end of workday (or deadline if earlier)
+                let nowComponents = calendar.dateComponents([.hour, .minute], from: now)
+                let nowHour = Double(nowComponents.hour ?? 0) + Double(nowComponents.minute ?? 0) / 60.0
+
+                if nowHour < Double(workdayEnd) {
+                    // Still time left today
+                    let startHour = max(nowHour, Double(workdayStart))
+                    let endHour: Double
+
+                    if calendar.isDate(currentDate, inSameDayAs: deadline) {
+                        // Deadline is today
+                        let deadlineComponents = calendar.dateComponents([.hour, .minute], from: deadline)
+                        let deadlineHour = Double(deadlineComponents.hour ?? 0) + Double(deadlineComponents.minute ?? 0) / 60.0
+                        endHour = min(deadlineHour, Double(workdayEnd))
+                    } else {
+                        endHour = Double(workdayEnd)
+                    }
+
+                    totalHours += max(endHour - startHour, 0)
+                }
+            } else if calendar.isDate(currentDate, inSameDayAs: deadline) {
+                // Deadline day: count from start of workday until deadline time
+                let deadlineComponents = calendar.dateComponents([.hour, .minute], from: deadline)
+                let deadlineHour = Double(deadlineComponents.hour ?? 0) + Double(deadlineComponents.minute ?? 0) / 60.0
+
+                let startHour = Double(workdayStart)
+                let endHour = min(deadlineHour, Double(workdayEnd))
+
+                totalHours += max(endHour - startHour, 0)
+            } else {
+                // Full workday
+                totalHours += workdayHours
+            }
+
+            // Move to next day
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+        }
+
+        return max(totalHours, 1.0) // Minimum 1 hour
     }
 
     private var minimumPersonnel: Int {
@@ -534,7 +588,7 @@ struct PersonnelRecommendationView: View {
                 Text("Available time:")
                     .font(.caption2)
                 Spacer()
-                Text("\(availableHours) hours")
+                Text(String(format: "%.1f hours", availableHours))
                     .font(.caption2)
                     .fontWeight(.medium)
             }
