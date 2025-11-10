@@ -55,8 +55,8 @@ struct TaskFormValidator {
         // Subtask due date must be on or before parent's due date
         if subtaskDate > parentDue {
             let formatter = DateFormatter()
-            formatter.dateStyle = .abbreviated
-            formatter.timeStyle = .shortened
+            formatter.dateStyle = .short
+            formatter.timeStyle = .short
             let parentDateStr = formatter.string(from: parentDue)
 
             return .invalid("Subtask due date cannot be later than parent's due date (\(parentDateStr)).")
