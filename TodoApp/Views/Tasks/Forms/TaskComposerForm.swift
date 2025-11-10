@@ -343,59 +343,13 @@ struct TaskComposerForm: View {
 
                 // EFFORT MODE
                 else {
-                    // Effort input
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Total Work Effort")
-                                .font(.subheadline)
-                            Spacer()
-                            TextField("0", value: $effortHours, format: .number)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                            Text("person-hours")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        // Show calculated duration if personnel is set
-                        if effortHours > 0 && hasPersonnel {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.right")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                let personnel = expectedPersonnelCount ?? 1
-                                let durationHours = effortHours / Double(personnel)
-                                Text("Duration: \(String(format: "%.1f", durationHours)) hours")
-                                    .font(.caption)
-                                Text("(with \(personnel) \(personnel == 1 ? "person" : "people"))")
-                                    .font(.caption2)
-                            }
-                            .foregroundStyle(.secondary)
-                        }
-
-                        // Show personnel recommendation if deadline set
-                        if hasDueDate && effortHours > 0 {
-                            PersonnelRecommendationView(
-                                effortHours: effortHours,
-                                deadline: dueDate,
-                                currentSelection: expectedPersonnelCount,
-                                onSelect: { count in
-                                    hasPersonnel = true
-                                    expectedPersonnelCount = count
-                                }
-                            )
-                        } else if effortHours > 0 {
-                            HStack {
-                                Image(systemName: "info.circle")
-                                    .font(.caption2)
-                                Text("Set a deadline to see personnel recommendations")
-                                    .font(.caption)
-                            }
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 4)
-                        }
-                    }
+                    EffortInputSection(
+                        effortHours: $effortHours,
+                        hasPersonnel: $hasPersonnel,
+                        expectedPersonnelCount: $expectedPersonnelCount,
+                        hasDueDate: $hasDueDate,
+                        dueDate: dueDate
+                    )
                 }
 
             }
@@ -485,191 +439,29 @@ struct TaskComposerForm: View {
     }
     
     private func validateSubtaskDueDate(_ newDate: Date) {
-        guard isSubtask, let parentDue = parentDueDate else { return }
-        if newDate > parentDue {
+        let result = TaskFormValidator.validateSubtaskDueDate(
+            subtaskDate: newDate,
+            parentDate: parentDueDate,
+            isSubtask: isSubtask
+        )
+
+        if !result.isValid {
             showingDateValidationAlert = true
         }
     }
-    
-    private func validateEstimate() {
-        guard !isSubtask, hasCustomEstimate else { return }
-        guard let subtaskTotal = taskSubtaskEstimateTotal, subtaskTotal > 0 else { return }
-        
-        let totalMinutes = (estimateHours * 60) + estimateMinutes
 
-        if totalMinutes > 0 && totalMinutes < subtaskTotal {
-            estimateValidationMessage = "Custom estimate (\((totalMinutes * 60).formattedTime())) cannot be less than subtask estimates total (\((subtaskTotal * 60).formattedTime()))."
+    private func validateEstimate() {
+        let result = TaskFormValidator.validateCustomEstimate(
+            estimateHours: estimateHours,
+            estimateMinutes: estimateMinutes,
+            subtaskTotalMinutes: taskSubtaskEstimateTotal,
+            hasCustomEstimate: hasCustomEstimate,
+            isSubtask: isSubtask
+        )
+
+        if !result.isValid, let message = result.errorMessage {
+            estimateValidationMessage = message
             showingEstimateValidationAlert = true
         }
-    }
-}
-
-// MARK: - Personnel Recommendation Component
-
-struct PersonnelRecommendationView: View {
-    let effortHours: Double
-    let deadline: Date
-    let currentSelection: Int?
-    let onSelect: (Int) -> Void
-
-    private var availableHours: Double {
-        let calendar = Calendar.current
-        let now = Date()
-
-        // Work hours: 7 AM to 3 PM (8 hours)
-        let workdayStart = 7 // 07:00
-        let workdayEnd = 15   // 15:00
-        let workdayHours = Double(workdayEnd - workdayStart)
-
-        // If deadline is in the past, return minimum
-        guard deadline > now else { return 1.0 }
-
-        var totalHours: Double = 0.0
-        var currentDate = calendar.startOfDay(for: now)
-        let deadlineDay = calendar.startOfDay(for: deadline)
-
-        // Process each day from now to deadline
-        while currentDate <= deadlineDay {
-            if calendar.isDate(currentDate, inSameDayAs: now) {
-                // Today: count from now until end of workday (or deadline if earlier)
-                let nowComponents = calendar.dateComponents([.hour, .minute], from: now)
-                let nowHour = Double(nowComponents.hour ?? 0) + Double(nowComponents.minute ?? 0) / 60.0
-
-                if nowHour < Double(workdayEnd) {
-                    // Still time left today
-                    let startHour = max(nowHour, Double(workdayStart))
-                    let endHour: Double
-
-                    if calendar.isDate(currentDate, inSameDayAs: deadline) {
-                        // Deadline is today
-                        let deadlineComponents = calendar.dateComponents([.hour, .minute], from: deadline)
-                        let deadlineHour = Double(deadlineComponents.hour ?? 0) + Double(deadlineComponents.minute ?? 0) / 60.0
-                        endHour = min(deadlineHour, Double(workdayEnd))
-                    } else {
-                        endHour = Double(workdayEnd)
-                    }
-
-                    totalHours += max(endHour - startHour, 0)
-                }
-            } else if calendar.isDate(currentDate, inSameDayAs: deadline) {
-                // Deadline day: count from start of workday until deadline time
-                let deadlineComponents = calendar.dateComponents([.hour, .minute], from: deadline)
-                let deadlineHour = Double(deadlineComponents.hour ?? 0) + Double(deadlineComponents.minute ?? 0) / 60.0
-
-                let startHour = Double(workdayStart)
-                let endHour = min(deadlineHour, Double(workdayEnd))
-
-                totalHours += max(endHour - startHour, 0)
-            } else {
-                // Full workday
-                totalHours += workdayHours
-            }
-
-            // Move to next day
-            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
-        }
-
-        return max(totalHours, 1.0) // Minimum 1 hour
-    }
-
-    private var minimumPersonnel: Int {
-        guard availableHours > 0 else { return 1 }
-        return max(Int(ceil(effortHours / Double(availableHours))), 1)
-    }
-
-    private var scenarios: [(people: Int, hours: Double, status: String, icon: String)] {
-        guard minimumPersonnel > 0 else { return [] }
-
-        return [
-            (minimumPersonnel, effortHours / Double(minimumPersonnel), "Tight", "exclamationmark.triangle.fill"),
-            (minimumPersonnel + 1, effortHours / Double(minimumPersonnel + 1), "Safe", "checkmark.circle.fill"),
-            (minimumPersonnel + 2, effortHours / Double(minimumPersonnel + 2), "Buffer", "checkmark.circle.fill")
-        ]
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
-            HStack {
-                Image(systemName: "chart.bar.doc.horizontal")
-                    .foregroundStyle(.blue)
-                Text("Resource Planning")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-            }
-            .foregroundStyle(.blue)
-
-            HStack {
-                Text("Available time:")
-                    .font(.caption2)
-                Spacer()
-                Text(String(format: "%.1f hours", availableHours))
-                    .font(.caption2)
-                    .fontWeight(.medium)
-            }
-            .foregroundStyle(.secondary)
-
-            HStack {
-                Text("Minimum crew:")
-                    .font(.caption2)
-                Spacer()
-                Text("\(minimumPersonnel) \(minimumPersonnel == 1 ? "person" : "people")")
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.orange)
-            }
-
-            Divider()
-
-            Text("Scenarios:")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundStyle(.secondary)
-
-            ForEach(scenarios, id: \.people) { scenario in
-                Button {
-                    onSelect(scenario.people)
-                    HapticManager.selection()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: scenario.icon)
-                            .font(.caption2)
-                            .foregroundStyle(scenario.people == minimumPersonnel ? .orange : .green)
-                            .frame(width: 16)
-
-                        Text("\(scenario.people) \(scenario.people == 1 ? "person" : "people")")
-                            .font(.caption)
-
-                        Spacer()
-
-                        Text(String(format: "%.1f hrs/person", scenario.hours))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-
-                        Text(scenario.status)
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                            .foregroundStyle(scenario.people == minimumPersonnel ? .orange : .green)
-
-                        if currentSelection == scenario.people {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.blue)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(currentSelection == scenario.people ? Color.blue.opacity(0.1) : Color.secondary.opacity(0.05))
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding()
-        .background(Color.secondary.opacity(0.05))
-        .cornerRadius(12)
     }
 }
