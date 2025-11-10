@@ -104,55 +104,23 @@ private struct TimeEntryRow: View {
     @State private var showingDeleteAlert = false
 
     private var isActiveTimer: Bool {
-        entry.endTime == nil
-    }
-
-    private var duration: TimeInterval {
-        let end = entry.endTime ?? Date()
-        return end.timeIntervalSince(entry.startTime)
+        TimeEntryManager.isActiveTimer(entry)
     }
 
     private var formattedDuration: String {
-        let seconds = Int(duration)
-        return seconds.formattedTime(showSeconds: false)
-    }
-
-    private var personHours: Double {
-        (duration / 3600) * Double(entry.personnelCount)
+        TimeEntryManager.formatDuration(for: entry, showSeconds: false)
     }
 
     private var formattedPersonHours: String {
-        String(format: "%.1f hrs", personHours)
+        TimeEntryManager.formatPersonHours(for: entry)
     }
 
     private var formattedDate: String {
-        let calendar = Calendar.current
-        let now = Date()
-
-        if calendar.isDateInToday(entry.startTime) {
-            return "Today"
-        } else if calendar.isDateInYesterday(entry.startTime) {
-            return "Yesterday"
-        } else {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .none
-            return formatter.string(from: entry.startTime)
-        }
+        TimeEntryManager.formatRelativeDate(entry.startTime)
     }
 
     private var formattedTimeRange: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-
-        let start = formatter.string(from: entry.startTime)
-
-        if let end = entry.endTime {
-            let endStr = formatter.string(from: end)
-            return "\(start) - \(endStr)"
-        } else {
-            return "\(start) - Now"
-        }
+        TimeEntryManager.formatTimeRange(for: entry)
     }
 
     var body: some View {
