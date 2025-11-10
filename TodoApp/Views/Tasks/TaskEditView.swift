@@ -26,6 +26,10 @@ struct TaskEditView: View {
     @State private var hasPersonnel: Bool
     @State private var expectedPersonnelCount: Int?
 
+    // Effort-based estimation state
+    @State private var estimateByEffort: Bool
+    @State private var effortHours: Double
+
     private var isSubtask: Bool { task.parentTask != nil }
 
     init(task: Task,
@@ -53,6 +57,10 @@ struct TaskEditView: View {
         // Initialize personnel state
         _hasPersonnel = State(initialValue: task.expectedPersonnelCount != nil)
         _expectedPersonnelCount = State(initialValue: task.expectedPersonnelCount)
+
+        // Initialize effort-based estimation state
+        _estimateByEffort = State(initialValue: task.effortHours != nil)
+        _effortHours = State(initialValue: task.effortHours ?? 0)
     }
     
     var body: some View {
@@ -73,6 +81,8 @@ struct TaskEditView: View {
                 hasCustomEstimate: $hasCustomEstimate,
                 hasPersonnel: $hasPersonnel,
                 expectedPersonnelCount: $expectedPersonnelCount,
+                estimateByEffort: $estimateByEffort,
+                effortHours: $effortHours,
                 isSubtask: isSubtask,
                 parentTask: task.parentTask,
                 editingTask: task  // NEW: Pass the task being edited

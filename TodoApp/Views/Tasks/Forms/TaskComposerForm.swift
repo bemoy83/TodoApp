@@ -22,6 +22,10 @@ struct TaskComposerForm: View {
     @Binding var hasPersonnel: Bool
     @Binding var expectedPersonnelCount: Int?
 
+    // Effort-based estimation bindings
+    @Binding var estimateByEffort: Bool
+    @Binding var effortHours: Double
+
     // Context
     let isSubtask: Bool
     let parentTask: Task?
@@ -207,8 +211,16 @@ struct TaskComposerForm: View {
             
             // Time Estimate Section
             Section("Time Estimate") {
-                // Show parent's auto-calculated estimate if subtask
-                if isSubtask, let parentTotal = parentSubtaskEstimateTotal, parentTotal > 0 {
+                // Estimation mode selector
+                Picker("Estimation Mode", selection: $estimateByEffort) {
+                    Text("By Duration").tag(false)
+                    Text("By Effort").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .padding(.vertical, 4)
+
+                // Show parent's auto-calculated estimate if subtask (duration mode only)
+                if !estimateByEffort && isSubtask, let parentTotal = parentSubtaskEstimateTotal, parentTotal > 0 {
                     HStack {
                         Image(systemName: "info.circle")
                             .font(.caption)
@@ -224,11 +236,13 @@ struct TaskComposerForm: View {
                     }
                     .padding(.vertical, 4)
                 }
-                
-                // UPDATED: Contextual toggle based on whether task has subtasks with estimates
-                // If parent with subtask estimates → "Override Subtask Estimates"
-                // Otherwise → "Set Time Estimate"
-                let hasSubtasksWithEstimates = !isSubtask && (taskSubtaskEstimateTotal ?? 0) > 0
+
+                // DURATION MODE
+                if !estimateByEffort {
+                    // UPDATED: Contextual toggle based on whether task has subtasks with estimates
+                    // If parent with subtask estimates → "Override Subtask Estimates"
+                    // Otherwise → "Set Time Estimate"
+                    let hasSubtasksWithEstimates = !isSubtask && (taskSubtaskEstimateTotal ?? 0) > 0
                 
                 if hasSubtasksWithEstimates {
                     // Parent task with subtasks - show override toggle
@@ -325,9 +339,51 @@ struct TaskComposerForm: View {
                         .foregroundStyle(.orange)
                     }
                 }
+                } // End Duration Mode
+
+                // EFFORT MODE
+                else {
+                    // Effort input
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Total Work Effort")
+                                .font(.subheadline)
+                            Spacer()
+                            TextField("0", value: $effortHours, format: .number)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 80)
+                            Text("person-hours")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        // Show personnel recommendation if deadline set
+                        if hasDueDate && effortHours > 0 {
+                            PersonnelRecommendationView(
+                                effortHours: effortHours,
+                                deadline: dueDate,
+                                currentSelection: expectedPersonnelCount,
+                                onSelect: { count in
+                                    hasPersonnel = true
+                                    expectedPersonnelCount = count
+                                }
+                            )
+                        } else if effortHours > 0 {
+                            HStack {
+                                Image(systemName: "info.circle")
+                                    .font(.caption2)
+                                Text("Set a deadline to see personnel recommendations")
+                                    .font(.caption)
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                        }
+                    }
+                }
 
             }
-            
+
             // Priority
             Section("Priority") {
                 Picker("Priority Level", selection: $priority) {
@@ -429,5 +485,121 @@ struct TaskComposerForm: View {
             estimateValidationMessage = "Custom estimate (\((totalMinutes * 60).formattedTime())) cannot be less than subtask estimates total (\((subtaskTotal * 60).formattedTime()))."
             showingEstimateValidationAlert = true
         }
+    }
+}
+
+// MARK: - Personnel Recommendation Component
+
+struct PersonnelRecommendationView: View {
+    let effortHours: Double
+    let deadline: Date
+    let currentSelection: Int?
+    let onSelect: (Int) -> Void
+
+    private var availableHours: Int {
+        let now = Date()
+        let days = Calendar.current.dateComponents([.day], from: now, to: deadline).day ?? 0
+        return max(days * 8, 1) // Assume 8-hour workdays, minimum 1 hour
+    }
+
+    private var minimumPersonnel: Int {
+        guard availableHours > 0 else { return 1 }
+        return max(Int(ceil(effortHours / Double(availableHours))), 1)
+    }
+
+    private var scenarios: [(people: Int, hours: Double, status: String, icon: String)] {
+        guard minimumPersonnel > 0 else { return [] }
+
+        return [
+            (minimumPersonnel, effortHours / Double(minimumPersonnel), "Tight", "exclamationmark.triangle.fill"),
+            (minimumPersonnel + 1, effortHours / Double(minimumPersonnel + 1), "Safe", "checkmark.circle.fill"),
+            (minimumPersonnel + 2, effortHours / Double(minimumPersonnel + 2), "Buffer", "checkmark.circle.fill")
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+
+            HStack {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .foregroundStyle(.blue)
+                Text("Resource Planning")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+            }
+            .foregroundStyle(.blue)
+
+            HStack {
+                Text("Available time:")
+                    .font(.caption2)
+                Spacer()
+                Text("\(availableHours) hours")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+            }
+            .foregroundStyle(.secondary)
+
+            HStack {
+                Text("Minimum crew:")
+                    .font(.caption2)
+                Spacer()
+                Text("\(minimumPersonnel) \(minimumPersonnel == 1 ? "person" : "people")")
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.orange)
+            }
+
+            Divider()
+
+            Text("Scenarios:")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
+
+            ForEach(scenarios, id: \.people) { scenario in
+                Button {
+                    onSelect(scenario.people)
+                    HapticManager.selection()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: scenario.icon)
+                            .font(.caption2)
+                            .foregroundStyle(scenario.people == minimumPersonnel ? .orange : .green)
+                            .frame(width: 16)
+
+                        Text("\(scenario.people) \(scenario.people == 1 ? "person" : "people")")
+                            .font(.caption)
+
+                        Spacer()
+
+                        Text(String(format: "%.1f hrs/person", scenario.hours))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+
+                        Text(scenario.status)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundStyle(scenario.people == minimumPersonnel ? .orange : .green)
+
+                        if currentSelection == scenario.people {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(currentSelection == scenario.people ? Color.blue.opacity(0.1) : Color.secondary.opacity(0.05))
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding()
+        .background(Color.secondary.opacity(0.05))
+        .cornerRadius(12)
     }
 }

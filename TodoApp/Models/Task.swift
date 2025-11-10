@@ -82,6 +82,9 @@ final class Task {
     // Personnel planning
     var expectedPersonnelCount: Int? // Expected crew size for this task (nil = not set, defaults to 1 in calculations)
 
+    // Effort-based estimation (for resource planning)
+    var effortHours: Double? // Total work effort in person-hours (nil = not using effort-based estimation)
+
     // Relationship to project
     @Relationship(deleteRule: .nullify)
     var project: Project?
@@ -117,7 +120,8 @@ final class Task {
         notes: String? = nil,
         estimatedSeconds: Int? = nil,
         hasCustomEstimate: Bool = false,
-        expectedPersonnelCount: Int? = nil
+        expectedPersonnelCount: Int? = nil,
+        effortHours: Double? = nil
     ) {
         self.id = id
         self.title = title
@@ -132,6 +136,7 @@ final class Task {
         self.estimatedSeconds = estimatedSeconds
         self.hasCustomEstimate = hasCustomEstimate
         self.expectedPersonnelCount = expectedPersonnelCount
+        self.effortHours = effortHours
         self.subtasks = nil
         self.timeEntries = nil
         self.dependsOn = nil
