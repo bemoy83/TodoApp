@@ -176,6 +176,8 @@ private extension TaskAction {
         case .addSubtask: return "addSubtask"
         case .delete: return "delete"
         case .edit: return "edit"
+        case .archive: return "archive"
+        case .unarchive: return "unarchive"
         }
     }
 }
