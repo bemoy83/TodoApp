@@ -215,7 +215,7 @@ enum TaskActionExecError: LocalizedError {
     var recoverySuggestion: String? {
         switch self {
         case .taskBlocked:
-            return "Complete blocking tasks first, or use "Force Complete"."
+            return "Complete blocking tasks first, or use \"Force Complete\"."
         case .timerAlreadyRunning:
             return "Stop the current timer before starting a new one."
         case .noActiveTimer:
