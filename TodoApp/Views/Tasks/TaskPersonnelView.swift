@@ -217,15 +217,21 @@ struct TaskPersonnelView: View {
         return subtaskPersonnelRange
     }
 
-    /// Check if parent personnel doesn't match subtask range
+    /// Check if parent personnel doesn't match subtask breakdown
     private var hasMismatch: Bool {
         guard let parent = task.expectedPersonnelCount,
               let subtaskRange = subtaskPersonnelRange else {
             return false
         }
 
-        // Mismatch if parent is outside subtask range
-        return parent < subtaskRange.min || parent > subtaskRange.max
+        // Show warning if subtasks don't all match parent
+        // No warning if all subtasks consistently match (e.g., parent=3, all subtasks=3)
+        if subtaskRange.min == subtaskRange.max && subtaskRange.min == parent {
+            return false
+        }
+
+        // Show warning: user broke down work differently than parent estimate
+        return true
     }
 
     /// Button text based on state
