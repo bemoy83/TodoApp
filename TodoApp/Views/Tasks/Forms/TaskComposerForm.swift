@@ -364,7 +364,7 @@ struct TaskComposerForm: View {
                                 Image(systemName: "arrow.right")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                let personnel = expectedPersonnelCount
+                                let personnel = expectedPersonnelCount ?? 1
                                 let durationHours = effortHours / Double(personnel)
                                 Text("Duration: \(String(format: "%.1f", durationHours)) hours")
                                     .font(.caption)
