@@ -22,6 +22,14 @@ struct TaskEditView: View {
     @State private var estimateMinutes: Int
     @State private var hasCustomEstimate: Bool
 
+    // Personnel state
+    @State private var hasPersonnel: Bool
+    @State private var expectedPersonnelCount: Int?
+
+    // Effort-based estimation state
+    @State private var estimateByEffort: Bool
+    @State private var effortHours: Double
+
     private var isSubtask: Bool { task.parentTask != nil }
 
     init(task: Task,
@@ -45,6 +53,14 @@ struct TaskEditView: View {
         _estimateHours = State(initialValue: estimateMinutes / 60)
         _estimateMinutes = State(initialValue: estimateMinutes % 60)
         _hasCustomEstimate = State(initialValue: task.hasCustomEstimate)
+
+        // Initialize personnel state
+        _hasPersonnel = State(initialValue: task.expectedPersonnelCount != nil)
+        _expectedPersonnelCount = State(initialValue: task.expectedPersonnelCount)
+
+        // Initialize effort-based estimation state
+        _estimateByEffort = State(initialValue: task.effortHours != nil)
+        _effortHours = State(initialValue: task.effortHours ?? 0)
     }
     
     var body: some View {
@@ -63,6 +79,10 @@ struct TaskEditView: View {
                 estimateHours: $estimateHours,
                 estimateMinutes: $estimateMinutes,
                 hasCustomEstimate: $hasCustomEstimate,
+                hasPersonnel: $hasPersonnel,
+                expectedPersonnelCount: $expectedPersonnelCount,
+                estimateByEffort: $estimateByEffort,
+                effortHours: $effortHours,
                 isSubtask: isSubtask,
                 parentTask: task.parentTask,
                 editingTask: task  // NEW: Pass the task being edited
@@ -84,22 +104,36 @@ struct TaskEditView: View {
     
     private func handleSave() {
         task.dueDate = hasDueDate ? dueDate : nil
-        
+
         // Trim whitespace and set to nil if empty
         let trimmedNotes = notesText.trimmingCharacters(in: .whitespacesAndNewlines)
         task.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
-        
-        // Handle time estimate (convert hours/minutes to seconds for storage)
-        if hasEstimate {
+
+        // Handle time estimate
+        if estimateByEffort && effortHours > 0 {
+            // Effort-based: calculate duration from effort ÷ personnel
+            let personnel = expectedPersonnelCount ?? 1
+            let durationHours = effortHours / Double(personnel)
+            task.estimatedSeconds = Int(durationHours * 3600) // Convert to seconds
+            task.hasCustomEstimate = true
+            task.effortHours = effortHours
+        } else if hasEstimate {
+            // Duration-based: convert hours/minutes to seconds
             let totalMinutes = (estimateHours * 60) + estimateMinutes
             let totalSeconds = totalMinutes * 60
             task.estimatedSeconds = totalSeconds > 0 ? totalSeconds : nil
             task.hasCustomEstimate = hasCustomEstimate
+            task.effortHours = nil
         } else {
+            // No estimate
             task.estimatedSeconds = nil
             task.hasCustomEstimate = false
+            task.effortHours = nil
         }
-        
+
+        // Save personnel count (only if toggle is on)
+        task.expectedPersonnelCount = hasPersonnel ? expectedPersonnelCount : nil
+
         onSave(task)
         dismiss()
     }

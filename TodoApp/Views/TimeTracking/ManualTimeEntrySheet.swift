@@ -10,9 +10,15 @@ struct ManualTimeEntrySheet: View {
 
     @State private var startDate = Date().addingTimeInterval(-3600) // Default: 1 hour ago
     @State private var endDate = Date()
-    @State private var personnelCount = 1
+    @State private var personnelCount: Int
     @State private var showingValidationError = false
     @State private var validationMessage = ""
+
+    init(task: Task) {
+        self.task = task
+        // Pre-fill with task's expected personnel count (defaults to 1 if not set)
+        _personnelCount = State(initialValue: task.expectedPersonnelCount ?? 1)
+    }
 
     private var isValid: Bool {
         endDate > startDate

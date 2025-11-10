@@ -26,6 +26,14 @@ struct AddTaskView: View {
     @State private var estimateMinutes: Int = 0
     @State private var hasCustomEstimate: Bool = false
 
+    // Personnel state
+    @State private var hasPersonnel: Bool = false
+    @State private var expectedPersonnelCount: Int? = nil
+
+    // Effort-based estimation state
+    @State private var estimateByEffort: Bool = false
+    @State private var effortHours: Double = 0
+
     // For list creation, compute next order to keep ordering stable
     @Query private var tasks: [Task]
     private var nextOrder: Int {
@@ -57,6 +65,10 @@ struct AddTaskView: View {
                 estimateHours: $estimateHours,
                 estimateMinutes: $estimateMinutes,
                 hasCustomEstimate: $hasCustomEstimate,
+                hasPersonnel: $hasPersonnel,
+                expectedPersonnelCount: $expectedPersonnelCount,
+                estimateByEffort: $estimateByEffort,
+                effortHours: $effortHours,
                 isSubtask: parentTask != nil,
                 parentTask: parentTask,
                 editingTask: nil  // NEW: Not editing existing, so nil
@@ -79,10 +91,23 @@ struct AddTaskView: View {
         // Trim whitespace and set to nil if empty
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Calculate time estimate (convert hours/minutes to seconds for storage)
-        let totalMinutes = hasEstimate ? (estimateHours * 60) + estimateMinutes : nil
-        let totalSeconds = totalMinutes.map { $0 * 60 }
-        let finalEstimate = (totalSeconds ?? 0) > 0 ? totalSeconds : nil
+        // Calculate time estimate
+        let finalEstimate: Int?
+        let isCustomEstimate: Bool
+
+        if estimateByEffort && effortHours > 0 {
+            // Effort-based: calculate duration from effort ÷ personnel
+            let personnel = expectedPersonnelCount ?? 1
+            let durationHours = effortHours / Double(personnel)
+            finalEstimate = Int(durationHours * 3600) // Convert to seconds
+            isCustomEstimate = true
+        } else {
+            // Duration-based: convert hours/minutes to seconds
+            let totalMinutes = hasEstimate ? (estimateHours * 60) + estimateMinutes : nil
+            let totalSeconds = totalMinutes.map { $0 * 60 }
+            finalEstimate = (totalSeconds ?? 0) > 0 ? totalSeconds : nil
+            isCustomEstimate = hasCustomEstimate && finalEstimate != nil
+        }
 
         let task = Task(
             title: title,
@@ -94,7 +119,9 @@ struct AddTaskView: View {
             order: parentTask == nil ? nextOrder : nil,
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
             estimatedSeconds: finalEstimate,
-            hasCustomEstimate: hasCustomEstimate && finalEstimate != nil
+            hasCustomEstimate: isCustomEstimate,
+            expectedPersonnelCount: hasPersonnel ? expectedPersonnelCount : nil,
+            effortHours: estimateByEffort && effortHours > 0 ? effortHours : nil
         )
         modelContext.insert(task)
         onAdded?(task)

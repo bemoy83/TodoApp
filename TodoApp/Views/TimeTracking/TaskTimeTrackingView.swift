@@ -31,7 +31,8 @@ struct TaskTimeTrackingView: View {
                     progress: liveTimeProgress,
                     status: liveEstimateStatus,
                     isCalculated: task.isUsingCalculatedEstimate,
-                    hasActiveTimer: hasAnyTimerRunning
+                    hasActiveTimer: hasAnyTimerRunning,
+                    expectedPersonnelCount: task.expectedPersonnelCount
                 )
             }
 
@@ -324,6 +325,20 @@ private struct EstimateSectionRefactored: View {
     let status: TimeEstimateStatus?
     let isCalculated: Bool
     let hasActiveTimer: Bool
+    let expectedPersonnelCount: Int?
+
+    private var estimatedEffort: Double? {
+        guard let personnel = expectedPersonnelCount, personnel > 1 else {
+            return nil
+        }
+        let hours = Double(estimateSeconds) / 3600.0
+        return hours * Double(personnel)
+    }
+
+    private var formattedEffort: String {
+        guard let effort = estimatedEffort else { return "" }
+        return String(format: "%.1f person-hours", effort)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -355,6 +370,17 @@ private struct EstimateSectionRefactored: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                             .italic()
+                    }
+
+                    // Show effort when personnel > 1
+                    if estimatedEffort != nil {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.right")
+                                .font(.caption2)
+                            Text(formattedEffort)
+                                .font(.caption)
+                        }
+                        .foregroundStyle(.secondary)
                     }
                 }
 

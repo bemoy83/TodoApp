@@ -38,6 +38,9 @@ struct TaskDetailView: View {
                 // Time tracking remains the canonical place for timer controls
                 TaskTimeTrackingView(task: task)
 
+                // Personnel planning and tracking
+                TaskPersonnelView(task: task)
+
                 // Time entries management
                 TimeEntriesView(task: task)
 

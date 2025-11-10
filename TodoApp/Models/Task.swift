@@ -78,7 +78,13 @@ final class Task {
     // Time estimation (stored in seconds for accuracy)
     var estimatedSeconds: Int? // nil = no estimate set
     var hasCustomEstimate: Bool = false // true = user overrode auto-sum
-    
+
+    // Personnel planning
+    var expectedPersonnelCount: Int? // Expected crew size for this task (nil = not set, defaults to 1 in calculations)
+
+    // Effort-based estimation (for resource planning)
+    var effortHours: Double? // Total work effort in person-hours (nil = not using effort-based estimation)
+
     // Relationship to project
     @Relationship(deleteRule: .nullify)
     var project: Project?
@@ -113,7 +119,9 @@ final class Task {
         order: Int? = nil,
         notes: String? = nil,
         estimatedSeconds: Int? = nil,
-        hasCustomEstimate: Bool = false
+        hasCustomEstimate: Bool = false,
+        expectedPersonnelCount: Int? = nil,
+        effortHours: Double? = nil
     ) {
         self.id = id
         self.title = title
@@ -127,6 +135,8 @@ final class Task {
         self.notes = notes
         self.estimatedSeconds = estimatedSeconds
         self.hasCustomEstimate = hasCustomEstimate
+        self.expectedPersonnelCount = expectedPersonnelCount
+        self.effortHours = effortHours
         self.subtasks = nil
         self.timeEntries = nil
         self.dependsOn = nil
@@ -383,9 +393,10 @@ final class Task {
         let newEntry = TimeEntry(
             startTime: Date.now,
             endTime: nil,
+            personnelCount: self.expectedPersonnelCount ?? 1,
             task: self
         )
-        
+
         if timeEntries == nil {
             timeEntries = []
         }
