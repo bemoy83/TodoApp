@@ -91,10 +91,23 @@ struct AddTaskView: View {
         // Trim whitespace and set to nil if empty
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Calculate time estimate (convert hours/minutes to seconds for storage)
-        let totalMinutes = hasEstimate ? (estimateHours * 60) + estimateMinutes : nil
-        let totalSeconds = totalMinutes.map { $0 * 60 }
-        let finalEstimate = (totalSeconds ?? 0) > 0 ? totalSeconds : nil
+        // Calculate time estimate
+        let finalEstimate: Int?
+        let isCustomEstimate: Bool
+
+        if estimateByEffort && effortHours > 0 {
+            // Effort-based: calculate duration from effort ÷ personnel
+            let personnel = hasPersonnel ? expectedPersonnelCount : 1
+            let durationHours = effortHours / Double(personnel)
+            finalEstimate = Int(durationHours * 3600) // Convert to seconds
+            isCustomEstimate = true
+        } else {
+            // Duration-based: convert hours/minutes to seconds
+            let totalMinutes = hasEstimate ? (estimateHours * 60) + estimateMinutes : nil
+            let totalSeconds = totalMinutes.map { $0 * 60 }
+            finalEstimate = (totalSeconds ?? 0) > 0 ? totalSeconds : nil
+            isCustomEstimate = hasCustomEstimate && finalEstimate != nil
+        }
 
         let task = Task(
             title: title,
@@ -106,7 +119,7 @@ struct AddTaskView: View {
             order: parentTask == nil ? nextOrder : nil,
             notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
             estimatedSeconds: finalEstimate,
-            hasCustomEstimate: hasCustomEstimate && finalEstimate != nil,
+            hasCustomEstimate: isCustomEstimate,
             expectedPersonnelCount: hasPersonnel ? expectedPersonnelCount : nil,
             effortHours: estimateByEffort && effortHours > 0 ? effortHours : nil
         )

@@ -358,6 +358,22 @@ struct TaskComposerForm: View {
                                 .foregroundStyle(.secondary)
                         }
 
+                        // Show calculated duration if personnel is set
+                        if effortHours > 0 && hasPersonnel {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                let personnel = expectedPersonnelCount
+                                let durationHours = effortHours / Double(personnel)
+                                Text("Duration: \(String(format: "%.1f", durationHours)) hours")
+                                    .font(.caption)
+                                Text("(with \(personnel) \(personnel == 1 ? "person" : "people"))")
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+
                         // Show personnel recommendation if deadline set
                         if hasDueDate && effortHours > 0 {
                             PersonnelRecommendationView(
