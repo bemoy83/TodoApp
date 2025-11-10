@@ -15,6 +15,7 @@ struct AnalyticsView: View {
     @State private var showingBlockedTasksDetail = false
     @State private var showingNoEstimatesDetail = false
     @State private var showingNearingEstimateDetail = false
+    @State private var showingArchivedTasksDetail = false
 
     // Refresh timer for active timers
     @State private var currentTime = Date()
@@ -26,6 +27,10 @@ struct AnalyticsView: View {
 
     private var attentionNeeded: AttentionNeeded {
         AttentionNeeded.calculate(from: allTasks)
+    }
+
+    private var lifecycleStats: LifecycleStats {
+        LifecycleStats.calculate(from: allTasks)
     }
 
     var body: some View {
@@ -68,6 +73,19 @@ struct AnalyticsView: View {
                         }
                         .padding(.horizontal)
                     }
+
+                    // Lifecycle Stats Section
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                        SectionHeader(
+                            title: "Lifecycle Stats",
+                            subtitle: "Task completion & archiving",
+                            icon: "chart.line.uptrend.xyaxis",
+                            iconColor: Color(hex: "#5856D6")
+                        )
+
+                        lifecycleStatsCards
+                    }
+                    .padding(.horizontal)
                 }
                 .padding(.vertical)
             }
@@ -119,6 +137,9 @@ struct AnalyticsView: View {
                     icon: "gauge.with.dots.needle.67percent",
                     color: DesignSystem.Colors.warning
                 )
+            }
+            .sheet(isPresented: $showingArchivedTasksDetail) {
+                ArchiveView()
             }
         }
     }
@@ -224,6 +245,57 @@ struct AnalyticsView: View {
                     onTap: { showingNearingEstimateDetail = true }
                 )
             }
+        }
+    }
+
+    // MARK: - Lifecycle Stats Cards
+
+    private var lifecycleStatsCards: some View {
+        LazyVGrid(columns: [
+            GridItem(.flexible()),
+            GridItem(.flexible())
+        ], spacing: DesignSystem.Spacing.md) {
+            // Total Completed
+            StatCard(
+                icon: "checkmark.circle.fill",
+                value: "\(lifecycleStats.totalCompleted)",
+                label: "Total Completed",
+                subtitle: lifecycleStats.totalCompleted == 1 ? "task" : "tasks",
+                color: DesignSystem.Colors.success
+            )
+
+            // Completed This Week
+            StatCard(
+                icon: "calendar.badge.checkmark",
+                value: "\(lifecycleStats.completedThisWeek)",
+                label: "This Week",
+                subtitle: "completed",
+                color: Color(hex: "#34C759") // Green
+            )
+
+            // Total Archived
+            TappableStatCard(
+                icon: "archivebox.fill",
+                value: "\(lifecycleStats.totalArchived)",
+                label: "Total Archived",
+                subtitle: lifecycleStats.totalArchived == 1 ? "task" : "tasks",
+                color: Color(hex: "#8E8E93"), // Gray
+                onTap: {
+                    showingArchivedTasksDetail = true
+                }
+            )
+
+            // Archived This Week
+            TappableStatCard(
+                icon: "archivebox",
+                value: "\(lifecycleStats.archivedThisWeek)",
+                label: "This Week",
+                subtitle: "archived",
+                color: Color(hex: "#AEAEB2"), // Light Gray
+                onTap: {
+                    showingArchivedTasksDetail = true
+                }
+            )
         }
     }
 
