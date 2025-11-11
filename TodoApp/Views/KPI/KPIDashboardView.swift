@@ -423,8 +423,9 @@ struct KPIDashboardView: View {
     private func calculateKPIs() {
         isCalculating = true
 
-        // Use async Task to calculate on background thread
-        Task {
+        // Use _Concurrency.Task to explicitly reference Swift Concurrency's Task
+        // (not the SwiftData Task model)
+        _Concurrency.Task {
             let dateRange = selectedDateRange.dateRange
             let kpis = KPIManager.calculateKPIs(
                 from: allTasks,
