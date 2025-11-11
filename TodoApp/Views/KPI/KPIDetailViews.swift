@@ -331,12 +331,16 @@ struct KPIUtilizationDetailView: View {
                             .font(.system(size: 48))
                             .foregroundStyle(utilizationColor(metrics.utilizationPercentage))
 
-                        Text("\(Int(metrics.utilizationPercentage))%")
+                        Text("\(Int(teamBalanceScore(metrics.utilizationPercentage)))")
                             .font(.system(size: 48, weight: .bold))
                             .foregroundStyle(utilizationColor(metrics.utilizationPercentage))
 
-                        Text("Team Utilization")
+                        Text("Team Balance Score")
                             .font(DesignSystem.Typography.title3)
+                            .foregroundStyle(DesignSystem.Colors.secondary)
+
+                        Text(String(format: "%.1f%% capacity used", metrics.utilizationPercentage))
+                            .font(DesignSystem.Typography.body)
                             .foregroundStyle(DesignSystem.Colors.secondary)
 
                         Text(dateRange)
@@ -496,14 +500,14 @@ struct KPIUtilizationDetailView: View {
 
                     // Interpretation
                     interpretationCard(
-                        title: "Understanding Utilization",
-                        text: "Utilization measures how effectively your team's capacity is being used. Optimal range is 70-90%. Below 70% indicates under-utilization; above 100% indicates overwork."
+                        title: "Understanding Team Balance",
+                        text: "Team Balance measures how well your workload aligns with optimal capacity. A score of 100 means perfect balance (80% capacity used). Higher scores indicate better balance. Scores below 60 suggest either severe under-utilization or overwork."
                     )
                 }
                 .padding(.vertical)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Team Utilization")
+            .navigationTitle("Team Balance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -527,6 +531,18 @@ struct KPIUtilizationDetailView: View {
         case 20...30:  return DesignSystem.Colors.warning  // 50-60% or 100-110%: Concerning
         default:       return DesignSystem.Colors.error    // <50% or >110%: Critical
         }
+    }
+
+    /// Convert utilization percentage to team balance score (0-100)
+    /// Higher score = better. 80% utilization = 100 score (optimal)
+    private func teamBalanceScore(_ utilization: Double) -> Double {
+        let optimalTarget = 80.0
+        let distance = abs(utilization - optimalTarget)
+
+        // Score decreases by 2 points per 1% distance from optimal
+        // 80% = 100, 90% = 80, 100% = 60, 70% = 80, 60% = 60, etc.
+        let score = max(0, 100 - (distance * 2))
+        return score
     }
 }
 

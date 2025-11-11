@@ -197,9 +197,9 @@ struct KPIDashboardView: View {
 
             KPIMetricCard(
                 icon: "person.2.fill",
-                title: "Utilization",
-                score: min(kpis.utilization.utilizationPercentage, 100),
-                detail: String(format: "%.1f hrs tracked", kpis.utilization.totalPersonHoursTracked),
+                title: "Team Balance",
+                score: teamBalanceScore(kpis.utilization.utilizationPercentage),
+                detail: String(format: "%.1f%% capacity used", kpis.utilization.utilizationPercentage),
                 color: utilizationColor(kpis.utilization.utilizationPercentage),
                 onTap: {
                     showingUtilizationDetail = true
@@ -428,6 +428,18 @@ struct KPIDashboardView: View {
         guard total > 0 else { return DesignSystem.Colors.info }
         let percentage = (Double(completed) / Double(total)) * 100
         return scoreColor(percentage)
+    }
+
+    /// Convert utilization percentage to team balance score (0-100)
+    /// Higher score = better. 80% utilization = 100 score (optimal)
+    private func teamBalanceScore(_ utilization: Double) -> Double {
+        let optimalTarget = 80.0
+        let distance = abs(utilization - optimalTarget)
+
+        // Score decreases by 2 points per 1% distance from optimal
+        // 80% = 100, 90% = 80, 100% = 60, 70% = 80, 60% = 60, etc.
+        let score = max(0, 100 - (distance * 2))
+        return score
     }
 
     // MARK: - Calculate KPIs
