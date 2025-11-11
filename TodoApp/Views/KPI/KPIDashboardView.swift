@@ -1,9 +1,12 @@
 import SwiftUI
 import SwiftData
 
+// Type alias to avoid name collision with Swift Concurrency's Task
+typealias TaskModel = Task
+
 struct KPIDashboardView: View {
-    @Query(filter: #Predicate<Task> { !$0.isArchived })
-    private var allTasks: [Task]
+    @Query(filter: #Predicate<TaskModel> { !$0.isArchived })
+    private var allTasks: [TaskModel]
 
     @Query private var allTimeEntries: [TimeEntry]
 
@@ -420,8 +423,7 @@ struct KPIDashboardView: View {
         isCalculating = true
 
         // Use async Task to calculate on background thread
-        // Note: Using Swift.Task to avoid name collision with SwiftData Task model
-        Swift.Task {
+        Task {
             let dateRange = selectedDateRange.dateRange
             let kpis = KPIManager.calculateKPIs(
                 from: allTasks,
