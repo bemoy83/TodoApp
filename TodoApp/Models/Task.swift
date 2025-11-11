@@ -44,7 +44,7 @@ enum TimeEstimateStatus: String, Codable, Sendable {
     case onTrack = "onTrack"       // < 75% time used
     case warning = "warning"        // 75-100% time used
     case over = "over"             // > 100% time used
-    
+
     var color: Color {
         switch self {
         case .onTrack: return DesignSystem.Colors.success
@@ -52,12 +52,42 @@ enum TimeEstimateStatus: String, Codable, Sendable {
         case .over: return DesignSystem.Colors.error
         }
     }
-    
+
     var icon: String {
         switch self {
         case .onTrack: return "checkmark.circle.fill"
         case .warning: return "exclamationmark.triangle.fill"
         case .over: return "exclamationmark.circle.fill"
+        }
+    }
+}
+
+// MARK: - Unit Type Enum
+
+enum UnitType: String, Codable, CaseIterable, Sendable {
+    case none = "None"
+    case squareMeters = "m²"
+    case meters = "m"
+    case pieces = "pcs"
+    case kilograms = "kg"
+    case liters = "L"
+
+    var displayName: String {
+        rawValue
+    }
+
+    var isQuantifiable: Bool {
+        self != .none
+    }
+
+    var icon: String {
+        switch self {
+        case .none: return "minus.circle"
+        case .squareMeters: return "square.grid.2x2"
+        case .meters: return "ruler"
+        case .pieces: return "cube.box"
+        case .kilograms: return "scalemass"
+        case .liters: return "drop"
         }
     }
 }
@@ -84,6 +114,10 @@ final class Task {
 
     // Effort-based estimation (for resource planning)
     var effortHours: Double? // Total work effort in person-hours (nil = not using effort-based estimation)
+
+    // Productivity tracking (Quantified Tasks)
+    var quantity: Double? // Amount of work completed (e.g., 45.5 square meters, 120 pieces)
+    var unit: UnitType = .none // Unit of measurement for quantity
 
     // Archive status
     var isArchived: Bool = false // true = task is archived (hidden from main views)
@@ -125,7 +159,9 @@ final class Task {
         estimatedSeconds: Int? = nil,
         hasCustomEstimate: Bool = false,
         expectedPersonnelCount: Int? = nil,
-        effortHours: Double? = nil
+        effortHours: Double? = nil,
+        quantity: Double? = nil,
+        unit: UnitType = .none
     ) {
         self.id = id
         self.title = title
@@ -141,6 +177,8 @@ final class Task {
         self.hasCustomEstimate = hasCustomEstimate
         self.expectedPersonnelCount = expectedPersonnelCount
         self.effortHours = effortHours
+        self.quantity = quantity
+        self.unit = unit
         self.subtasks = nil
         self.timeEntries = nil
         self.dependsOn = nil
@@ -356,7 +394,7 @@ final class Task {
     @Transient
     var estimateStatus: TimeEstimateStatus? {
         guard let progress = timeProgress else { return nil }
-        
+
         if progress >= 1.0 {
             return .over
         } else if progress >= 0.75 {
@@ -364,6 +402,43 @@ final class Task {
         } else {
             return .onTrack
         }
+    }
+
+    // MARK: - Productivity Metrics
+
+    /// Total tracked time in hours (includes time from all time entries)
+    @Transient
+    var totalTrackedTimeHours: Double? {
+        guard let entries = timeEntries, !entries.isEmpty else { return nil }
+        let completedEntries = entries.filter { $0.endTime != nil }
+        guard !completedEntries.isEmpty else { return nil }
+
+        let totalSeconds = completedEntries.reduce(0.0) { sum, entry in
+            guard let end = entry.endTime else { return sum }
+            let duration = end.timeIntervalSince(entry.startTime)
+            return sum + duration
+        }
+
+        return totalSeconds / 3600.0 // Convert to hours
+    }
+
+    /// Productivity metric: units completed per hour worked
+    /// Returns nil if task is not quantifiable, has no quantity, or has no tracked time
+    @Transient
+    var unitsPerHour: Double? {
+        guard unit.isQuantifiable,
+              let quantity = quantity,
+              quantity > 0,
+              let hours = totalTrackedTimeHours,
+              hours > 0 else { return nil }
+
+        return quantity / hours
+    }
+
+    /// Whether this task has productivity data available
+    @Transient
+    var hasProductivityData: Bool {
+        unitsPerHour != nil
     }
     
     // MARK: - Helper Methods
