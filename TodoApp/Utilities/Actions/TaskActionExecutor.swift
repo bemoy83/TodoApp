@@ -1,59 +1,90 @@
 import Foundation
 import SwiftData
 
+// MARK: - KPI Update Hook
+
+/// Callback type for triggering KPI recalculation after task actions
+/// Use this to trigger analytics updates when tasks are completed or archived
+typealias KPIUpdateHook = () -> Void
+
 /// Pure business logic for task actions.
-/// NOTE: This does not replace existing code; it’s an additive layer you can call from routers or views.
+/// NOTE: This does not replace existing code; it's an additive layer you can call from routers or views.
 /// - No SwiftUI, no haptics, no alerts.
 /// - Delegates to existing Task/TaskService methods where appropriate.
+/// - Supports optional KPI update hooks for analytics integration
 enum TaskActionExecutor {
     
     // MARK: - Completion
-    
+
     /// Complete a task, optionally forcing past blocks.
     /// - Parameters:
     ///   - task: Task to complete
     ///   - force: If true, bypasses blocking checks
+    ///   - onKPIUpdate: Optional callback to trigger KPI recalculation after completion
     /// - Throws: TaskActionExecError.taskBlocked if task is blocked and force == false
-    static func complete(_ task: Task, force: Bool = false) throws {
+    /// - Note: Triggers KPI update - task completion affects efficiency and accuracy metrics
+    static func complete(_ task: Task, force: Bool = false, onKPIUpdate: KPIUpdateHook? = nil) throws {
         guard force || task.canComplete else {
             throw TaskActionExecError.taskBlocked(dependencies: task.blockingDependencies)
         }
         task.completeTask() // existing Task API
+
+        // Trigger KPI recalculation (completed task affects metrics)
+        onKPIUpdate?()
     }
     
     /// Uncomplete a task (remove completion date).
-    static func uncomplete(_ task: Task) {
+    /// - Parameters:
+    ///   - task: Task to uncomplete
+    ///   - onKPIUpdate: Optional callback to trigger KPI recalculation after uncomplete
+    /// - Note: Triggers KPI update - uncompleting affects efficiency and accuracy metrics
+    static func uncomplete(_ task: Task, onKPIUpdate: KPIUpdateHook? = nil) {
         task.completedDate = nil
+
+        // Trigger KPI recalculation (uncompleted task affects metrics)
+        onKPIUpdate?()
     }
 
     /// Complete a task and all its incomplete subtasks recursively.
     /// - Parameters:
     ///   - task: Task to complete
     ///   - force: If true, bypasses blocking checks
+    ///   - onKPIUpdate: Optional callback to trigger KPI recalculation after completion
     /// - Throws: TaskActionExecError.taskBlocked if task is blocked and force == false
-    static func completeWithSubtasks(_ task: Task, force: Bool = false) throws {
-        // Complete the parent task first
-        try complete(task, force: force)
+    /// - Note: Triggers KPI update once after all completions - affects efficiency metrics
+    static func completeWithSubtasks(_ task: Task, force: Bool = false, onKPIUpdate: KPIUpdateHook? = nil) throws {
+        // Complete the parent task first (without triggering KPI yet)
+        try complete(task, force: force, onKPIUpdate: nil)
 
         // Complete all incomplete subtasks recursively
         if let subtasks = task.subtasks {
             for subtask in subtasks where !subtask.isCompleted {
-                try? completeWithSubtasks(subtask, force: force)
+                try? completeWithSubtasks(subtask, force: force, onKPIUpdate: nil)
             }
         }
+
+        // Trigger KPI recalculation once after all completions
+        onKPIUpdate?()
     }
 
     /// Uncomplete a task and all its completed subtasks recursively.
-    static func uncompleteWithSubtasks(_ task: Task) {
-        // Uncomplete the parent task
-        uncomplete(task)
+    /// - Parameters:
+    ///   - task: Task to uncomplete
+    ///   - onKPIUpdate: Optional callback to trigger KPI recalculation after uncomplete
+    /// - Note: Triggers KPI update once after all uncompletes - affects efficiency metrics
+    static func uncompleteWithSubtasks(_ task: Task, onKPIUpdate: KPIUpdateHook? = nil) {
+        // Uncomplete the parent task (without triggering KPI yet)
+        uncomplete(task, onKPIUpdate: nil)
 
         // Uncomplete all completed subtasks recursively
         if let subtasks = task.subtasks {
             for subtask in subtasks where subtask.isCompleted {
-                uncompleteWithSubtasks(subtask)
+                uncompleteWithSubtasks(subtask, onKPIUpdate: nil)
             }
         }
+
+        // Trigger KPI recalculation once after all uncompletes
+        onKPIUpdate?()
     }
 
     /// Count incomplete subtasks recursively.
@@ -151,8 +182,10 @@ enum TaskActionExecutor {
     ///   - task: Task to archive
     ///   - allTasks: All tasks in the context (needed for validation)
     ///   - context: Model context for saving
+    ///   - onKPIUpdate: Optional callback to trigger KPI recalculation after archiving
     /// - Throws: TaskActionExecError.cannotArchive if task cannot be archived
-    static func archive(_ task: Task, allTasks: [Task], context: ModelContext) throws {
+    /// - Note: Triggers KPI update - archiving affects task lifecycle metrics
+    static func archive(_ task: Task, allTasks: [Task], context: ModelContext, onKPIUpdate: KPIUpdateHook? = nil) throws {
         let validation = ArchiveManager.validateArchive(task: task, allTasks: allTasks)
 
         guard validation.canArchive else {
@@ -168,6 +201,9 @@ enum TaskActionExecutor {
         }
 
         ArchiveManager.archive(task: task, allTasks: allTasks, modelContext: context)
+
+        // Trigger KPI recalculation (archived task affects lifecycle metrics)
+        onKPIUpdate?()
     }
 
     /// Unarchive a task (delegates to ArchiveManager).
@@ -175,8 +211,13 @@ enum TaskActionExecutor {
     ///   - task: Task to unarchive
     ///   - allTasks: All tasks in the context
     ///   - context: Model context for saving
-    static func unarchive(_ task: Task, allTasks: [Task], context: ModelContext) {
+    ///   - onKPIUpdate: Optional callback to trigger KPI recalculation after unarchiving
+    /// - Note: Triggers KPI update - unarchiving affects task lifecycle metrics
+    static func unarchive(_ task: Task, allTasks: [Task], context: ModelContext, onKPIUpdate: KPIUpdateHook? = nil) {
         ArchiveManager.unarchive(task: task, allTasks: allTasks, modelContext: context)
+
+        // Trigger KPI recalculation (unarchived task affects lifecycle metrics)
+        onKPIUpdate?()
     }
 }
 
