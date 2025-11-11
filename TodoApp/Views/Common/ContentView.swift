@@ -19,6 +19,11 @@ struct ContentView: View {
                     Label("Analytics", systemImage: "chart.bar.fill")
                 }
 
+            KPIDashboardView()
+                .tabItem {
+                    Label("KPIs", systemImage: "gauge.with.dots.needle.67percent")
+                }
+
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
