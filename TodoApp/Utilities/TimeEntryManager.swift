@@ -2,6 +2,16 @@ import Foundation
 
 /// Pure utility for time entry calculations, formatting, and validation.
 /// Provides shared logic for displaying and managing time entries across all time tracking views.
+///
+/// **KPI Integration Notes:**
+/// Time entry changes affect KPI metrics (especially Team Utilization).
+/// Trigger KPI recalculation when:
+/// - Time entries are created (new timer started)
+/// - Time entries are updated (timer stopped, personnel count changed)
+/// - Time entries are deleted
+/// - Time entry dates are modified
+///
+/// Use `KPIManager.calculateKPIs()` to recompute metrics after time entry changes.
 struct TimeEntryManager {
 
     // MARK: - Duration Calculations
@@ -143,5 +153,33 @@ struct TimeEntryManager {
     /// - Returns: true if entry has no end time
     static func isActiveTimer(_ entry: TimeEntry) -> Bool {
         entry.endTime == nil
+    }
+
+    // MARK: - KPI Integration
+
+    /// Check if a time entry change should trigger KPI recalculation
+    /// - Parameter entry: Time entry that changed
+    /// - Returns: true if KPI update is recommended
+    ///
+    /// KPI updates are recommended when:
+    /// - A timer is stopped (endTime is set)
+    /// - A time entry is created or deleted
+    /// - Personnel count changes
+    /// - Entry dates are modified
+    ///
+    /// Active timers (endTime == nil) don't affect historical KPIs until stopped.
+    static func shouldTriggerKPIUpdate(for entry: TimeEntry) -> Bool {
+        // Only completed entries affect KPIs
+        return entry.endTime != nil
+    }
+
+    /// Get the date range affected by a time entry (for targeted KPI updates)
+    /// - Parameter entry: Time entry to analyze
+    /// - Returns: Date range that should be recalculated, or nil if entry is active
+    static func getAffectedDateRange(for entry: TimeEntry) -> KPIDateRange? {
+        guard let endTime = entry.endTime else { return nil }
+
+        // The affected range is from start to end of the entry
+        return KPIDateRange(start: entry.startTime, end: endTime)
     }
 }
