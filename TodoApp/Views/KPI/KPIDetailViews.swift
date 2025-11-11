@@ -515,12 +515,17 @@ struct KPIUtilizationDetailView: View {
         }
     }
 
+    /// Color based on distance from optimal utilization (80%)
+    /// Treats under-utilization and over-utilization equally as distance from target
     private func utilizationColor(_ utilization: Double) -> Color {
-        switch utilization {
-        case 70...90: return DesignSystem.Colors.success
-        case 50..<70: return DesignSystem.Colors.info
-        case 0..<50: return DesignSystem.Colors.warning
-        default: return DesignSystem.Colors.error
+        let optimalTarget = 80.0
+        let distance = abs(utilization - optimalTarget)
+
+        switch distance {
+        case 0...10:   return DesignSystem.Colors.success  // 70-90%: Optimal range
+        case 10...20:  return DesignSystem.Colors.info     // 60-70% or 90-100%: Acceptable
+        case 20...30:  return DesignSystem.Colors.warning  // 50-60% or 100-110%: Concerning
+        default:       return DesignSystem.Colors.error    // <50% or >110%: Critical
         }
     }
 }
