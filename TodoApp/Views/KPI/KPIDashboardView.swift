@@ -419,8 +419,9 @@ struct KPIDashboardView: View {
     private func calculateKPIs() {
         isCalculating = true
 
-        // Use Task to calculate on background thread
-        Task {
+        // Use async Task to calculate on background thread
+        // Note: Using Swift.Task to avoid name collision with SwiftData Task model
+        Swift.Task {
             let dateRange = selectedDateRange.dateRange
             let kpis = KPIManager.calculateKPIs(
                 from: allTasks,
