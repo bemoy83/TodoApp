@@ -28,69 +28,78 @@ struct KPIMetricCard: View {
     }
 
     var body: some View {
-        Button(action: {
+        Group {
             if let onTap = onTap {
-                HapticManager.light()
-                onTap()
+                // Tappable version
+                Button(action: {
+                    HapticManager.light()
+                    onTap()
+                }) {
+                    cardContent
+                }
+                .buttonStyle(.plain)
+            } else {
+                // Non-tappable version
+                cardContent
             }
-        }) {
-            VStack(spacing: DesignSystem.Spacing.sm) {
-                // Header with icon
-                HStack(spacing: DesignSystem.Spacing.sm) {
-                    Image(systemName: icon)
-                        .font(.title3)
-                        .foregroundStyle(color)
-                    Spacer()
-                    if onTap != nil {
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(DesignSystem.Colors.tertiary)
-                    }
-                }
-
-                // Score with circular progress
-                ZStack {
-                    // Background circle
-                    Circle()
-                        .stroke(color.opacity(0.2), lineWidth: 4)
-                        .frame(width: 60, height: 60)
-
-                    // Progress circle
-                    Circle()
-                        .trim(from: 0, to: min(score / 100.0, 1.0))
-                        .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                        .frame(width: 60, height: 60)
-                        .rotationEffect(.degrees(-90))
-
-                    // Score text
-                    VStack(spacing: 0) {
-                        Text("\(Int(score))")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(DesignSystem.Colors.primary)
-                        Text("%")
-                            .font(.caption2)
-                            .foregroundStyle(DesignSystem.Colors.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, DesignSystem.Spacing.xs)
-
-                // Title and detail
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                    Text(title)
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundStyle(DesignSystem.Colors.secondary)
-
-                    Text(detail)
-                        .font(DesignSystem.Typography.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .statCardStyle()
         }
-        .buttonStyle(.plain)
-        .disabled(onTap == nil)
+    }
+
+    private var cardContent: some View {
+        VStack(spacing: DesignSystem.Spacing.sm) {
+            // Header with icon
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(color)
+                Spacer()
+                if onTap != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(DesignSystem.Colors.tertiary)
+                }
+            }
+
+            // Score with circular progress
+            ZStack {
+                // Background circle
+                Circle()
+                    .stroke(color.opacity(0.2), lineWidth: 4)
+                    .frame(width: 60, height: 60)
+
+                // Progress circle
+                Circle()
+                    .trim(from: 0, to: min(score / 100.0, 1.0))
+                    .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .frame(width: 60, height: 60)
+                    .rotationEffect(.degrees(-90))
+
+                // Score text
+                VStack(spacing: 0) {
+                    Text("\(Int(score))")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(DesignSystem.Colors.primary)
+                    Text("%")
+                        .font(.caption2)
+                        .foregroundStyle(DesignSystem.Colors.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, DesignSystem.Spacing.xs)
+
+            // Title and detail
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+                Text(title)
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundStyle(DesignSystem.Colors.secondary)
+
+                Text(detail)
+                    .font(DesignSystem.Typography.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .statCardStyle()
     }
 }
 
