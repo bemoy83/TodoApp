@@ -6,8 +6,8 @@ struct KPIDashboardView: View {
     // Type alias to avoid name collision with Swift Concurrency's Task
     typealias TaskModel = Task
 
-    @Query(filter: #Predicate<TaskModel> { !$0.isArchived })
-    private var allTasks: [TaskModel]
+    // Include ALL tasks (including archived) for accurate KPI calculations
+    @Query private var allTasks: [TaskModel]
 
     @Query private var allTimeEntries: [TimeEntry]
 
