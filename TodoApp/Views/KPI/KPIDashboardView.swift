@@ -121,7 +121,7 @@ struct KPIDashboardView: View {
                 }
                 .padding(.vertical)
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("KPI Dashboard")
             .onAppear {
                 calculateKPIs()
@@ -369,7 +369,7 @@ struct KPIDashboardView: View {
         .padding(DesignSystem.Spacing.md)
         .background(
             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
-                .fill(Color(UIColor.systemBackground))
+                .fill(Color(.systemBackground))
         )
         .designShadow(DesignSystem.Shadow.sm)
     }

@@ -107,7 +107,7 @@ struct KPIHealthCard: View {
             // Health icon
             Image(systemName: healthStatus.icon)
                 .font(.system(size: 48))
-                .foregroundStyle(Color(healthStatus.color))
+                .foregroundStyle(Color(hex: healthStatus.color))
 
             // Health status
             Text(healthStatus.rawValue)
@@ -129,11 +129,11 @@ struct KPIHealthCard: View {
         .padding(DesignSystem.Spacing.xl)
         .background(
             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.xl)
-                .fill(Color(healthStatus.color).opacity(0.1))
+                .fill(Color(hex: healthStatus.color).opacity(0.1))
         )
         .overlay(
             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.xl)
-                .stroke(Color(healthStatus.color).opacity(0.3), lineWidth: 1)
+                .stroke(Color(hex: healthStatus.color).opacity(0.3), lineWidth: 1)
         )
     }
 }

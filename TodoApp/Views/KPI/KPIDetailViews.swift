@@ -121,7 +121,7 @@ struct KPIEfficiencyDetailView: View {
                         .padding(.vertical, DesignSystem.Spacing.sm)
                         .background(
                             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
-                                .fill(Color(UIColor.systemBackground))
+                                .fill(Color(.systemBackground))
                         )
                         .padding(.horizontal)
                     }
@@ -134,7 +134,7 @@ struct KPIEfficiencyDetailView: View {
                 }
                 .padding(.vertical)
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Task Efficiency")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -278,7 +278,7 @@ struct KPIAccuracyDetailView: View {
                         .padding(.vertical, DesignSystem.Spacing.sm)
                         .background(
                             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
-                                .fill(Color(UIColor.systemBackground))
+                                .fill(Color(.systemBackground))
                         )
                         .padding(.horizontal)
                     }
@@ -291,7 +291,7 @@ struct KPIAccuracyDetailView: View {
                 }
                 .padding(.vertical)
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Estimate Accuracy")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -445,7 +445,7 @@ struct KPIUtilizationDetailView: View {
                         .padding(DesignSystem.Spacing.md)
                         .background(
                             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
-                                .fill(Color(UIColor.systemBackground))
+                                .fill(Color(.systemBackground))
                         )
                         .padding(.horizontal)
                     }
@@ -489,7 +489,7 @@ struct KPIUtilizationDetailView: View {
                         .padding(.vertical, DesignSystem.Spacing.sm)
                         .background(
                             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
-                                .fill(Color(UIColor.systemBackground))
+                                .fill(Color(.systemBackground))
                         )
                         .padding(.horizontal)
                     }
@@ -502,7 +502,7 @@ struct KPIUtilizationDetailView: View {
                 }
                 .padding(.vertical)
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Team Utilization")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -560,7 +560,7 @@ private func efficiencyBar(title: String, count: Int, total: Int, color: Color) 
     .padding(DesignSystem.Spacing.md)
     .background(
         RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-            .fill(Color(UIColor.systemBackground))
+            .fill(Color(.systemBackground))
     )
 }
 
