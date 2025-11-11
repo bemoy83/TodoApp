@@ -211,11 +211,11 @@ enum HealthStatus: String, Codable, Sendable {
 
     var color: String {
         switch self {
-        case .excellent: return "green"
-        case .good: return "blue"
-        case .fair: return "yellow"
-        case .poor: return "orange"
-        case .critical: return "red"
+        case .excellent: return "#34C759"  // System green
+        case .good: return "#007AFF"       // System blue
+        case .fair: return "#FFD60A"       // System yellow
+        case .poor: return "#FF9500"       // System orange
+        case .critical: return "#FF3B30"   // System red
         }
     }
 

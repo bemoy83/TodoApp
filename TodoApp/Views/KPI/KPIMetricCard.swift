@@ -109,11 +109,11 @@ struct KPIHealthCard: View {
                 .font(.system(size: 48))
                 .foregroundStyle(Color(hex: healthStatus.color))
 
-            // Health status
+            // Health status - colored to match health level
             Text(healthStatus.rawValue)
                 .font(.title)
                 .fontWeight(.bold)
-                .foregroundStyle(DesignSystem.Colors.primary)
+                .foregroundStyle(Color(hex: healthStatus.color))
 
             // Score
             Text("\(Int(overallScore))/100")
