@@ -6,9 +6,11 @@ struct ProjectDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     @Bindable var project: Project
-    
-    @Query(sort: \Task.order) private var allTasks: [Task]
-    
+
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
+
     // ✅ Add expansion state
     @StateObject private var expansionState = TaskExpansionState.shared
 
@@ -18,7 +20,7 @@ struct ProjectDetailView: View {
 
     // MARK: - Computed Properties (query-based)
     private var projectTasks: [Task] {
-        allTasks.filter { $0.project?.id == project.id && $0.parentTask == nil }
+        allTasks.filter { $0.project?.id == project.id && $0.parentTask == nil && !$0.isArchived }
     }
     
     private var activeTasks: [Task] {
@@ -244,8 +246,10 @@ struct ProjectDetailView: View {
 private struct ProjectTaskRow: View {
     @ObservedObject var expansionState: TaskExpansionState
     let task: Task
-    
-    @Query(sort: \Task.order) private var allTasks: [Task]
+
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
     
     private var hasSubtasks: Bool {
         allTasks.contains { $0.parentTask?.id == task.id }

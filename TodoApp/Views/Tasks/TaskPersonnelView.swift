@@ -4,7 +4,9 @@ import SwiftData
 /// Interactive personnel planning view that matches the subtasks/dependencies pattern
 struct TaskPersonnelView: View {
     @Bindable var task: Task
-    @Query(sort: \Task.order) private var allTasks: [Task]
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
 
     @State private var showingPersonnelPicker = false
     @State private var selectedCount: Int = 1

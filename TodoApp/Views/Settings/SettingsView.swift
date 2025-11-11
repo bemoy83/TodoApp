@@ -64,7 +64,26 @@ struct SettingsView: View {
                     totalTasks: totalTasks,
                     totalTimeTracked: totalTimeTracked
                 )
-                
+
+                // Archive Section
+                Section {
+                    NavigationLink {
+                        ArchiveView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "archivebox")
+                                .foregroundStyle(DesignSystem.Colors.secondary)
+                            Text("Archived Tasks")
+                                .foregroundStyle(DesignSystem.Colors.primary)
+                        }
+                    }
+                } header: {
+                    Label("Archive", systemImage: "archivebox")
+                } footer: {
+                    Text("View and restore archived completed tasks")
+                        .font(DesignSystem.Typography.caption)
+                }
+
                 DataManagementSection(
                     isClearing: isClearing,
                     isFixingOrder: isFixingOrder,

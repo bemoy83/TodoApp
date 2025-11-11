@@ -108,6 +108,57 @@ struct AttentionNeeded {
     }
 }
 
+// MARK: - Lifecycle Stats Data
+
+struct LifecycleStats {
+    let totalCompleted: Int
+    let completedThisWeek: Int
+    let totalArchived: Int
+    let archivedThisWeek: Int
+
+    static func calculate(from tasks: [Task]) -> LifecycleStats {
+        let now = Date()
+        let calendar = Calendar.current
+
+        // Get the start of the current week (Sunday)
+        guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start else {
+            return LifecycleStats(
+                totalCompleted: 0,
+                completedThisWeek: 0,
+                totalArchived: 0,
+                archivedThisWeek: 0
+            )
+        }
+
+        // Total completed tasks
+        let completedTasks = tasks.filter { $0.isCompleted }
+        let totalCompleted = completedTasks.count
+
+        // Completed this week
+        let completedThisWeek = completedTasks.filter { task in
+            guard let completedDate = task.completedDate else { return false }
+            return completedDate >= weekStart
+        }.count
+
+        // Total archived tasks
+        let archivedTasks = tasks.filter { $0.isArchived }
+        let totalArchived = archivedTasks.count
+
+        // Archived this week
+        let archivedThisWeek = archivedTasks.filter { task in
+            guard let archivedDate = task.archivedDate else { return false }
+            return archivedDate >= weekStart
+        }.count
+
+        return LifecycleStats(
+            totalCompleted: totalCompleted,
+            completedThisWeek: completedThisWeek,
+            totalArchived: totalArchived,
+            archivedThisWeek: archivedThisWeek
+        )
+    }
+}
+
 // MARK: - Analytics Card Types
 
 enum AnalyticsCardType: String, Identifiable {

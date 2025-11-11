@@ -143,6 +143,41 @@ enum TaskActionExecutor {
     static func moveToProject(_ task: Task, project: Project?) {
         task.project = project
     }
+
+    // MARK: - Archive
+
+    /// Archive a task (delegates to ArchiveManager).
+    /// - Parameters:
+    ///   - task: Task to archive
+    ///   - allTasks: All tasks in the context (needed for validation)
+    ///   - context: Model context for saving
+    /// - Throws: TaskActionExecError.cannotArchive if task cannot be archived
+    static func archive(_ task: Task, allTasks: [Task], context: ModelContext) throws {
+        let validation = ArchiveManager.validateArchive(task: task, allTasks: allTasks)
+
+        guard validation.canArchive else {
+            throw TaskActionExecError.cannotArchive(
+                blockingIssues: validation.blockingIssues,
+                warnings: validation.warnings
+            )
+        }
+
+        // If there are warnings, throw them so the UI can show confirmation
+        if validation.hasWarnings {
+            throw TaskActionExecError.archiveWarning(warnings: validation.warnings)
+        }
+
+        ArchiveManager.archive(task: task, allTasks: allTasks, modelContext: context)
+    }
+
+    /// Unarchive a task (delegates to ArchiveManager).
+    /// - Parameters:
+    ///   - task: Task to unarchive
+    ///   - allTasks: All tasks in the context
+    ///   - context: Model context for saving
+    static func unarchive(_ task: Task, allTasks: [Task], context: ModelContext) {
+        ArchiveManager.unarchive(task: task, allTasks: allTasks, modelContext: context)
+    }
 }
 
 // MARK: - Errors
@@ -151,7 +186,9 @@ enum TaskActionExecError: LocalizedError {
     case taskBlocked(dependencies: [Task])
     case timerAlreadyRunning
     case noActiveTimer
-    
+    case cannotArchive(blockingIssues: [String], warnings: [String])
+    case archiveWarning(warnings: [String])
+
     var errorDescription: String? {
         switch self {
         case .taskBlocked(let deps):
@@ -168,17 +205,28 @@ enum TaskActionExecError: LocalizedError {
             return "Timer is already running"
         case .noActiveTimer:
             return "No active timer to stop"
+        case .cannotArchive(let issues, _):
+            return "Cannot Archive: \(issues.first ?? "Unknown error")"
+        case .archiveWarning(let warnings):
+            return warnings.joined(separator: "\n")
         }
     }
-    
+
     var recoverySuggestion: String? {
         switch self {
         case .taskBlocked:
-            return "Complete blocking tasks first, or use “Force Complete”."
+            return "Complete blocking tasks first, or use \"Force Complete\"."
         case .timerAlreadyRunning:
             return "Stop the current timer before starting a new one."
         case .noActiveTimer:
             return "Start a timer before trying to stop it."
+        case .cannotArchive(let issues, _):
+            if issues.count > 1 {
+                return issues.dropFirst().joined(separator: "\n")
+            }
+            return nil
+        case .archiveWarning:
+            return "Archive anyway?"
         }
     }
 }

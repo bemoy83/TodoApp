@@ -5,8 +5,10 @@ internal import Combine
 struct TaskTimeTrackingView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var task: Task
-    
-    @Query(sort: \Task.order) private var allTasks: [Task]
+
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
 
     private let externalAlert: Binding<TaskActionAlert?>?
     @State private var localAlert: TaskActionAlert?

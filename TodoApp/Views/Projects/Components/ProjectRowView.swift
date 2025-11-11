@@ -3,9 +3,11 @@ import SwiftData
 
 struct ProjectRowView: View {
     let project: Project
-    
+
     // ✅ Add query to watch for task changes
-    @Query(sort: \Task.order) private var allTasks: [Task]
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
     
     // ✅ Compute task counts from query
     private var topLevelTaskCount: Int {

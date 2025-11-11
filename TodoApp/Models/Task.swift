@@ -85,6 +85,10 @@ final class Task {
     // Effort-based estimation (for resource planning)
     var effortHours: Double? // Total work effort in person-hours (nil = not using effort-based estimation)
 
+    // Archive status
+    var isArchived: Bool = false // true = task is archived (hidden from main views)
+    var archivedDate: Date? = nil // When task was archived
+
     // Relationship to project
     @Relationship(deleteRule: .nullify)
     var project: Project?

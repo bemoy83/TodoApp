@@ -233,6 +233,42 @@ extension TaskActionAlert {
             ]
         )
     }
+
+    /// Alert when archiving a task with warnings (e.g., dependent tasks).
+    static func confirmArchiveWithWarnings(
+        task: Task,
+        warnings: [String],
+        onConfirm: @escaping () -> Void
+    ) -> TaskActionAlert {
+        let warningText = warnings.map { "• \($0)" }.joined(separator: "\n")
+        let message = "The following warnings were found:\n\n\(warningText)\n\nDo you want to archive this task anyway?"
+
+        return TaskActionAlert(
+            title: "Archive with Warnings?",
+            message: message,
+            actions: [
+                AlertAction(title: "Cancel", role: .cancel, action: {}),
+                AlertAction(title: "Archive Anyway", role: .none, action: onConfirm)
+            ]
+        )
+    }
+
+    /// Alert when a task cannot be archived (blocking issues).
+    static func cannotArchive(
+        task: Task,
+        issues: [String]
+    ) -> TaskActionAlert {
+        let issueText = issues.map { "• \($0)" }.joined(separator: "\n")
+        let message = "Cannot archive \"\(task.title)\":\n\n\(issueText)"
+
+        return TaskActionAlert(
+            title: "Cannot Archive",
+            message: message,
+            actions: [
+                AlertAction(title: "OK", role: .cancel, action: {})
+            ]
+        )
+    }
 }
 
 // MARK: - Optional: Map Executor Errors → Alerts
@@ -253,6 +289,10 @@ extension TaskActionAlert {
             return .timerAlreadyRunning(onStop: onStop)
         case .noActiveTimer:
             return .noActiveTimer()
+        case .cannotArchive(let issues, _):
+            return .cannotArchive(task: task, issues: issues)
+        case .archiveWarning(let warnings):
+            return .confirmArchiveWithWarnings(task: task, warnings: warnings, onConfirm: onForce)
         }
     }
 }

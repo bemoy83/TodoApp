@@ -166,6 +166,18 @@ struct RowContextMenu: ViewModifier {
                         .accessibilityLabel("More Actions")
                     }
 
+                    // Archive (only for completed tasks)
+                    if task.isCompleted {
+                        Button {
+                            _ = router.performWithExecutor(.archive, on: task, context: ctx) { a in
+                                alert?.wrappedValue = a
+                            }
+                        } label: {
+                            Label("Archive", systemImage: "archivebox")
+                        }
+                        .accessibilityLabel("Archive Task")
+                    }
+
                     // Delete (uses router with confirmation)
                     Button(role: .destructive) {
                         _ = router.performWithExecutor(.delete, on: task, context: ctx) { a in
