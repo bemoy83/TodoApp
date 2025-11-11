@@ -256,23 +256,21 @@ struct AnalyticsView: View {
             GridItem(.flexible())
         ], spacing: DesignSystem.Spacing.md) {
             // Total Completed
-            TappableStatCard(
+            StatCard(
                 icon: "checkmark.circle.fill",
                 value: "\(lifecycleStats.totalCompleted)",
                 label: "Total Completed",
                 subtitle: lifecycleStats.totalCompleted == 1 ? "task" : "tasks",
-                color: DesignSystem.Colors.success,
-                onTap: nil
+                color: DesignSystem.Colors.success
             )
 
             // Completed This Week
-            TappableStatCard(
+            StatCard(
                 icon: "calendar.badge.checkmark",
                 value: "\(lifecycleStats.completedThisWeek)",
                 label: "This Week",
                 subtitle: "completed",
-                color: Color(hex: "#34C759"), // Green
-                onTap: nil
+                color: Color(hex: "#34C759") // Green
             )
 
             // Total Archived

@@ -281,6 +281,57 @@ extension View {
     }
 }
 
+// MARK: - Stat Card
+
+/// Non-tappable stat card for displaying metrics
+struct StatCard: View {
+    let icon: String
+    let value: String
+    let label: String
+    let subtitle: String?
+    let color: Color
+
+    init(
+        icon: String,
+        value: String,
+        label: String,
+        subtitle: String? = nil,
+        color: Color
+    ) {
+        self.icon = icon
+        self.value = value
+        self.label = label
+        self.subtitle = subtitle
+        self.color = color
+    }
+
+    var body: some View {
+        VStack(spacing: DesignSystem.Spacing.sm) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(color)
+                Spacer()
+            }
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+                Text(value)
+                    .font(DesignSystem.Typography.title2)
+                    .foregroundStyle(DesignSystem.Colors.primary)
+                Text(label)
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundStyle(DesignSystem.Colors.secondary)
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(DesignSystem.Typography.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .statCardStyle()
+    }
+}
+
 // MARK: - Tappable Stat Card
 
 /// Tappable wrapper for stat cards (analytics use case)
