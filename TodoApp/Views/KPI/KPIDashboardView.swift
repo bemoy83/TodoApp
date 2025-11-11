@@ -2,10 +2,10 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-// Type alias to avoid name collision with Swift Concurrency's Task
-typealias TaskModel = Task
-
 struct KPIDashboardView: View {
+    // Type alias to avoid name collision with Swift Concurrency's Task
+    typealias TaskModel = Task
+
     @Query(filter: #Predicate<TaskModel> { !$0.isArchived })
     private var allTasks: [TaskModel]
 
