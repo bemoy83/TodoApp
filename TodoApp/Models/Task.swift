@@ -117,7 +117,7 @@ final class Task {
 
     // Productivity tracking (Quantified Tasks)
     var quantity: Double? // Amount of work completed (e.g., 45.5 square meters, 120 pieces)
-    var unit: UnitType = .none // Unit of measurement for quantity
+    var unit: UnitType = UnitType.none // Unit of measurement for quantity
 
     // Archive status
     var isArchived: Bool = false // true = task is archived (hidden from main views)
@@ -161,7 +161,7 @@ final class Task {
         expectedPersonnelCount: Int? = nil,
         effortHours: Double? = nil,
         quantity: Double? = nil,
-        unit: UnitType = .none
+        unit: UnitType = UnitType.none
     ) {
         self.id = id
         self.title = title
