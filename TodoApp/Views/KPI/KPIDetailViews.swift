@@ -19,7 +19,7 @@ struct KPIEfficiencyDetailView: View {
 
                         Text("\(Int(metrics.efficiencyScore))%")
                             .font(.system(size: 48, weight: .bold))
-                            .foregroundStyle(DesignSystem.Colors.primary)
+                            .foregroundStyle(scoreColor(metrics.efficiencyScore))
 
                         Text("Efficiency Score")
                             .font(DesignSystem.Typography.title3)
@@ -181,7 +181,7 @@ struct KPIAccuracyDetailView: View {
 
                         Text("\(Int(metrics.accuracyScore))%")
                             .font(.system(size: 48, weight: .bold))
-                            .foregroundStyle(DesignSystem.Colors.primary)
+                            .foregroundStyle(scoreColor(metrics.accuracyScore))
 
                         Text("Accuracy Score")
                             .font(DesignSystem.Typography.title3)
@@ -333,7 +333,7 @@ struct KPIUtilizationDetailView: View {
 
                         Text("\(Int(metrics.utilizationPercentage))%")
                             .font(.system(size: 48, weight: .bold))
-                            .foregroundStyle(DesignSystem.Colors.primary)
+                            .foregroundStyle(utilizationColor(metrics.utilizationPercentage))
 
                         Text("Team Utilization")
                             .font(DesignSystem.Typography.title3)
