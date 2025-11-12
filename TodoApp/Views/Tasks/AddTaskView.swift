@@ -38,6 +38,7 @@ struct AddTaskView: View {
     @State private var hasQuantity: Bool = false
     @State private var quantity: String = ""
     @State private var unit: UnitType = UnitType.none
+    @State private var taskType: String? = nil
 
     // Template picker state
     @State private var showingTemplatePicker: Bool = true
@@ -121,6 +122,9 @@ struct AddTaskView: View {
         // Enable quantity tracking if unit is quantifiable
         hasQuantity = template.defaultUnit.isQuantifiable
 
+        // Set task type from template name for productivity grouping
+        taskType = template.name
+
         if let estimateSeconds = template.defaultEstimateSeconds {
             let totalMinutes = estimateSeconds / 60
             hasEstimate = true
@@ -165,7 +169,8 @@ struct AddTaskView: View {
             expectedPersonnelCount: estimate.expectedPersonnelCount,
             effortHours: estimate.effortHours,
             quantity: parsedQuantity,
-            unit: hasQuantity ? unit : UnitType.none
+            unit: hasQuantity ? unit : UnitType.none,
+            taskType: hasQuantity ? taskType : nil
         )
         modelContext.insert(task)
         onAdded?(task)

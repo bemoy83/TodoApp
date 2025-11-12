@@ -3,6 +3,7 @@ import SwiftData
 
 /// iOS Health app-style productivity chart card showing individual task productivity
 struct ProductivityMetricsCard: View {
+    let taskType: String?
     let unit: UnitType
     let tasks: [Task]
     let dateRangeText: String
@@ -39,7 +40,7 @@ struct ProductivityMetricsCard: View {
                     .foregroundStyle(DesignSystem.Colors.info)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(unit.displayName)
+                    Text(taskType ?? "Unknown Type")
                         .font(.headline)
                         .foregroundStyle(.primary)
 
@@ -223,6 +224,7 @@ private struct ProductivityBarChart: View {
 
     return ScrollView {
         ProductivityMetricsCard(
+            taskType: "Carpet Installation",
             unit: .squareMeters,
             tasks: tasks,
             dateRangeText: "This Week"
@@ -234,6 +236,7 @@ private struct ProductivityBarChart: View {
 
 #Preview("Empty State") {
     ProductivityMetricsCard(
+        taskType: "Booth Wall Setup",
         unit: .meters,
         tasks: [],
         dateRangeText: "This Week"

@@ -118,6 +118,7 @@ final class Task {
     // Productivity tracking (Quantified Tasks)
     var quantity: Double? // Amount of work completed (e.g., 45.5 square meters, 120 pieces)
     var unit: UnitType = UnitType.none // Unit of measurement for quantity
+    var taskType: String? // Task type/category for grouping productivity (e.g., "Carpet Installation", "Painting")
 
     // Archive status
     var isArchived: Bool = false // true = task is archived (hidden from main views)
@@ -161,7 +162,8 @@ final class Task {
         expectedPersonnelCount: Int? = nil,
         effortHours: Double? = nil,
         quantity: Double? = nil,
-        unit: UnitType = UnitType.none
+        unit: UnitType = UnitType.none,
+        taskType: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -179,6 +181,7 @@ final class Task {
         self.effortHours = effortHours
         self.quantity = quantity
         self.unit = unit
+        self.taskType = taskType
         self.subtasks = nil
         self.timeEntries = nil
         self.dependsOn = nil

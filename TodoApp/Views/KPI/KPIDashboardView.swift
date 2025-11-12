@@ -457,10 +457,10 @@ struct KPIDashboardView: View {
             )
             .padding(.horizontal)
 
-            // Group tasks by unit type
-            let tasksByUnit = tasksWithProductivityData
+            // Group tasks by task type + unit
+            let tasksByType = tasksWithProductivityData
 
-            if tasksByUnit.isEmpty {
+            if tasksByType.isEmpty {
                 Text("Complete tasks with quantity tracking to see productivity metrics")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -468,10 +468,11 @@ struct KPIDashboardView: View {
                     .padding(.vertical, DesignSystem.Spacing.xl)
                     .padding(.horizontal)
             } else {
-                ForEach(Array(tasksByUnit.keys.sorted(by: { $0.displayName < $1.displayName })), id: \.self) { unit in
-                    if let tasks = tasksByUnit[unit] {
+                ForEach(Array(tasksByType.keys.sorted(by: { $0.sortKey < $1.sortKey })), id: \.self) { key in
+                    if let tasks = tasksByType[key] {
                         ProductivityMetricsCard(
-                            unit: unit,
+                            taskType: key.taskType,
+                            unit: key.unit,
                             tasks: tasks,
                             dateRangeText: selectedDateRange.rawValue
                         )
@@ -482,8 +483,8 @@ struct KPIDashboardView: View {
         }
     }
 
-    /// Filter tasks with productivity data in the selected date range, grouped by unit type
-    private var tasksWithProductivityData: [UnitType: [TaskModel]] {
+    /// Filter tasks with productivity data in the selected date range, grouped by task type + unit
+    private var tasksWithProductivityData: [TaskTypeUnitKey: [TaskModel]] {
         let dateRange = selectedDateRange.dateRange
 
         let filteredTasks = allTasks.filter { task in
@@ -495,17 +496,30 @@ struct KPIDashboardView: View {
             return completedDate >= dateRange.start && completedDate <= dateRange.end
         }
 
-        // Group by unit type
-        var grouped: [UnitType: [TaskModel]] = [:]
+        // Group by task type + unit
+        var grouped: [TaskTypeUnitKey: [TaskModel]] = [:]
         for task in filteredTasks {
-            if grouped[task.unit] != nil {
-                grouped[task.unit]?.append(task)
+            let key = TaskTypeUnitKey(taskType: task.taskType, unit: task.unit)
+            if grouped[key] != nil {
+                grouped[key]?.append(task)
             } else {
-                grouped[task.unit] = [task]
+                grouped[key] = [task]
             }
         }
 
         return grouped
+    }
+
+    /// Key for grouping productivity by task type and unit
+    private struct TaskTypeUnitKey: Hashable {
+        let taskType: String?
+        let unit: UnitType
+
+        var sortKey: String {
+            // Sort by task type (or "Unknown" if nil), then by unit
+            let type = taskType ?? "Unknown"
+            return "\(type)_\(unit.displayName)"
+        }
     }
 
     // MARK: - Calculate KPIs
