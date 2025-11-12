@@ -89,7 +89,25 @@ struct TaskComposerForm: View {
         let totalSeconds = subtasks.compactMap { $0.estimatedSeconds }.reduce(0, +)
         return totalSeconds / 60 // Convert to minutes for display
     }
-    
+
+    // MARK: - Helper Methods
+
+    private func recalculateEstimates() {
+        // Recalculate whenever inputs change
+        guard hasQuantity, taskType != nil, unit.isQuantifiable else { return }
+
+        let quantityValue = Double(quantity)
+
+        calculationResult = TaskEstimator.calculateWithProductivity(
+            mode: calculationMode,
+            quantity: quantityValue,
+            productivityRate: productivityRate,
+            personnelCount: expectedPersonnelCount,
+            durationHours: estimateHours,
+            durationMinutes: estimateMinutes
+        )
+    }
+
     var body: some View {
         Form {
             // Title
@@ -604,21 +622,11 @@ struct TaskComposerForm: View {
                     }
                 }
             }
-            .onChange(of: [quantity, expectedPersonnelCount, estimateHours, estimateMinutes]) {
-                // Recalculate whenever inputs change
-                guard hasQuantity, taskType != nil, unit.isQuantifiable else { return }
-
-                let quantityValue = Double(quantity)
-
-                calculationResult = TaskEstimator.calculateWithProductivity(
-                    mode: calculationMode,
-                    quantity: quantityValue,
-                    productivityRate: productivityRate,
-                    personnelCount: expectedPersonnelCount,
-                    durationHours: estimateHours,
-                    durationMinutes: estimateMinutes
-                )
-            }
+            .onChange(of: quantity) { recalculateEstimates() }
+            .onChange(of: expectedPersonnelCount) { recalculateEstimates() }
+            .onChange(of: estimateHours) { recalculateEstimates() }
+            .onChange(of: estimateMinutes) { recalculateEstimates() }
+            .onChange(of: calculationMode) { recalculateEstimates() }
         }
         .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
             Button("OK") {
