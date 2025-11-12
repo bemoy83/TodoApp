@@ -43,6 +43,9 @@ struct TaskDetailView: View {
                 // Personnel planning and tracking
                 TaskPersonnelView(task: task)
 
+                // Quantity tracking for productivity measurement
+                TaskQuantityView(task: task)
+
                 // Time entries management
                 TimeEntriesView(task: task)
 

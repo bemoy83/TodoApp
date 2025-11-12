@@ -34,6 +34,12 @@ struct AddTaskView: View {
     @State private var estimateByEffort: Bool = false
     @State private var effortHours: Double = 0
 
+    // Quantity/unit state
+    @State private var hasQuantity: Bool = false
+    @State private var quantity: String = ""
+    @State private var unit: UnitType = UnitType.none
+    @State private var taskType: String? = nil
+
     // For list creation, compute next order to keep ordering stable
     @Query(filter: #Predicate<Task> { task in
         !task.isArchived
@@ -71,6 +77,10 @@ struct AddTaskView: View {
                 expectedPersonnelCount: $expectedPersonnelCount,
                 estimateByEffort: $estimateByEffort,
                 effortHours: $effortHours,
+                hasQuantity: $hasQuantity,
+                quantity: $quantity,
+                unit: $unit,
+                taskType: $taskType,
                 isSubtask: parentTask != nil,
                 parentTask: parentTask,
                 editingTask: nil  // NEW: Not editing existing, so nil
@@ -88,7 +98,7 @@ struct AddTaskView: View {
             }
         }
     }
-    
+
     private func addTask() {
         // Process notes
         let processedNotes = TaskEstimator.processNotes(notes)
@@ -105,6 +115,9 @@ struct AddTaskView: View {
             expectedPersonnelCount: expectedPersonnelCount
         )
 
+        // Parse quantity
+        let parsedQuantity: Double? = hasQuantity && !quantity.isEmpty ? Double(quantity) : nil
+
         let task = Task(
             title: title,
             priority: priority,
@@ -117,7 +130,10 @@ struct AddTaskView: View {
             estimatedSeconds: estimate.estimatedSeconds,
             hasCustomEstimate: estimate.hasCustomEstimate,
             expectedPersonnelCount: estimate.expectedPersonnelCount,
-            effortHours: estimate.effortHours
+            effortHours: estimate.effortHours,
+            quantity: parsedQuantity,
+            unit: hasQuantity ? unit : UnitType.none,
+            taskType: hasQuantity ? taskType : nil
         )
         modelContext.insert(task)
         onAdded?(task)

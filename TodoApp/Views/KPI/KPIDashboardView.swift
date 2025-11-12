@@ -119,6 +119,9 @@ struct KPIDashboardView: View {
                             detailsSection(kpis: kpis)
                         }
                         .padding(.horizontal)
+
+                        // Productivity Metrics Section
+                        productivitySection
                     } else {
                         emptyStateView
                     }
@@ -440,6 +443,83 @@ struct KPIDashboardView: View {
         // 80% = 100, 90% = 80, 100% = 60, 70% = 80, 60% = 60, etc.
         let score = max(0, 100 - (distance * 2))
         return score
+    }
+
+    // MARK: - Productivity Section
+
+    private var productivitySection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            SectionHeader(
+                title: "Productivity",
+                subtitle: "Per-person efficiency",
+                icon: "chart.line.uptrend.xyaxis",
+                iconColor: DesignSystem.Colors.success
+            )
+            .padding(.horizontal)
+
+            // Group tasks by task type + unit
+            let tasksByType = tasksWithProductivityData
+
+            if tasksByType.isEmpty {
+                Text("Complete tasks with quantity tracking to see productivity metrics")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, DesignSystem.Spacing.xl)
+                    .padding(.horizontal)
+            } else {
+                ForEach(Array(tasksByType.keys.sorted(by: { $0.sortKey < $1.sortKey })), id: \.self) { key in
+                    if let tasks = tasksByType[key] {
+                        ProductivityMetricsCard(
+                            taskType: key.taskType,
+                            unit: key.unit,
+                            tasks: tasks,
+                            dateRangeText: selectedDateRange.rawValue
+                        )
+                        .padding(.horizontal)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Filter tasks with productivity data in the selected date range, grouped by task type + unit
+    private var tasksWithProductivityData: [TaskTypeUnitKey: [TaskModel]] {
+        let dateRange = selectedDateRange.dateRange
+
+        let filteredTasks = allTasks.filter { task in
+            // Must have productivity data
+            guard task.hasProductivityData,
+                  let completedDate = task.completedDate else { return false }
+
+            // Must be completed in date range
+            return completedDate >= dateRange.start && completedDate <= dateRange.end
+        }
+
+        // Group by task type + unit
+        var grouped: [TaskTypeUnitKey: [TaskModel]] = [:]
+        for task in filteredTasks {
+            let key = TaskTypeUnitKey(taskType: task.taskType, unit: task.unit)
+            if grouped[key] != nil {
+                grouped[key]?.append(task)
+            } else {
+                grouped[key] = [task]
+            }
+        }
+
+        return grouped
+    }
+
+    /// Key for grouping productivity by task type and unit
+    private struct TaskTypeUnitKey: Hashable {
+        let taskType: String?
+        let unit: UnitType
+
+        var sortKey: String {
+            // Sort by task type (or "Unknown" if nil), then by unit
+            let type = taskType ?? "Unknown"
+            return "\(type)_\(unit.displayName)"
+        }
     }
 
     // MARK: - Calculate KPIs
