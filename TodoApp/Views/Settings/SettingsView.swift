@@ -84,6 +84,25 @@ struct SettingsView: View {
                         .font(DesignSystem.Typography.caption)
                 }
 
+                // Templates Section
+                Section {
+                    NavigationLink {
+                        TemplateListView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundStyle(DesignSystem.Colors.info)
+                            Text("Task Templates")
+                                .foregroundStyle(DesignSystem.Colors.primary)
+                        }
+                    }
+                } header: {
+                    Label("Templates", systemImage: "doc.text.fill")
+                } footer: {
+                    Text("Create and manage templates for common work types")
+                        .font(DesignSystem.Typography.caption)
+                }
+
                 DataManagementSection(
                     isClearing: isClearing,
                     isFixingOrder: isFixingOrder,

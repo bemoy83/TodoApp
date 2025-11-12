@@ -34,6 +34,14 @@ struct AddTaskView: View {
     @State private var estimateByEffort: Bool = false
     @State private var effortHours: Double = 0
 
+    // Quantity/unit state
+    @State private var quantity: Double? = nil
+    @State private var unit: UnitType = UnitType.none
+
+    // Template picker state
+    @State private var showingTemplatePicker: Bool = true
+    @State private var templateSelected: Bool = false
+
     // For list creation, compute next order to keep ordering stable
     @Query(filter: #Predicate<Task> { task in
         !task.isArchived
@@ -86,9 +94,37 @@ struct AddTaskView: View {
                         .disabled(title.isEmpty)
                 }
             }
+            .sheet(isPresented: $showingTemplatePicker) {
+                TemplatePickerSheet(
+                    onSelect: { template in
+                        applyTemplate(template)
+                    },
+                    onCancel: {
+                        // User chose blank task, just close picker
+                        templateSelected = true
+                    }
+                )
+            }
         }
     }
     
+    private func applyTemplate(_ template: TaskTemplate) {
+        // Apply template defaults
+        unit = template.defaultUnit
+        hasPersonnel = template.defaultPersonnelCount != nil
+        expectedPersonnelCount = template.defaultPersonnelCount
+
+        if let estimateSeconds = template.defaultEstimateSeconds {
+            let estimateMinutes = estimateSeconds / 60
+            hasEstimate = true
+            estimateHours = estimateMinutes / 60
+            estimateMinutes = estimateMinutes % 60
+            hasCustomEstimate = true
+        }
+
+        templateSelected = true
+    }
+
     private func addTask() {
         // Process notes
         let processedNotes = TaskEstimator.processNotes(notes)
@@ -117,7 +153,9 @@ struct AddTaskView: View {
             estimatedSeconds: estimate.estimatedSeconds,
             hasCustomEstimate: estimate.hasCustomEstimate,
             expectedPersonnelCount: estimate.expectedPersonnelCount,
-            effortHours: estimate.effortHours
+            effortHours: estimate.effortHours,
+            quantity: quantity,
+            unit: unit
         )
         modelContext.insert(task)
         onAdded?(task)
