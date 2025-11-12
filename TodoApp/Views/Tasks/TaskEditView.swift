@@ -36,6 +36,10 @@ struct TaskEditView: View {
     @State private var unit: UnitType
     @State private var taskType: String?
 
+    // Calculator state
+    @State private var calculationMode: TaskEstimator.CalculationMode
+    @State private var productivityRate: Double?
+
     private var isSubtask: Bool { task.parentTask != nil }
 
     init(task: Task,
@@ -46,7 +50,7 @@ struct TaskEditView: View {
         self.isNewTask = isNewTask
         self.onSave = onSave
         self.onCancel = onCancel
-        
+
         _hasDueDate = State(initialValue: task.dueDate != nil)
         _dueDate = State(initialValue: task.dueDate ?? .now)
         _selectedProject = State(initialValue: task.project)
@@ -73,6 +77,10 @@ struct TaskEditView: View {
         _quantity = State(initialValue: task.quantity.map { String(format: "%.1f", $0) } ?? "")
         _unit = State(initialValue: task.unit)
         _taskType = State(initialValue: task.taskType)
+
+        // Initialize calculator state
+        _calculationMode = State(initialValue: .manual)
+        _productivityRate = State(initialValue: nil)
     }
     
     var body: some View {
@@ -99,6 +107,8 @@ struct TaskEditView: View {
                 quantity: $quantity,
                 unit: $unit,
                 taskType: $taskType,
+                calculationMode: $calculationMode,
+                productivityRate: $productivityRate,
                 isSubtask: isSubtask,
                 parentTask: task.parentTask,
                 editingTask: task  // NEW: Pass the task being edited

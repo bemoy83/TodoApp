@@ -32,11 +32,15 @@ struct TaskComposerForm: View {
     @Binding var unit: UnitType
     @Binding var taskType: String?
 
+    // Intelligent calculator bindings
+    @Binding var calculationMode: TaskEstimator.CalculationMode
+    @Binding var productivityRate: Double?
+
     // Context
     let isSubtask: Bool
     let parentTask: Task?
     let editingTask: Task? // NEW: The task being edited (for checking its subtasks)
-    
+
     // Project list for the picker (when not a subtask)
     @Query(sort: \Project.title) private var projects: [Project]
 
@@ -47,10 +51,14 @@ struct TaskComposerForm: View {
 
     // Query templates for task type selection
     @Query(sort: \TaskTemplate.order) private var templates: [TaskTemplate]
-    
+
     @State private var showingDateValidationAlert = false
     @State private var showingEstimateValidationAlert = false
     @State private var estimateValidationMessage = ""
+
+    // Calculator state
+    @State private var historicalProductivity: Double?
+    @State private var calculationResult: TaskEstimator.ProductivityCalculation?
     
     private var inheritedProject: Project? {
         parentTask?.project
@@ -418,7 +426,7 @@ struct TaskComposerForm: View {
             }
 
             // Quantity Tracking
-            Section("Quantity Tracking") {
+            Section("Quantity Tracking & Calculator") {
                 Toggle("Track Quantity", isOn: $hasQuantity)
 
                 if hasQuantity {
@@ -439,10 +447,19 @@ struct TaskComposerForm: View {
                         if let selectedTaskType = newValue,
                            let template = templates.first(where: { $0.name == selectedTaskType }) {
                             unit = template.defaultUnit
+
+                            // Fetch historical productivity
+                            historicalProductivity = TemplateManager.getHistoricalProductivity(
+                                for: selectedTaskType,
+                                unit: template.defaultUnit,
+                                from: allTasks
+                            ) ?? template.defaultUnit.defaultProductivityRate
+
+                            productivityRate = historicalProductivity
                         }
                     }
 
-                    // Show unit (read-only if from template, or allow manual selection)
+                    // Show unit (read-only if from template)
                     if taskType != nil {
                         HStack {
                             Text("Unit")
@@ -452,6 +469,18 @@ struct TaskComposerForm: View {
                                 Text(unit.displayName)
                             }
                             .foregroundStyle(.secondary)
+                        }
+
+                        // Show historical productivity if available
+                        if let productivity = historicalProductivity {
+                            HStack {
+                                Image(systemName: "chart.bar.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(.green)
+                                Text("Historical avg: \(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
 
@@ -465,13 +494,105 @@ struct TaskComposerForm: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        HStack {
-                            Image(systemName: "info.circle")
-                                .font(.caption2)
-                            Text("Track work completed to measure productivity")
-                                .font(.caption2)
+                        // Calculation mode picker
+                        Picker("Estimation Mode", selection: $calculationMode) {
+                            ForEach(TaskEstimator.CalculationMode.allCases) { mode in
+                                Text(mode.rawValue).tag(mode)
+                            }
                         }
-                        .foregroundStyle(.secondary)
+                        .pickerStyle(.segmented)
+
+                        // Dynamic inputs based on calculation mode
+                        switch calculationMode {
+                        case .calculateDuration:
+                            // Input: Personnel → Calculate: Duration
+                            Stepper(value: Binding(
+                                get: { expectedPersonnelCount ?? 1 },
+                                set: { expectedPersonnelCount = $0; hasPersonnel = true }
+                            ), in: 1...20) {
+                                HStack {
+                                    Text("Personnel")
+                                    Spacer()
+                                    Text("\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            // Show calculated result
+                            if let result = calculationResult,
+                               let duration = result.formattedDuration {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text("Estimated Duration:")
+                                    Spacer()
+                                    Text(duration)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.green)
+                                }
+                            }
+
+                        case .calculatePersonnel:
+                            // Input: Duration → Calculate: Personnel
+                            HStack {
+                                Text("Duration (hours)")
+                                Spacer()
+                                Picker("Hours", selection: $estimateHours) {
+                                    ForEach(0..<100, id: \.self) { hour in
+                                        Text("\(hour)").tag(hour)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 70)
+                            }
+
+                            HStack {
+                                Text("Minutes")
+                                Spacer()
+                                Picker("Minutes", selection: $estimateMinutes) {
+                                    ForEach([0, 15, 30, 45], id: \.self) { minute in
+                                        Text("\(minute)").tag(minute)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 70)
+                            }
+
+                            // Show calculated result
+                            if let result = calculationResult,
+                               let personnel = result.formattedPersonnel {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text("Required Personnel:")
+                                    Spacer()
+                                    Text(personnel)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.green)
+                                }
+                            }
+
+                        case .manual:
+                            // Manual entry (existing behavior)
+                            HStack {
+                                Image(systemName: "info.circle")
+                                    .font(.caption2)
+                                Text("Enter time and personnel manually in their respective sections")
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+
+                        // Warning if no productivity rate available
+                        if historicalProductivity == nil && calculationMode != .manual {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.caption2)
+                                Text("No historical data. Using default rate.")
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(.orange)
+                        }
                     } else if taskType != nil {
                         HStack {
                             Image(systemName: "exclamationmark.triangle")
@@ -482,6 +603,21 @@ struct TaskComposerForm: View {
                         .foregroundStyle(.orange)
                     }
                 }
+            }
+            .onChange(of: [quantity, expectedPersonnelCount, estimateHours, estimateMinutes]) {
+                // Recalculate whenever inputs change
+                guard hasQuantity, taskType != nil, unit.isQuantifiable else { return }
+
+                let quantityValue = Double(quantity)
+
+                calculationResult = TaskEstimator.calculateWithProductivity(
+                    mode: calculationMode,
+                    quantity: quantityValue,
+                    productivityRate: productivityRate,
+                    personnelCount: expectedPersonnelCount,
+                    durationHours: estimateHours,
+                    durationMinutes: estimateMinutes
+                )
             }
         }
         .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {

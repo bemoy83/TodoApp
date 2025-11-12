@@ -40,6 +40,10 @@ struct AddTaskView: View {
     @State private var unit: UnitType = UnitType.none
     @State private var taskType: String? = nil
 
+    // Calculator state
+    @State private var calculationMode: TaskEstimator.CalculationMode = .manual
+    @State private var productivityRate: Double? = nil
+
     // For list creation, compute next order to keep ordering stable
     @Query(filter: #Predicate<Task> { task in
         !task.isArchived
@@ -81,6 +85,8 @@ struct AddTaskView: View {
                 quantity: $quantity,
                 unit: $unit,
                 taskType: $taskType,
+                calculationMode: $calculationMode,
+                productivityRate: $productivityRate,
                 isSubtask: parentTask != nil,
                 parentTask: parentTask,
                 editingTask: nil  // NEW: Not editing existing, so nil
@@ -103,16 +109,45 @@ struct AddTaskView: View {
         // Process notes
         let processedNotes = TaskEstimator.processNotes(notes)
 
+        // Apply calculator results if using intelligent calculator
+        var finalEstimateHours = estimateHours
+        var finalEstimateMinutes = estimateMinutes
+        var finalPersonnelCount = expectedPersonnelCount
+        var finalHasEstimate = hasEstimate
+        var finalHasPersonnel = hasPersonnel
+
+        if hasQuantity && calculationMode != .manual {
+            let calc = TaskEstimator.calculateWithProductivity(
+                mode: calculationMode,
+                quantity: Double(quantity),
+                productivityRate: productivityRate,
+                personnelCount: expectedPersonnelCount,
+                durationHours: estimateHours,
+                durationMinutes: estimateMinutes
+            )
+
+            if calculationMode == .calculateDuration, let duration = calc.calculatedDurationSeconds {
+                // Apply calculated duration
+                finalEstimateHours = duration / 3600
+                finalEstimateMinutes = (duration % 3600) / 60
+                finalHasEstimate = true
+            } else if calculationMode == .calculatePersonnel, let personnel = calc.calculatedPersonnelCount {
+                // Apply calculated personnel
+                finalPersonnelCount = personnel
+                finalHasPersonnel = true
+            }
+        }
+
         // Calculate estimate
         let estimate = TaskEstimator.calculateEstimate(
             estimateByEffort: estimateByEffort,
             effortHours: effortHours,
-            hasEstimate: hasEstimate,
-            estimateHours: estimateHours,
-            estimateMinutes: estimateMinutes,
+            hasEstimate: finalHasEstimate,
+            estimateHours: finalEstimateHours,
+            estimateMinutes: finalEstimateMinutes,
             hasCustomEstimate: hasCustomEstimate,
-            hasPersonnel: hasPersonnel,
-            expectedPersonnelCount: expectedPersonnelCount
+            hasPersonnel: finalHasPersonnel,
+            expectedPersonnelCount: finalPersonnelCount
         )
 
         // Parse quantity
