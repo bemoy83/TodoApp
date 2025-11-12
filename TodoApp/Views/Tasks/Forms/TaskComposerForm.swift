@@ -26,6 +26,11 @@ struct TaskComposerForm: View {
     @Binding var estimateByEffort: Bool
     @Binding var effortHours: Double
 
+    // Quantity tracking bindings
+    @Binding var hasQuantity: Bool
+    @Binding var quantity: String // String for text field input
+    @Binding var unit: UnitType
+
     // Context
     let isSubtask: Bool
     let parentTask: Task?
@@ -405,6 +410,52 @@ struct TaskComposerForm: View {
                             .font(.caption2)
                     }
                     .foregroundStyle(.secondary)
+                }
+            }
+
+            // Quantity Tracking
+            Section("Quantity Tracking") {
+                Toggle("Track Quantity", isOn: $hasQuantity)
+
+                if hasQuantity {
+                    // Unit picker
+                    Picker("Unit Type", selection: $unit) {
+                        ForEach(UnitType.allCases, id: \.self) { unitType in
+                            HStack {
+                                Image(systemName: unitType.icon)
+                                Text(unitType.displayName)
+                            }
+                            .tag(unitType)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    // Quantity input (only if quantifiable unit selected)
+                    if unit.isQuantifiable {
+                        HStack {
+                            TextField("Quantity", text: $quantity)
+                                .keyboardType(.decimalPad)
+
+                            Text(unit.displayName)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .font(.caption2)
+                            Text("Track work completed to measure productivity")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.secondary)
+                    } else {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.caption2)
+                            Text("Select a quantifiable unit type to enter amount")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.orange)
+                    }
                 }
             }
         }

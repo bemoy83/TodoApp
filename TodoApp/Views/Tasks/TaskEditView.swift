@@ -30,6 +30,11 @@ struct TaskEditView: View {
     @State private var estimateByEffort: Bool
     @State private var effortHours: Double
 
+    // Quantity tracking state
+    @State private var hasQuantity: Bool
+    @State private var quantity: String
+    @State private var unit: UnitType
+
     private var isSubtask: Bool { task.parentTask != nil }
 
     init(task: Task,
@@ -61,6 +66,11 @@ struct TaskEditView: View {
         // Initialize effort-based estimation state
         _estimateByEffort = State(initialValue: task.effortHours != nil)
         _effortHours = State(initialValue: task.effortHours ?? 0)
+
+        // Initialize quantity tracking state
+        _hasQuantity = State(initialValue: task.unit.isQuantifiable)
+        _quantity = State(initialValue: task.quantity.map { String(format: "%.1f", $0) } ?? "")
+        _unit = State(initialValue: task.unit)
     }
     
     var body: some View {
@@ -83,6 +93,9 @@ struct TaskEditView: View {
                 expectedPersonnelCount: $expectedPersonnelCount,
                 estimateByEffort: $estimateByEffort,
                 effortHours: $effortHours,
+                hasQuantity: $hasQuantity,
+                quantity: $quantity,
+                unit: $unit,
                 isSubtask: isSubtask,
                 parentTask: task.parentTask,
                 editingTask: task  // NEW: Pass the task being edited
@@ -120,6 +133,15 @@ struct TaskEditView: View {
             expectedPersonnelCount: expectedPersonnelCount
         )
         TaskEstimator.applyEstimate(to: task, result: estimate)
+
+        // Apply quantity tracking
+        if hasQuantity {
+            task.unit = unit
+            task.quantity = !quantity.isEmpty ? Double(quantity) : nil
+        } else {
+            task.unit = UnitType.none
+            task.quantity = nil
+        }
 
         onSave(task)
         dismiss()
