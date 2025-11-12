@@ -105,3 +105,95 @@ struct TaskEstimator {
         task.expectedPersonnelCount = result.expectedPersonnelCount
     }
 }
+
+// MARK: - Intelligent Calculator
+
+extension TaskEstimator {
+
+    /// Calculation mode for intelligent time/effort estimation
+    enum CalculationMode: String, CaseIterable, Identifiable {
+        case calculateDuration = "Calculate Duration"
+        case calculatePersonnel = "Calculate Personnel"
+        case manual = "Manual Entry"
+
+        var id: String { rawValue }
+    }
+
+    /// Result of productivity-based calculation
+    struct ProductivityCalculation {
+        let mode: CalculationMode
+        let quantity: Double?
+        let productivityRate: Double?  // units per person-hour
+        let personnelCount: Int?
+        let durationSeconds: Int?
+
+        /// Calculated duration based on quantity, productivity, and personnel
+        /// Formula: duration = (quantity / rate) / personnel
+        var calculatedDurationSeconds: Int? {
+            guard mode == .calculateDuration,
+                  let qty = quantity, qty > 0,
+                  let rate = productivityRate, rate > 0,
+                  let personnel = personnelCount, personnel > 0 else { return nil }
+
+            let hours = (qty / rate) / Double(personnel)
+            return Int(hours * 3600)
+        }
+
+        /// Calculated personnel count based on quantity, productivity, and duration
+        /// Formula: personnel = (quantity / rate) / (duration in hours)
+        var calculatedPersonnelCount: Int? {
+            guard mode == .calculatePersonnel,
+                  let qty = quantity, qty > 0,
+                  let rate = productivityRate, rate > 0,
+                  let duration = durationSeconds, duration > 0 else { return nil }
+
+            let durationHours = Double(duration) / 3600.0
+            let personnel = (qty / rate) / durationHours
+            return max(1, Int(ceil(personnel)))
+        }
+
+        /// Human-readable duration string (e.g., "3h 15m")
+        var formattedDuration: String? {
+            guard let seconds = calculatedDurationSeconds else { return nil }
+            let hours = seconds / 3600
+            let minutes = (seconds % 3600) / 60
+            return "\(hours)h \(minutes)m"
+        }
+
+        /// Human-readable personnel count (e.g., "3 people")
+        var formattedPersonnel: String? {
+            guard let count = calculatedPersonnelCount else { return nil }
+            return "\(count) \(count == 1 ? "person" : "people")"
+        }
+    }
+
+    /// Calculate estimates using productivity-based intelligence
+    /// - Parameters:
+    ///   - mode: Calculation mode (duration, personnel, or manual)
+    ///   - quantity: Amount of work to complete
+    ///   - productivityRate: Historical or default productivity rate (units/person-hr)
+    ///   - personnelCount: Number of people working
+    ///   - durationHours: Duration in hours
+    ///   - durationMinutes: Duration in minutes
+    /// - Returns: ProductivityCalculation with results
+    static func calculateWithProductivity(
+        mode: CalculationMode,
+        quantity: Double?,
+        productivityRate: Double?,
+        personnelCount: Int?,
+        durationHours: Int?,
+        durationMinutes: Int?
+    ) -> ProductivityCalculation {
+
+        let durationSeconds = (durationHours.map { $0 * 3600 } ?? 0) +
+                             (durationMinutes.map { $0 * 60 } ?? 0)
+
+        return ProductivityCalculation(
+            mode: mode,
+            quantity: quantity,
+            productivityRate: productivityRate,
+            personnelCount: personnelCount,
+            durationSeconds: durationSeconds > 0 ? durationSeconds : nil
+        )
+    }
+}
