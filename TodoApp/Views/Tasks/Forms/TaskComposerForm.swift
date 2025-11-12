@@ -30,6 +30,7 @@ struct TaskComposerForm: View {
     @Binding var hasQuantity: Bool
     @Binding var quantity: String // String for text field input
     @Binding var unit: UnitType
+    @Binding var taskType: String?
 
     // Context
     let isSubtask: Bool
@@ -43,6 +44,9 @@ struct TaskComposerForm: View {
     @Query(filter: #Predicate<Task> { task in
         !task.isArchived
     }, sort: \Task.order) private var allTasks: [Task]
+
+    // Query templates for task type selection
+    @Query(sort: \TaskTemplate.order) private var templates: [TaskTemplate]
     
     @State private var showingDateValidationAlert = false
     @State private var showingEstimateValidationAlert = false
@@ -418,19 +422,40 @@ struct TaskComposerForm: View {
                 Toggle("Track Quantity", isOn: $hasQuantity)
 
                 if hasQuantity {
-                    // Unit picker
-                    Picker("Unit Type", selection: $unit) {
-                        ForEach(UnitType.allCases, id: \.self) { unitType in
+                    // Task Type picker (templates)
+                    Picker("Task Type", selection: $taskType) {
+                        Text("None").tag(nil as String?)
+                        ForEach(templates) { template in
                             HStack {
-                                Image(systemName: unitType.icon)
-                                Text(unitType.displayName)
+                                Image(systemName: template.defaultUnit.icon)
+                                Text(template.name)
                             }
-                            .tag(unitType)
+                            .tag(template.name as String?)
                         }
                     }
                     .pickerStyle(.menu)
+                    .onChange(of: taskType) { oldValue, newValue in
+                        // Auto-populate unit when template is selected
+                        if let selectedTaskType = newValue,
+                           let template = templates.first(where: { $0.name == selectedTaskType }) {
+                            unit = template.defaultUnit
+                        }
+                    }
 
-                    // Quantity input (only if quantifiable unit selected)
+                    // Show unit (read-only if from template, or allow manual selection)
+                    if taskType != nil {
+                        HStack {
+                            Text("Unit")
+                            Spacer()
+                            HStack {
+                                Image(systemName: unit.icon)
+                                Text(unit.displayName)
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    // Quantity input (only if quantifiable unit)
                     if unit.isQuantifiable {
                         HStack {
                             TextField("Quantity", text: $quantity)
@@ -447,11 +472,11 @@ struct TaskComposerForm: View {
                                 .font(.caption2)
                         }
                         .foregroundStyle(.secondary)
-                    } else {
+                    } else if taskType != nil {
                         HStack {
                             Image(systemName: "exclamationmark.triangle")
                                 .font(.caption2)
-                            Text("Select a quantifiable unit type to enter amount")
+                            Text("Select a task type with a quantifiable unit")
                                 .font(.caption2)
                         }
                         .foregroundStyle(.orange)

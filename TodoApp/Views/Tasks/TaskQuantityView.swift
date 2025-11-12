@@ -19,6 +19,33 @@ struct TaskQuantityView: View {
                 .padding(.horizontal)
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                // Task Type display
+                if let taskType = task.taskType {
+                    HStack {
+                        Image(systemName: "tag.fill")
+                            .font(.body)
+                            .foregroundStyle(DesignSystem.Colors.primary)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(taskType)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+
+                            Text("Task Type")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+
+                    Divider()
+                        .padding(.horizontal)
+                }
+
                 // Current quantity and unit display
                 if task.unit.isQuantifiable, let quantity = task.quantity {
                     // Has quantity set

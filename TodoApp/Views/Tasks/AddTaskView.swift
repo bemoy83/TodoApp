@@ -40,10 +40,6 @@ struct AddTaskView: View {
     @State private var unit: UnitType = UnitType.none
     @State private var taskType: String? = nil
 
-    // Template picker state
-    @State private var showingTemplatePicker: Bool = true
-    @State private var templateSelected: Bool = false
-
     // For list creation, compute next order to keep ordering stable
     @Query(filter: #Predicate<Task> { task in
         !task.isArchived
@@ -84,6 +80,7 @@ struct AddTaskView: View {
                 hasQuantity: $hasQuantity,
                 quantity: $quantity,
                 unit: $unit,
+                taskType: $taskType,
                 isSubtask: parentTask != nil,
                 parentTask: parentTask,
                 editingTask: nil  // NEW: Not editing existing, so nil
@@ -99,31 +96,7 @@ struct AddTaskView: View {
                         .disabled(title.isEmpty)
                 }
             }
-            .sheet(isPresented: $showingTemplatePicker) {
-                TemplatePickerSheet(
-                    onSelect: { template in
-                        applyTemplate(template)
-                    },
-                    onCancel: {
-                        // User chose blank task, just close picker
-                        templateSelected = true
-                    }
-                )
-            }
         }
-    }
-    
-    private func applyTemplate(_ template: TaskTemplate) {
-        // Apply template defaults
-        unit = template.defaultUnit
-
-        // Enable quantity tracking if unit is quantifiable
-        hasQuantity = template.defaultUnit.isQuantifiable
-
-        // Set task type from template name for productivity grouping
-        taskType = template.name
-
-        templateSelected = true
     }
 
     private func addTask() {

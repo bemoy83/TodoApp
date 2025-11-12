@@ -34,6 +34,7 @@ struct TaskEditView: View {
     @State private var hasQuantity: Bool
     @State private var quantity: String
     @State private var unit: UnitType
+    @State private var taskType: String?
 
     private var isSubtask: Bool { task.parentTask != nil }
 
@@ -71,6 +72,7 @@ struct TaskEditView: View {
         _hasQuantity = State(initialValue: task.unit.isQuantifiable)
         _quantity = State(initialValue: task.quantity.map { String(format: "%.1f", $0) } ?? "")
         _unit = State(initialValue: task.unit)
+        _taskType = State(initialValue: task.taskType)
     }
     
     var body: some View {
@@ -96,6 +98,7 @@ struct TaskEditView: View {
                 hasQuantity: $hasQuantity,
                 quantity: $quantity,
                 unit: $unit,
+                taskType: $taskType,
                 isSubtask: isSubtask,
                 parentTask: task.parentTask,
                 editingTask: task  // NEW: Pass the task being edited
@@ -138,9 +141,11 @@ struct TaskEditView: View {
         if hasQuantity {
             task.unit = unit
             task.quantity = !quantity.isEmpty ? Double(quantity) : nil
+            task.taskType = taskType
         } else {
             task.unit = UnitType.none
             task.quantity = nil
+            task.taskType = nil
         }
 
         onSave(task)
