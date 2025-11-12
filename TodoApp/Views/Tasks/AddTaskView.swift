@@ -115,10 +115,10 @@ struct AddTaskView: View {
         expectedPersonnelCount = template.defaultPersonnelCount
 
         if let estimateSeconds = template.defaultEstimateSeconds {
-            let estimateMinutes = estimateSeconds / 60
+            let totalMinutes = estimateSeconds / 60
             hasEstimate = true
-            estimateHours = estimateMinutes / 60
-            estimateMinutes = estimateMinutes % 60
+            estimateHours = totalMinutes / 60
+            estimateMinutes = totalMinutes % 60
             hasCustomEstimate = true
         }
 
