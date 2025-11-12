@@ -153,21 +153,9 @@ private struct TemplateRow: View {
                         .foregroundStyle(.primary)
 
                     // Details
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        // Unit
-                        Label(template.defaultUnit.displayName, systemImage: template.defaultUnit.icon)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        // Task Type
-                        Text("•")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-
-                        Text(template.taskType)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    Label(template.defaultUnit.displayName, systemImage: template.defaultUnit.icon)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
                     // Historical productivity
                     if let productivity = analytics.formattedProductivity {

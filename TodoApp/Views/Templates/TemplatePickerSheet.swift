@@ -137,19 +137,9 @@ private struct TemplatePickerRow: View {
                     .foregroundStyle(.primary)
 
                 // Quick stats
-                HStack(spacing: DesignSystem.Spacing.sm) {
-                    Label(template.defaultUnit.displayName, systemImage: template.defaultUnit.icon)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text("•")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-
-                    Text(template.taskType)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Label(template.defaultUnit.displayName, systemImage: template.defaultUnit.icon)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 // Historical productivity hint
                 if let productivity = analytics.formattedProductivity {

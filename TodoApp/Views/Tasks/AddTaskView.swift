@@ -120,16 +120,8 @@ struct AddTaskView: View {
         // Enable quantity tracking if unit is quantifiable
         hasQuantity = template.defaultUnit.isQuantifiable
 
-        // Set task type from template for productivity grouping
-        taskType = template.taskType
-
-        if let estimateSeconds = template.defaultEstimateSeconds {
-            let totalMinutes = estimateSeconds / 60
-            hasEstimate = true
-            estimateHours = totalMinutes / 60
-            estimateMinutes = totalMinutes % 60
-            hasCustomEstimate = true
-        }
+        // Set task type from template name for productivity grouping
+        taskType = template.name
 
         templateSelected = true
     }
