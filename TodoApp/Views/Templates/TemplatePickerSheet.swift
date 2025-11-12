@@ -142,15 +142,13 @@ private struct TemplatePickerRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    if let personnel = template.defaultPersonnelCount {
-                        Text("•")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
+                    Text("•")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
 
-                        Text("\(personnel) \(personnel == 1 ? "person" : "people")")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    Text(template.taskType)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 // Historical productivity hint

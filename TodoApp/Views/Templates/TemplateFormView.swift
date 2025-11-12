@@ -9,9 +9,8 @@ struct TemplateFormView: View {
     let template: TaskTemplate? // nil = creating new, non-nil = editing
 
     @State private var name: String
+    @State private var taskType: String
     @State private var defaultUnit: UnitType
-    @State private var hasPersonnelDefault: Bool
-    @State private var defaultPersonnelCount: Int
     @State private var hasEstimateDefault: Bool
     @State private var estimateHours: Int
     @State private var estimateMinutes: Int
@@ -21,9 +20,8 @@ struct TemplateFormView: View {
 
         // Initialize state from template or defaults
         _name = State(initialValue: template?.name ?? "")
+        _taskType = State(initialValue: template?.taskType ?? "")
         _defaultUnit = State(initialValue: template?.defaultUnit ?? .none)
-        _hasPersonnelDefault = State(initialValue: template?.defaultPersonnelCount != nil)
-        _defaultPersonnelCount = State(initialValue: template?.defaultPersonnelCount ?? 2)
 
         // Initialize estimate state
         let estimateSeconds = template?.defaultEstimateSeconds ?? 0
@@ -38,7 +36,8 @@ struct TemplateFormView: View {
     }
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
+        !name.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !taskType.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var body: some View {
@@ -51,6 +50,15 @@ struct TemplateFormView: View {
                     Text("Name")
                 } footer: {
                     Text("E.g., \"Carpet Installation\", \"Booth Wall Setup\"")
+                }
+
+                // Task Type Section
+                Section {
+                    TextField("Task type", text: $taskType)
+                } header: {
+                    Text("Task Type")
+                } footer: {
+                    Text("Used to group productivity metrics (e.g., \"Carpet Installation\")")
                 }
 
                 // Unit Section
@@ -69,26 +77,6 @@ struct TemplateFormView: View {
                     Text("Default Unit")
                 } footer: {
                     Text("The unit of measurement for quantity tracking")
-                }
-
-                // Personnel Section
-                Section {
-                    Toggle("Set default crew size", isOn: $hasPersonnelDefault)
-
-                    if hasPersonnelDefault {
-                        Stepper(value: $defaultPersonnelCount, in: 1...20) {
-                            HStack {
-                                Text("Crew size")
-                                Spacer()
-                                Text("\(defaultPersonnelCount) \(defaultPersonnelCount == 1 ? "person" : "people")")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Personnel")
-                } footer: {
-                    Text("Expected crew size for this type of work")
                 }
 
                 // Time Estimate Section
@@ -149,13 +137,14 @@ struct TemplateFormView: View {
 
     private func saveTemplate() {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        guard !trimmedName.isEmpty else { return }
+        let trimmedTaskType = taskType.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty && !trimmedTaskType.isEmpty else { return }
 
         if let existing = template {
             // Update existing template
             existing.name = trimmedName
+            existing.taskType = trimmedTaskType
             existing.defaultUnit = defaultUnit
-            existing.defaultPersonnelCount = hasPersonnelDefault ? defaultPersonnelCount : nil
 
             if hasEstimateDefault {
                 let totalMinutes = (estimateHours * 60) + estimateMinutes
@@ -170,8 +159,8 @@ struct TemplateFormView: View {
 
             let newTemplate = TaskTemplate(
                 name: trimmedName,
+                taskType: trimmedTaskType,
                 defaultUnit: defaultUnit,
-                defaultPersonnelCount: hasPersonnelDefault ? defaultPersonnelCount : nil,
                 defaultEstimateSeconds: estimateSeconds
             )
 
@@ -197,8 +186,8 @@ struct TemplateFormView: View {
 
     let template = TaskTemplate(
         name: "Carpet Installation",
+        taskType: "Carpet Installation",
         defaultUnit: .squareMeters,
-        defaultPersonnelCount: 2,
         defaultEstimateSeconds: 7200 // 2 hours
     )
     container.mainContext.insert(template)

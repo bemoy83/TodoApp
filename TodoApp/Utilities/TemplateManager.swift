@@ -47,15 +47,15 @@ struct TemplateManager {
     static func createTask(from template: TaskTemplate) -> Task {
         Task(
             title: "",  // User will fill this in
-            expectedPersonnelCount: template.defaultPersonnelCount,
-            unit: template.defaultUnit
+            unit: template.defaultUnit,
+            taskType: template.taskType
         )
     }
 
     /// Apply template defaults to an existing task
     static func applyTemplate(_ template: TaskTemplate, to task: Task) {
         task.unit = template.defaultUnit
-        task.expectedPersonnelCount = template.defaultPersonnelCount
+        task.taskType = template.taskType
 
         if let estimateSeconds = template.defaultEstimateSeconds {
             task.estimatedSeconds = estimateSeconds

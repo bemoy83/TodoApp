@@ -159,15 +159,14 @@ private struct TemplateRow: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        if let personnel = template.defaultPersonnelCount {
-                            Text("•")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                        // Task Type
+                        Text("•")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
 
-                            Label("\(personnel) \(personnel == 1 ? "person" : "people")", systemImage: "person.2.fill")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        Text(template.taskType)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
 
                     // Historical productivity

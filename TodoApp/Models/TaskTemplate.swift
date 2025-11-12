@@ -7,8 +7,8 @@ import SwiftData
 final class TaskTemplate {
     var id: UUID
     var name: String
+    var taskType: String
     var defaultUnit: UnitType
-    var defaultPersonnelCount: Int?
     var defaultEstimateSeconds: Int?
     var createdDate: Date
     var order: Int?
@@ -16,16 +16,16 @@ final class TaskTemplate {
     init(
         id: UUID = UUID(),
         name: String,
+        taskType: String,
         defaultUnit: UnitType = UnitType.none,
-        defaultPersonnelCount: Int? = nil,
         defaultEstimateSeconds: Int? = nil,
         createdDate: Date = Date(),
         order: Int? = nil
     ) {
         self.id = id
         self.name = name
+        self.taskType = taskType
         self.defaultUnit = defaultUnit
-        self.defaultPersonnelCount = defaultPersonnelCount
         self.defaultEstimateSeconds = defaultEstimateSeconds
         self.createdDate = createdDate
         self.order = order
@@ -46,32 +46,32 @@ extension TaskTemplate {
     static let defaultTemplates: [TaskTemplate] = [
         TaskTemplate(
             name: "Carpet Installation",
+            taskType: "Carpet Installation",
             defaultUnit: .squareMeters,
-            defaultPersonnelCount: 2,
             order: 0
         ),
         TaskTemplate(
             name: "Booth Wall Setup",
+            taskType: "Booth Wall Setup",
             defaultUnit: .meters,
-            defaultPersonnelCount: 3,
             order: 1
         ),
         TaskTemplate(
             name: "Furniture Assembly",
+            taskType: "Furniture Assembly",
             defaultUnit: .pieces,
-            defaultPersonnelCount: 1,
             order: 2
         ),
         TaskTemplate(
             name: "Material Delivery",
+            taskType: "Material Delivery",
             defaultUnit: .pieces,
-            defaultPersonnelCount: 2,
             order: 3
         ),
         TaskTemplate(
             name: "Paint/Finish Work",
+            taskType: "Paint/Finish Work",
             defaultUnit: .squareMeters,
-            defaultPersonnelCount: 1,
             order: 4
         )
     ]
