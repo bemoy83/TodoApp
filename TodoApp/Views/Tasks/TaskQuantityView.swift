@@ -150,7 +150,7 @@ struct TaskQuantityView: View {
                     ProductivitySection(
                         productivity: productivity,
                         unit: task.unit,
-                        trackedHours: task.totalTrackedTimeHours
+                        personHours: task.totalPersonHours
                     )
                 }
             }
@@ -303,14 +303,14 @@ private struct QuantityPickerSheet: View {
 private struct ProductivitySection: View {
     let productivity: Double
     let unit: UnitType
-    let trackedHours: Double?
+    let personHours: Double?
 
     private var formattedProductivity: String {
         String(format: "%.1f", productivity)
     }
 
-    private var formattedHours: String {
-        guard let hours = trackedHours else { return "0.0" }
+    private var formattedPersonHours: String {
+        guard let hours = personHours else { return "0.0" }
         return String(format: "%.1f", hours)
     }
 
@@ -329,12 +329,12 @@ private struct ProductivitySection: View {
                     .frame(width: 28)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(formattedProductivity) \(unit.displayName)/hr")
+                    Text("\(formattedProductivity) \(unit.displayName)/person-hr")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(DesignSystem.Colors.success)
 
-                    Text("Based on \(formattedHours) hrs tracked")
+                    Text("\(formattedPersonHours) person-hours tracked")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

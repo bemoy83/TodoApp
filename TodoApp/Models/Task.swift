@@ -422,17 +422,33 @@ final class Task {
         return totalSeconds / 3600.0 // Convert to hours
     }
 
-    /// Productivity metric: units completed per hour worked
+    /// Total person-hours tracked (time × personnel count for each entry)
+    @Transient
+    var totalPersonHours: Double? {
+        guard let entries = timeEntries, !entries.isEmpty else { return nil }
+        let completedEntries = entries.filter { $0.endTime != nil }
+        guard !completedEntries.isEmpty else { return nil }
+
+        let totalPersonSeconds = completedEntries.reduce(0.0) { sum, entry in
+            guard let end = entry.endTime else { return sum }
+            let duration = end.timeIntervalSince(entry.startTime)
+            return sum + (duration * Double(entry.personnelCount))
+        }
+
+        return totalPersonSeconds / 3600.0 // Convert to person-hours
+    }
+
+    /// Productivity metric: units completed per person-hour worked
     /// Returns nil if task is not quantifiable, has no quantity, or has no tracked time
     @Transient
     var unitsPerHour: Double? {
         guard unit.isQuantifiable,
               let quantity = quantity,
               quantity > 0,
-              let hours = totalTrackedTimeHours,
-              hours > 0 else { return nil }
+              let personHours = totalPersonHours,
+              personHours > 0 else { return nil }
 
-        return quantity / hours
+        return quantity / personHours
     }
 
     /// Whether this task has productivity data available
