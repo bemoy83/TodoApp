@@ -135,7 +135,7 @@ struct TaskEditView: View {
 
         // Calculate and apply estimate
         let estimate = TaskEstimator.calculateEstimate(
-            estimateByEffort: estimateByEffort,
+            estimateByEffort: unifiedEstimationMode == .effort,
             effortHours: effortHours,
             hasEstimate: hasEstimate,
             estimateHours: estimateHours,
@@ -146,8 +146,8 @@ struct TaskEditView: View {
         )
         TaskEstimator.applyEstimate(to: task, result: estimate)
 
-        // Apply quantity tracking
-        if hasQuantity {
+        // Apply quantity tracking (only when in quantity mode)
+        if unifiedEstimationMode == .quantity {
             task.unit = unit
             task.quantity = !quantity.isEmpty ? Double(quantity) : nil
             task.taskType = taskType
