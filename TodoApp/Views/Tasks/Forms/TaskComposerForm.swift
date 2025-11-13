@@ -53,6 +53,7 @@ struct TaskComposerForm: View {
 
     // Calculator state
     @State private var historicalProductivity: Double?
+    @State private var isProductivityOverrideExpanded = false
 
     // MARK: - Computed Properties
 
@@ -260,101 +261,56 @@ struct TaskComposerForm: View {
     @ViewBuilder
     private var quantityCalculatorView: some View {
         // STEP 1: Task Type Selection
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Task Type")
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundStyle(.secondary)
-
-            Picker("Task Type", selection: $taskType) {
-                Text("None").tag(nil as String?)
-                ForEach(templates) { template in
-                    HStack {
-                        Image(systemName: template.defaultUnit.icon)
-                        Text(template.name)
-                    }
-                    .tag(template.name as String?)
+        Picker("Task Type", selection: $taskType) {
+            Text("None").tag(nil as String?)
+            ForEach(templates) { template in
+                HStack {
+                    Image(systemName: template.defaultUnit.icon)
+                    Text(template.name)
                 }
+                .tag(template.name as String?)
             }
-            .pickerStyle(.menu)
-            .onChange(of: taskType) { oldValue, newValue in
-                // Auto-populate unit when template is selected
-                if let selectedTaskType = newValue,
-                   let template = templates.first(where: { $0.name == selectedTaskType }) {
-                    unit = template.defaultUnit
+        }
+        .pickerStyle(.menu)
+        .onChange(of: taskType) { oldValue, newValue in
+            // Auto-populate unit when template is selected
+            if let selectedTaskType = newValue,
+               let template = templates.first(where: { $0.name == selectedTaskType }) {
+                unit = template.defaultUnit
 
-                    // Fetch historical productivity
-                    historicalProductivity = TemplateManager.getHistoricalProductivity(
-                        for: selectedTaskType,
-                        unit: template.defaultUnit,
-                        from: allTasks
-                    ) ?? template.defaultUnit.defaultProductivityRate
+                // Fetch historical productivity
+                historicalProductivity = TemplateManager.getHistoricalProductivity(
+                    for: selectedTaskType,
+                    unit: template.defaultUnit,
+                    from: allTasks
+                ) ?? template.defaultUnit.defaultProductivityRate
 
-                    productivityRate = historicalProductivity
-                }
+                productivityRate = historicalProductivity
             }
         }
 
-        // STEP 2: Unit & Historical Data (only if task type selected)
+        // STEP 2: Unit Display (only if task type selected)
         if taskType != nil {
-            VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Unit")
+                Spacer()
                 HStack {
-                    Text("Unit")
-                    Spacer()
-                    HStack {
-                        Image(systemName: unit.icon)
-                        Text(unit.displayName)
-                    }
-                    .foregroundStyle(.secondary)
+                    Image(systemName: unit.icon)
+                    Text(unit.displayName)
                 }
-
-                // Show historical productivity if available
-                if let productivity = historicalProductivity {
-                    HStack(spacing: 8) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.body)
-                            .foregroundStyle(.green)
-                            .frame(width: 20)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Historical Average")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.green)
-                        }
-
-                        Spacer()
-                    }
-                    .padding(10)
-                    .background(Color.green.opacity(0.08))
-                    .cornerRadius(6)
-                }
+                .foregroundStyle(.secondary)
             }
         }
 
         // STEP 3: Quantity Input (only if quantifiable unit)
         if unit.isQuantifiable {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Quantity")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+            HStack {
+                TextField("Quantity", text: $quantity)
+                    .keyboardType(.decimalPad)
+
+                Text(unit.displayName)
                     .foregroundStyle(.secondary)
-
-                HStack {
-                    TextField("Enter quantity", text: $quantity)
-                        .keyboardType(.decimalPad)
-
-                    Text(unit.displayName)
-                        .foregroundStyle(.secondary)
-                }
             }
-
-            // Visual separator
-            Divider()
-                .padding(.vertical, 8)
 
             // STEP 4: Calculation Strategy
             VStack(alignment: .leading, spacing: 10) {
@@ -373,11 +329,14 @@ struct TaskComposerForm: View {
                     .foregroundStyle(.secondary)
 
                 Picker("Calculator Mode", selection: $quantityCalculationMode) {
-                    ForEach(TaskEstimator.QuantityCalculationMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
+                    Text("Duration").tag(TaskEstimator.QuantityCalculationMode.calculateDuration)
+                    Text("Personnel").tag(TaskEstimator.QuantityCalculationMode.calculatePersonnel)
+                    Text("Manual").tag(TaskEstimator.QuantityCalculationMode.manualEntry)
                 }
                 .pickerStyle(.segmented)
+                .onChange(of: quantityCalculationMode) { _, _ in
+                    isProductivityOverrideExpanded = false
+                }
             }
             .padding(.bottom, 8)
 
@@ -412,6 +371,44 @@ struct TaskComposerForm: View {
             color: .blue
         ) {
             VStack(alignment: .leading, spacing: 12) {
+                // Historical productivity (tappable to expand override)
+                if let productivity = historicalProductivity {
+                    Button {
+                        withAnimation {
+                            isProductivityOverrideExpanded.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.body)
+                                .foregroundStyle(.green)
+                                .frame(width: 20)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Historical Average")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.green)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "pencil.circle")
+                                .font(.body)
+                                .foregroundStyle(.blue)
+                        }
+                        .padding(10)
+                        .background(Color.green.opacity(0.08))
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+                }
+
                 // Personnel input
                 Stepper(value: Binding(
                     get: { expectedPersonnelCount ?? 1 },
@@ -431,16 +428,17 @@ struct TaskComposerForm: View {
 
                 // Productivity rate override
                 if productivityRate != nil {
-                    Divider()
-
-                    DisclosureGroup {
+                    DisclosureGroup(isExpanded: $isProductivityOverrideExpanded) {
                         HStack {
                             Text("Custom Rate")
                                 .font(.subheadline)
                             Spacer()
                             TextField("Rate", value: Binding(
                                 get: { productivityRate ?? 0 },
-                                set: { productivityRate = $0 }
+                                set: {
+                                    productivityRate = $0
+                                    updateFromQuantityCalculation()
+                                }
                             ), format: .number)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
@@ -449,6 +447,7 @@ struct TaskComposerForm: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                        .padding(.top, 4)
                     } label: {
                         Label {
                             Text("Override Productivity Rate")
@@ -486,6 +485,44 @@ struct TaskComposerForm: View {
             color: .orange
         ) {
             VStack(alignment: .leading, spacing: 12) {
+                // Historical productivity (tappable to expand override)
+                if let productivity = historicalProductivity {
+                    Button {
+                        withAnimation {
+                            isProductivityOverrideExpanded.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.body)
+                                .foregroundStyle(.green)
+                                .frame(width: 20)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Historical Average")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.green)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "pencil.circle")
+                                .font(.body)
+                                .foregroundStyle(.blue)
+                        }
+                        .padding(10)
+                        .background(Color.green.opacity(0.08))
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+                }
+
                 // Duration inputs
                 HStack {
                     Text("Duration (hours)")
@@ -527,16 +564,17 @@ struct TaskComposerForm: View {
 
                 // Productivity rate override
                 if productivityRate != nil {
-                    Divider()
-
-                    DisclosureGroup {
+                    DisclosureGroup(isExpanded: $isProductivityOverrideExpanded) {
                         HStack {
                             Text("Custom Rate")
                                 .font(.subheadline)
                             Spacer()
                             TextField("Rate", value: Binding(
                                 get: { productivityRate ?? 0 },
-                                set: { productivityRate = $0 }
+                                set: {
+                                    productivityRate = $0
+                                    updateFromQuantityCalculation()
+                                }
                             ), format: .number)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
@@ -545,6 +583,7 @@ struct TaskComposerForm: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                        .padding(.top, 4)
                     } label: {
                         Label {
                             Text("Override Productivity Rate")
