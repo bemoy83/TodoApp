@@ -59,7 +59,11 @@ struct TaskComposerForm: View {
     // Calculator state
     @State private var historicalProductivity: Double?
     @State private var calculationResult: TaskEstimator.ProductivityCalculation?
-    
+
+    // Cross-validation state
+    @State private var alternativeEffortHours: Double?
+    @State private var alternativeQuantity: Double?
+
     private var inheritedProject: Project? {
         parentTask?.project
     }
@@ -94,7 +98,12 @@ struct TaskComposerForm: View {
 
     private func recalculateEstimates() {
         // Recalculate whenever inputs change
-        guard hasQuantity, taskType != nil, unit.isQuantifiable else { return }
+        guard hasQuantity, taskType != nil, unit.isQuantifiable else {
+            // Clear cross-validation if no quantity
+            alternativeEffortHours = nil
+            alternativeQuantity = nil
+            return
+        }
 
         let quantityValue = Double(quantity)
 
@@ -105,6 +114,32 @@ struct TaskComposerForm: View {
             personnelCount: expectedPersonnelCount,
             durationHours: estimateHours,
             durationMinutes: estimateMinutes
+        )
+
+        // Cross-validation: Calculate alternative effort hours from quantity
+        if let qty = quantityValue,
+           let rate = productivityRate {
+            alternativeEffortHours = TaskEstimator.quantityToEffortHours(
+                quantity: qty,
+                productivityRate: rate
+            )
+        } else {
+            alternativeEffortHours = nil
+        }
+    }
+
+    private func recalculateAlternativeQuantity() {
+        // Calculate equivalent quantity from effort hours
+        guard estimateByEffort,
+              effortHours > 0,
+              let rate = productivityRate else {
+            alternativeQuantity = nil
+            return
+        }
+
+        alternativeQuantity = TaskEstimator.effortHoursToQuantity(
+            effortHours: effortHours,
+            productivityRate: rate
         )
     }
 
@@ -387,6 +422,20 @@ struct TaskComposerForm: View {
                         hasDueDate: $hasDueDate,
                         dueDate: dueDate
                     )
+
+                    // Cross-validation: Show equivalent quantity
+                    if let altQty = alternativeQuantity,
+                       let taskTypeName = taskType {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .font(.caption2)
+                                .foregroundStyle(.blue)
+                            Text("Based on productivity: ≈ \(String(format: "%.0f", altQty)) \(unit.displayName) of \(taskTypeName)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.top, 4)
+                    }
                 }
 
             }
@@ -601,6 +650,28 @@ struct TaskComposerForm: View {
                             .foregroundStyle(.secondary)
                         }
 
+                        // Cross-validation: Show equivalent effort hours
+                        if let altEffort = alternativeEffortHours {
+                            let comparison = effortHours > 0 ?
+                                TaskEstimator.CalculationComparison(primary: altEffort, alternative: effortHours) : nil
+
+                            HStack {
+                                Image(systemName: comparison?.isSignificant == true ? "exclamationmark.triangle" : "info.circle")
+                                    .font(.caption2)
+                                    .foregroundStyle(comparison?.isSignificant == true ? .orange : .blue)
+
+                                if effortHours > 0 {
+                                    Text("Productivity suggests \(String(format: "%.1f", altEffort)) person-hrs (effort: \(String(format: "%.1f", effortHours)) hrs, \(comparison?.formattedDifference ?? ""))")
+                                        .font(.caption)
+                                } else {
+                                    Text("Equivalent to ≈ \(String(format: "%.1f", altEffort)) person-hours of work")
+                                        .font(.caption)
+                                }
+                            }
+                            .foregroundStyle(comparison?.isSignificant == true ? .orange : .secondary)
+                            .padding(.top, 4)
+                        }
+
                         // Warning if no productivity rate available
                         if historicalProductivity == nil && calculationMode != .manual {
                             HStack {
@@ -627,6 +698,7 @@ struct TaskComposerForm: View {
             .onChange(of: estimateHours) { recalculateEstimates() }
             .onChange(of: estimateMinutes) { recalculateEstimates() }
             .onChange(of: calculationMode) { recalculateEstimates() }
+            .onChange(of: effortHours) { recalculateAlternativeQuantity() }
         }
         .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
             Button("OK") {

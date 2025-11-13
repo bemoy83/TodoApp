@@ -196,4 +196,47 @@ extension TaskEstimator {
             durationSeconds: durationSeconds > 0 ? durationSeconds : nil
         )
     }
+
+    // MARK: - Cross-Validation
+
+    /// Convert quantity-based calculation to equivalent effort hours
+    /// Formula: effortHours = quantity / productivityRate
+    static func quantityToEffortHours(
+        quantity: Double,
+        productivityRate: Double
+    ) -> Double? {
+        guard quantity > 0, productivityRate > 0 else { return nil }
+        return quantity / productivityRate
+    }
+
+    /// Convert effort hours to equivalent quantity
+    /// Formula: quantity = effortHours × productivityRate
+    static func effortHoursToQuantity(
+        effortHours: Double,
+        productivityRate: Double
+    ) -> Double? {
+        guard effortHours > 0, productivityRate > 0 else { return nil }
+        return effortHours * productivityRate
+    }
+
+    /// Compare two calculation methods and detect significant differences
+    struct CalculationComparison {
+        let primaryValue: Double
+        let alternativeValue: Double
+        let differencePercent: Double
+        let isSignificant: Bool  // > 15% difference
+
+        var formattedDifference: String {
+            let sign = differencePercent > 0 ? "+" : ""
+            return "\(sign)\(String(format: "%.0f", differencePercent))%"
+        }
+
+        init(primary: Double, alternative: Double, threshold: Double = 0.15) {
+            self.primaryValue = primary
+            self.alternativeValue = alternative
+            self.differencePercent = ((alternative - primary) / primary) * 100
+            self.isSignificant = abs(differencePercent / 100) > threshold
+        }
+    }
 }
+
