@@ -250,7 +250,7 @@ struct TaskComposerForm: View {
 
             // Override productivity rate
             if productivityRate != nil {
-                Disclosure content: {
+                DisclosureGroup {
                     HStack {
                         Text("Productivity Rate")
                         Spacer()
