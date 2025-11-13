@@ -29,6 +29,34 @@ struct TemplateManager {
         return sum / Double(productivityValues.count)
     }
 
+    /// Calculate historical average productivity for a specific task type and unit
+    /// More accurate than unit-only lookup as it matches the exact work category
+    /// Returns nil if no historical data available
+    static func getHistoricalProductivity(
+        for taskType: String,
+        unit: UnitType,
+        from tasks: [Task]
+    ) -> Double? {
+        guard unit.isQuantifiable else { return nil }
+
+        // Filter to completed tasks with productivity data for this task type + unit
+        let relevantTasks = tasks.filter { task in
+            task.taskType == taskType &&
+            task.unit == unit &&
+            task.hasProductivityData &&
+            task.isCompleted
+        }
+
+        guard !relevantTasks.isEmpty else { return nil }
+
+        // Calculate average
+        let productivityValues = relevantTasks.compactMap { $0.unitsPerHour }
+        guard !productivityValues.isEmpty else { return nil }
+
+        let sum = productivityValues.reduce(0.0, +)
+        return sum / Double(productivityValues.count)
+    }
+
     /// Get count of historical tasks for a given unit type
     static func getHistoricalTaskCount(
         for unit: UnitType,

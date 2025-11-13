@@ -90,6 +90,18 @@ enum UnitType: String, Codable, CaseIterable, Sendable {
         case .liters: return "drop"
         }
     }
+
+    /// Default productivity rate (units per person-hour) as fallback when no historical data available
+    var defaultProductivityRate: Double? {
+        switch self {
+        case .none: return nil
+        case .squareMeters: return 10.0  // 10 m²/person-hr (e.g., carpet installation, painting)
+        case .meters: return 5.0         // 5 m/person-hr (e.g., wall setup, piping)
+        case .pieces: return 2.0         // 2 pcs/person-hr (e.g., furniture assembly)
+        case .kilograms: return 50.0     // 50 kg/person-hr (e.g., material handling)
+        case .liters: return 100.0       // 100 L/person-hr (e.g., liquid handling)
+        }
+    }
 }
 
 // MARK: - Task Model

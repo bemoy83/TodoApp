@@ -30,15 +30,14 @@ struct AddTaskView: View {
     @State private var hasPersonnel: Bool = false
     @State private var expectedPersonnelCount: Int? = nil
 
-    // Effort-based estimation state
-    @State private var estimateByEffort: Bool = false
+    // Unified calculator state
+    @State private var unifiedEstimationMode: TaskEstimator.UnifiedEstimationMode = .duration
     @State private var effortHours: Double = 0
-
-    // Quantity/unit state
-    @State private var hasQuantity: Bool = false
     @State private var quantity: String = ""
     @State private var unit: UnitType = UnitType.none
     @State private var taskType: String? = nil
+    @State private var quantityCalculationMode: TaskEstimator.QuantityCalculationMode = .calculateDuration
+    @State private var productivityRate: Double? = nil
 
     // For list creation, compute next order to keep ordering stable
     @Query(filter: #Predicate<Task> { task in
@@ -75,15 +74,16 @@ struct AddTaskView: View {
                 hasCustomEstimate: $hasCustomEstimate,
                 hasPersonnel: $hasPersonnel,
                 expectedPersonnelCount: $expectedPersonnelCount,
-                estimateByEffort: $estimateByEffort,
+                unifiedEstimationMode: $unifiedEstimationMode,
                 effortHours: $effortHours,
-                hasQuantity: $hasQuantity,
                 quantity: $quantity,
                 unit: $unit,
                 taskType: $taskType,
+                quantityCalculationMode: $quantityCalculationMode,
+                productivityRate: $productivityRate,
                 isSubtask: parentTask != nil,
                 parentTask: parentTask,
-                editingTask: nil  // NEW: Not editing existing, so nil
+                editingTask: nil  // Not editing existing, so nil
             )
             .navigationTitle(parentTask == nil ? "New Task" : "New Subtask")
             .navigationBarTitleDisplayMode(.inline)
@@ -103,9 +103,9 @@ struct AddTaskView: View {
         // Process notes
         let processedNotes = TaskEstimator.processNotes(notes)
 
-        // Calculate estimate
+        // Calculate estimate (unified calculator already auto-populates all fields)
         let estimate = TaskEstimator.calculateEstimate(
-            estimateByEffort: estimateByEffort,
+            estimateByEffort: unifiedEstimationMode == .effort,
             effortHours: effortHours,
             hasEstimate: hasEstimate,
             estimateHours: estimateHours,
@@ -115,7 +115,8 @@ struct AddTaskView: View {
             expectedPersonnelCount: expectedPersonnelCount
         )
 
-        // Parse quantity
+        // Parse quantity (only when in quantity mode)
+        let hasQuantity = unifiedEstimationMode == .quantity
         let parsedQuantity: Double? = hasQuantity && !quantity.isEmpty ? Double(quantity) : nil
 
         let task = Task(
