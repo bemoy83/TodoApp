@@ -195,7 +195,7 @@ struct TaskComposerForm: View {
             Image(systemName: icon)
                 .font(.body)
                 .foregroundStyle(style.color)
-                .frame(width: 20)
+                .frame(width: 28)
 
             Text(text)
                 .font(.subheadline)
@@ -220,40 +220,6 @@ struct TaskComposerForm: View {
             case .error: return .red
             }
         }
-    }
-
-    /// A container for mode-specific calculator content with header
-    @ViewBuilder
-    private func modeContainer<Content: View>(
-        icon: String,
-        title: String,
-        color: Color = .blue,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Mode header
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.body)
-                    .foregroundStyle(color)
-                    .frame(width: 20)
-
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(color)
-            }
-
-            // Mode content
-            content()
-        }
-        .padding(12)
-        .background(color.opacity(0.05))
-        .cornerRadius(10)
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(color.opacity(0.2), lineWidth: 1)
-        )
     }
 
     // MARK: - View Builders
@@ -312,33 +278,27 @@ struct TaskComposerForm: View {
                     .foregroundStyle(.secondary)
             }
 
+            Divider()
+
             // STEP 4: Calculation Strategy
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 6) {
-                    Image(systemName: "function")
-                        .font(.subheadline)
-                        .foregroundStyle(.blue)
-                    Text("Calculation Strategy")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-                }
+            Text("Calculation Strategy")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
 
-                Text("Choose what to calculate from quantity and productivity rate")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            Text("Choose what to calculate from quantity and productivity rate")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
-                Picker("Calculator Mode", selection: $quantityCalculationMode) {
-                    Text("Duration").tag(TaskEstimator.QuantityCalculationMode.calculateDuration)
-                    Text("Personnel").tag(TaskEstimator.QuantityCalculationMode.calculatePersonnel)
-                    Text("Manual").tag(TaskEstimator.QuantityCalculationMode.manualEntry)
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: quantityCalculationMode) { _, _ in
-                    isProductivityOverrideExpanded = false
-                }
+            Picker("Calculator Mode", selection: $quantityCalculationMode) {
+                Text("Duration").tag(TaskEstimator.QuantityCalculationMode.calculateDuration)
+                Text("Personnel").tag(TaskEstimator.QuantityCalculationMode.calculatePersonnel)
+                Text("Manual").tag(TaskEstimator.QuantityCalculationMode.manualEntry)
             }
-            .padding(.bottom, 8)
+            .pickerStyle(.segmented)
+            .onChange(of: quantityCalculationMode) { _, _ in
+                isProductivityOverrideExpanded = false
+            }
 
             // STEP 5: Mode-Specific Container
             switch quantityCalculationMode {
@@ -365,244 +325,93 @@ struct TaskComposerForm: View {
 
     @ViewBuilder
     private var calculateDurationModeContainer: some View {
-        modeContainer(
-            icon: "clock.arrow.2.circlepath",
-            title: "Calculating Duration",
-            color: .blue
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
-                // Historical productivity (tappable to expand override)
-                if let productivity = historicalProductivity {
-                    Button {
-                        withAnimation {
-                            isProductivityOverrideExpanded.toggle()
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                .font(.body)
-                                .foregroundStyle(.green)
-                                .frame(width: 20)
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // Historical productivity
+            if let productivity = historicalProductivity {
+                HStack {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.body)
+                        .foregroundStyle(DesignSystem.Colors.success)
+                        .frame(width: 28)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Historical Average")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.green)
-                            }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
 
-                            Spacer()
-
-                            Image(systemName: "pencil.circle")
-                                .font(.body)
-                                .foregroundStyle(.blue)
-                        }
-                        .padding(10)
-                        .background(Color.green.opacity(0.08))
-                        .cornerRadius(6)
-                    }
-                    .buttonStyle(.plain)
-
-                    Divider()
-                }
-
-                // Personnel input
-                Stepper(value: Binding(
-                    get: { expectedPersonnelCount ?? 1 },
-                    set: {
-                        expectedPersonnelCount = $0
-                        hasPersonnel = true
-                        updateFromQuantityCalculation()
-                    }
-                ), in: 1...20) {
-                    HStack {
-                        Text("Personnel")
-                        Spacer()
-                        Text("\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")")
+                        Text("Historical Average")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                }
 
-                // Productivity rate override
-                if productivityRate != nil {
-                    DisclosureGroup(isExpanded: $isProductivityOverrideExpanded) {
-                        HStack {
-                            Text("Custom Rate")
-                                .font(.subheadline)
-                            Spacer()
-                            TextField("Rate", value: Binding(
-                                get: { productivityRate ?? 0 },
-                                set: {
-                                    productivityRate = $0
-                                    updateFromQuantityCalculation()
-                                }
-                            ), format: .number)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                            Text("\(unit.displayName)/person-hr")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.top, 4)
-                    } label: {
-                        Label {
-                            Text("Override Productivity Rate")
-                                .font(.subheadline)
-                        } icon: {
-                            Image(systemName: "slider.horizontal.3")
-                        }
-                        .foregroundStyle(.blue)
-                    }
-                }
+                    Spacer()
 
-                // Calculated result
-                if hasEstimate {
-                    let totalSeconds = (estimateHours * 3600) + (estimateMinutes * 60)
-                    if totalSeconds > 0 {
-                        Divider()
-
-                        resultCard(
-                            icon: "checkmark.circle.fill",
-                            title: "Estimated Duration",
-                            value: totalSeconds.formattedTime(),
-                            color: .green
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var calculatePersonnelModeContainer: some View {
-        modeContainer(
-            icon: "person.2.crop.square.stack",
-            title: "Calculating Personnel",
-            color: .orange
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
-                // Historical productivity (tappable to expand override)
-                if let productivity = historicalProductivity {
+                    // Tap to override
                     Button {
                         withAnimation {
                             isProductivityOverrideExpanded.toggle()
                         }
                     } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                .font(.body)
-                                .foregroundStyle(.green)
-                                .frame(width: 20)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Historical Average")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.green)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "pencil.circle")
-                                .font(.body)
-                                .foregroundStyle(.blue)
-                        }
-                        .padding(10)
-                        .background(Color.green.opacity(0.08))
-                        .cornerRadius(6)
+                        Image(systemName: isProductivityOverrideExpanded ? "pencil.circle.fill" : "pencil.circle")
+                            .font(.body)
+                            .foregroundStyle(.blue)
                     }
                     .buttonStyle(.plain)
-
-                    Divider()
                 }
 
-                // Duration inputs
+                Divider()
+            }
+
+            // Personnel input
+            Stepper(value: Binding(
+                get: { expectedPersonnelCount ?? 1 },
+                set: {
+                    expectedPersonnelCount = $0
+                    hasPersonnel = true
+                    updateFromQuantityCalculation()
+                }
+            ), in: 1...20) {
                 HStack {
-                    Text("Duration (hours)")
+                    Text("Personnel")
                     Spacer()
-                    Picker("Hours", selection: Binding(
-                        get: { estimateHours },
+                    Text("\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // Productivity rate override
+            if productivityRate != nil && isProductivityOverrideExpanded {
+                Divider()
+
+                HStack {
+                    Text("Custom Rate")
+                    Spacer()
+                    TextField("Rate", value: Binding(
+                        get: { productivityRate ?? 0 },
                         set: {
-                            estimateHours = $0
-                            hasEstimate = true
+                            productivityRate = $0
                             updateFromQuantityCalculation()
                         }
-                    )) {
-                        ForEach(0..<100, id: \.self) { hour in
-                            Text("\(hour)").tag(hour)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .frame(width: 70)
+                    ), format: .number)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 80)
+                    Text("\(unit.displayName)/person-hr")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+            }
 
-                HStack {
-                    Text("Minutes")
-                    Spacer()
-                    Picker("Minutes", selection: Binding(
-                        get: { estimateMinutes },
-                        set: {
-                            estimateMinutes = $0
-                            hasEstimate = true
-                            updateFromQuantityCalculation()
-                        }
-                    )) {
-                        ForEach([0, 15, 30, 45], id: \.self) { minute in
-                            Text("\(minute)").tag(minute)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .frame(width: 70)
-                }
-
-                // Productivity rate override
-                if productivityRate != nil {
-                    DisclosureGroup(isExpanded: $isProductivityOverrideExpanded) {
-                        HStack {
-                            Text("Custom Rate")
-                                .font(.subheadline)
-                            Spacer()
-                            TextField("Rate", value: Binding(
-                                get: { productivityRate ?? 0 },
-                                set: {
-                                    productivityRate = $0
-                                    updateFromQuantityCalculation()
-                                }
-                            ), format: .number)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                            Text("\(unit.displayName)/person-hr")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.top, 4)
-                    } label: {
-                        Label {
-                            Text("Override Productivity Rate")
-                                .font(.subheadline)
-                        } icon: {
-                            Image(systemName: "slider.horizontal.3")
-                        }
-                        .foregroundStyle(.orange)
-                    }
-                }
-
-                // Calculated result
-                if hasPersonnel, let personnel = expectedPersonnelCount {
+            // Calculated result
+            if hasEstimate {
+                let totalSeconds = (estimateHours * 3600) + (estimateMinutes * 60)
+                if totalSeconds > 0 {
                     Divider()
 
                     resultCard(
-                        icon: "person.2.fill",
-                        title: "Required Personnel",
-                        value: "\(personnel) \(personnel == 1 ? "person" : "people")",
+                        icon: "checkmark.circle.fill",
+                        title: "Estimated Duration",
+                        value: totalSeconds.formattedTime(),
                         color: .green
                     )
                 }
@@ -611,43 +420,150 @@ struct TaskComposerForm: View {
     }
 
     @ViewBuilder
-    private var manualEntryModeContainer: some View {
-        modeContainer(
-            icon: "hand.tap.fill",
-            title: "Manual Entry Mode",
-            color: .purple
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Track quantity and set time/personnel manually. Productivity rate will be calculated when the task is completed.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+    private var calculatePersonnelModeContainer: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // Historical productivity
+            if let productivity = historicalProductivity {
+                HStack {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.body)
+                        .foregroundStyle(DesignSystem.Colors.success)
+                        .frame(width: 28)
 
-                // Productivity rate info (read-only)
-                if let rate = productivityRate {
-                    Divider()
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
 
-                    HStack(spacing: 8) {
-                        Image(systemName: "info.circle.fill")
-                            .font(.body)
-                            .foregroundStyle(.purple)
-                            .frame(width: 20)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Reference Rate")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("\(String(format: "%.1f", rate)) \(unit.displayName)/person-hr")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.purple)
-                        }
-
-                        Spacer()
+                        Text("Historical Average")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(10)
-                    .background(Color.purple.opacity(0.08))
-                    .cornerRadius(6)
+
+                    Spacer()
+
+                    // Tap to override
+                    Button {
+                        withAnimation {
+                            isProductivityOverrideExpanded.toggle()
+                        }
+                    } label: {
+                        Image(systemName: isProductivityOverrideExpanded ? "pencil.circle.fill" : "pencil.circle")
+                            .font(.body)
+                            .foregroundStyle(.blue)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Divider()
+            }
+
+            // Duration inputs
+            HStack {
+                Text("Duration (hours)")
+                Spacer()
+                Picker("Hours", selection: Binding(
+                    get: { estimateHours },
+                    set: {
+                        estimateHours = $0
+                        hasEstimate = true
+                        updateFromQuantityCalculation()
+                    }
+                )) {
+                    ForEach(0..<100, id: \.self) { hour in
+                        Text("\(hour)").tag(hour)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 70)
+            }
+
+            HStack {
+                Text("Minutes")
+                Spacer()
+                Picker("Minutes", selection: Binding(
+                    get: { estimateMinutes },
+                    set: {
+                        estimateMinutes = $0
+                        hasEstimate = true
+                        updateFromQuantityCalculation()
+                    }
+                )) {
+                    ForEach([0, 15, 30, 45], id: \.self) { minute in
+                        Text("\(minute)").tag(minute)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 70)
+            }
+
+            // Productivity rate override
+            if productivityRate != nil && isProductivityOverrideExpanded {
+                Divider()
+
+                HStack {
+                    Text("Custom Rate")
+                    Spacer()
+                    TextField("Rate", value: Binding(
+                        get: { productivityRate ?? 0 },
+                        set: {
+                            productivityRate = $0
+                            updateFromQuantityCalculation()
+                        }
+                    ), format: .number)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 80)
+                    Text("\(unit.displayName)/person-hr")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // Calculated result
+            if hasPersonnel, let personnel = expectedPersonnelCount {
+                Divider()
+
+                resultCard(
+                    icon: "person.2.fill",
+                    title: "Required Personnel",
+                    value: "\(personnel) \(personnel == 1 ? "person" : "people")",
+                    color: .green
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var manualEntryModeContainer: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            infoMessage(
+                icon: "hand.tap.fill",
+                text: "Track quantity and set time/personnel manually. Productivity rate will be calculated when the task is completed.",
+                style: .info
+            )
+
+            // Reference productivity rate (read-only)
+            if let rate = productivityRate {
+                Divider()
+
+                HStack {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(String(format: "%.1f", rate)) \(unit.displayName)/person-hr")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+
+                        Text("Reference Rate")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
                 }
             }
         }
