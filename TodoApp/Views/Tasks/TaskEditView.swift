@@ -26,18 +26,13 @@ struct TaskEditView: View {
     @State private var hasPersonnel: Bool
     @State private var expectedPersonnelCount: Int?
 
-    // Effort-based estimation state
-    @State private var estimateByEffort: Bool
+    // Unified calculator state
+    @State private var unifiedEstimationMode: TaskEstimator.UnifiedEstimationMode
     @State private var effortHours: Double
-
-    // Quantity tracking state
-    @State private var hasQuantity: Bool
     @State private var quantity: String
     @State private var unit: UnitType
     @State private var taskType: String?
-
-    // Calculator state
-    @State private var calculationMode: TaskEstimator.CalculationMode
+    @State private var quantityCalculationMode: TaskEstimator.QuantityCalculationMode
     @State private var productivityRate: Double?
 
     private var isSubtask: Bool { task.parentTask != nil }
@@ -68,18 +63,23 @@ struct TaskEditView: View {
         _hasPersonnel = State(initialValue: task.expectedPersonnelCount != nil)
         _expectedPersonnelCount = State(initialValue: task.expectedPersonnelCount)
 
-        // Initialize effort-based estimation state
-        _estimateByEffort = State(initialValue: task.effortHours != nil)
-        _effortHours = State(initialValue: task.effortHours ?? 0)
+        // Initialize unified calculator state
+        // Determine initial mode based on existing task data
+        let initialMode: TaskEstimator.UnifiedEstimationMode
+        if task.unit.isQuantifiable {
+            initialMode = .quantity
+        } else if task.effortHours != nil {
+            initialMode = .effort
+        } else {
+            initialMode = .duration
+        }
 
-        // Initialize quantity tracking state
-        _hasQuantity = State(initialValue: task.unit.isQuantifiable)
+        _unifiedEstimationMode = State(initialValue: initialMode)
+        _effortHours = State(initialValue: task.effortHours ?? 0)
         _quantity = State(initialValue: task.quantity.map { String(format: "%.1f", $0) } ?? "")
         _unit = State(initialValue: task.unit)
         _taskType = State(initialValue: task.taskType)
-
-        // Initialize calculator state
-        _calculationMode = State(initialValue: .manual)
+        _quantityCalculationMode = State(initialValue: .manualEntry)
         _productivityRate = State(initialValue: nil)
     }
     
@@ -101,17 +101,16 @@ struct TaskEditView: View {
                 hasCustomEstimate: $hasCustomEstimate,
                 hasPersonnel: $hasPersonnel,
                 expectedPersonnelCount: $expectedPersonnelCount,
-                estimateByEffort: $estimateByEffort,
+                unifiedEstimationMode: $unifiedEstimationMode,
                 effortHours: $effortHours,
-                hasQuantity: $hasQuantity,
                 quantity: $quantity,
                 unit: $unit,
                 taskType: $taskType,
-                calculationMode: $calculationMode,
+                quantityCalculationMode: $quantityCalculationMode,
                 productivityRate: $productivityRate,
                 isSubtask: isSubtask,
                 parentTask: task.parentTask,
-                editingTask: task  // NEW: Pass the task being edited
+                editingTask: task  // Pass the task being edited
             )
             .navigationTitle(isSubtask ? (isNewTask ? "New Subtask" : "Edit Subtask")
                                        : (isNewTask ? "New Task" : "Edit Task"))

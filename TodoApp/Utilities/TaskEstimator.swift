@@ -25,6 +25,45 @@ struct TaskEstimator {
         }
     }
 
+    // MARK: - Unified Calculator Types
+
+    /// Main estimation mode - determines which calculator the user is using
+    enum UnifiedEstimationMode: String, CaseIterable, Identifiable {
+        case duration = "Duration"
+        case effort = "Effort"
+        case quantity = "Quantity"
+
+        var id: String { rawValue }
+
+        var icon: String {
+            switch self {
+            case .duration: return "clock"
+            case .effort: return "person.2"
+            case .quantity: return "chart.bar"
+            }
+        }
+    }
+
+    /// Quantity calculator sub-modes (only used when UnifiedEstimationMode == .quantity)
+    enum QuantityCalculationMode: String, CaseIterable, Identifiable {
+        case calculateDuration = "Calculate Duration"
+        case calculatePersonnel = "Calculate Personnel"
+        case manualEntry = "Manual Entry"
+
+        var id: String { rawValue }
+
+        var description: String {
+            switch self {
+            case .calculateDuration:
+                return "Input personnel → calculate duration"
+            case .calculatePersonnel:
+                return "Input duration → calculate personnel"
+            case .manualEntry:
+                return "Track quantity, calculate productivity on completion"
+            }
+        }
+    }
+
     // MARK: - Public Methods
 
     /// Trim whitespace from notes and convert empty strings to nil
