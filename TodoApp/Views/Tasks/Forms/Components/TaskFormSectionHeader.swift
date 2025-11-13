@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Consistent uppercase caption-style section header
+/// Consistent uppercase caption-style section header for forms
 /// Matches styling across TaskQuantityView and TaskDetailView
-struct TaskSectionHeader: View {
+struct TaskFormSectionHeader: View {
     let title: String
     var topPadding: CGFloat = DesignSystem.Spacing.md
 

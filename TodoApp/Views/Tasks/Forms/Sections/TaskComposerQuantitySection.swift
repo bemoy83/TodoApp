@@ -90,7 +90,7 @@ struct TaskComposerQuantitySection: View {
 
     private var calculationStrategyView: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-            TaskSectionHeader(title: "Calculation Strategy")
+            TaskFormSectionHeader(title: "Calculation Strategy")
 
             Text("Choose what to calculate from quantity and productivity rate")
                 .font(.caption)

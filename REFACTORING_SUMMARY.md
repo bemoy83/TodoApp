@@ -28,7 +28,7 @@ TodoApp/
 │   ├── Components/ (Reusable UI elements)
 │   │   ├── TaskRowIconValueLabel.swift (33 lines)
 │   │   ├── TaskInlineInfoRow.swift (40 lines)
-│   │   └── TaskSectionHeader.swift (16 lines)
+│   │   └── TaskFormSectionHeader.swift (16 lines)
 │   │
 │   └── Sections/ (Dedicated section components)
 │       ├── TaskComposerProjectSection.swift (67 lines)
@@ -61,13 +61,14 @@ TodoApp/
 - Style variants: info, warning, success, error
 - Consistent icon sizing and spacing
 
-### 3. TaskSectionHeader
-**Purpose**: Uppercase caption-style section headers
+### 3. TaskFormSectionHeader
+**Purpose**: Uppercase caption-style section headers for forms
 **Usage**: Standardizes section headers across all forms
 **Features**:
 - Uppercase text transformation
 - Secondary color styling
 - Configurable top padding (default: DesignSystem.Spacing.md)
+**Note**: Named TaskFormSectionHeader to avoid conflict with existing TaskSectionHeader in Projects
 
 ## Section Components
 
@@ -218,7 +219,7 @@ Form {
 - **After**: 14 files, ~1344 total lines (but highly modularized)
 - **Main Form**: 321 lines (70% reduction)
 - **Largest Section**: 168 lines (TaskComposerQuantitySection)
-- **Smallest Component**: 16 lines (TaskSectionHeader)
+- **Smallest Component**: 16 lines (TaskFormSectionHeader)
 
 ## Business Logic Preservation
 ✅ All calculation methods preserved
