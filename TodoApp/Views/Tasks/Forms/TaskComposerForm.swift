@@ -278,13 +278,12 @@ struct TaskComposerForm: View {
                     .foregroundStyle(.secondary)
             }
 
-            Divider()
-
             // STEP 4: Calculation Strategy
             Text("Calculation Strategy")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
+                .padding(.top, DesignSystem.Spacing.md)
 
             Text("Choose what to calculate from quantity and productivity rate")
                 .font(.caption)
@@ -412,7 +411,7 @@ struct TaskComposerForm: View {
                         icon: "checkmark.circle.fill",
                         title: "Estimated Duration",
                         value: totalSeconds.formattedTime(),
-                        color: .green
+                        color: .blue
                     )
                 }
             }
