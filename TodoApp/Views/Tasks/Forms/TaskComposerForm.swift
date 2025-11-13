@@ -407,12 +407,25 @@ struct TaskComposerForm: View {
                 if totalSeconds > 0 {
                     Divider()
 
-                    resultCard(
-                        icon: "checkmark.circle.fill",
-                        title: "Estimated Duration",
-                        value: totalSeconds.formattedTime(),
-                        color: .blue
-                    )
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(.blue)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(totalSeconds.formattedTime())
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.blue)
+
+                            Text("Estimated Duration")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+                    }
                 }
             }
         }
@@ -523,12 +536,25 @@ struct TaskComposerForm: View {
             if hasPersonnel, let personnel = expectedPersonnelCount {
                 Divider()
 
-                resultCard(
-                    icon: "person.2.fill",
-                    title: "Required Personnel",
-                    value: "\(personnel) \(personnel == 1 ? "person" : "people")",
-                    color: .green
-                )
+                HStack {
+                    Image(systemName: "person.2.fill")
+                        .font(.body)
+                        .foregroundStyle(.green)
+                        .frame(width: 28)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(personnel) \(personnel == 1 ? "person" : "people")")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.green)
+
+                        Text("Required Personnel")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+                }
             }
         }
     }
@@ -536,11 +562,17 @@ struct TaskComposerForm: View {
     @ViewBuilder
     private var manualEntryModeContainer: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            infoMessage(
-                icon: "hand.tap.fill",
-                text: "Track quantity and set time/personnel manually. Productivity rate will be calculated when the task is completed.",
-                style: .info
-            )
+            HStack(spacing: DesignSystem.Spacing.xs) {
+                Image(systemName: "info.circle")
+                    .font(.caption2)
+                    .foregroundStyle(.blue)
+                    .frame(width: 28)
+
+                Text("Track quantity and set time/personnel manually. Productivity rate will be calculated when the task is completed.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 4)
 
             // Reference productivity rate (read-only)
             if let rate = productivityRate {
@@ -602,31 +634,36 @@ struct TaskComposerForm: View {
             if isSubtask {
                 Section("Project") {
                     if let project = inheritedProject {
-                        HStack(spacing: 10) {
-                            Circle()
-                                .fill(Color(hex: project.color))
-                                .frame(width: 24, height: 24)
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "folder.fill")
+                                .font(.body)
+                                .foregroundStyle(Color(hex: project.color))
+                                .frame(width: 28)
 
                             VStack(alignment: .leading, spacing: 2) {
+                                Text(project.title)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+
                                 Text("Inherited from Parent")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                Text(project.title)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
                             }
 
                             Spacer()
                         }
-                        .padding(10)
-                        .background(Color(hex: project.color).opacity(0.08))
-                        .cornerRadius(6)
                     } else {
-                        infoMessage(
-                            icon: "folder.badge.questionmark",
-                            text: "No project (inherited from parent)",
-                            style: .info
-                        )
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "folder.badge.questionmark")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28)
+
+                            Text("No project (inherited from parent)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
             } else {
