@@ -160,68 +160,6 @@ struct TaskComposerForm: View {
         }
     }
 
-    // MARK: - Reusable UI Components
-
-    /// A card-style container for displaying calculated results
-    @ViewBuilder
-    private func resultCard(icon: String, title: String, value: String, color: Color = .green) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(color)
-                .frame(width: 24)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.body)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(color)
-            }
-
-            Spacer()
-        }
-        .padding(12)
-        .background(color.opacity(0.08))
-        .cornerRadius(8)
-    }
-
-    /// A standardized info/warning/success message box
-    @ViewBuilder
-    private func infoMessage(icon: String, text: String, style: InfoMessageStyle = .info) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon)
-                .font(.body)
-                .foregroundStyle(style.color)
-                .frame(width: 28)
-
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(style.color)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-        .background(style.color.opacity(0.08))
-        .cornerRadius(6)
-    }
-
-    private enum InfoMessageStyle {
-        case info, success, warning, error
-
-        var color: Color {
-            switch self {
-            case .info: return .blue
-            case .success: return .green
-            case .warning: return .orange
-            case .error: return .red
-            }
-        }
-    }
-
     // MARK: - View Builders
 
     @ViewBuilder
@@ -312,11 +250,17 @@ struct TaskComposerForm: View {
             }
 
         } else if taskType != nil {
-            infoMessage(
-                icon: "exclamationmark.triangle.fill",
-                text: "Select a task type with a quantifiable unit to enable quantity tracking",
-                style: .warning
-            )
+            HStack(spacing: DesignSystem.Spacing.xs) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .frame(width: 28)
+
+                Text("Select a task type with a quantifiable unit to enable quantity tracking")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 4)
         }
     }
 
@@ -697,36 +641,40 @@ struct TaskComposerForm: View {
             Section("Due Date") {
                 if isSubtask {
                     if let p = parentDueDate {
-                        HStack(spacing: 10) {
+                        HStack(spacing: DesignSystem.Spacing.xs) {
                             Image(systemName: "calendar.badge.clock")
                                 .font(.body)
                                 .foregroundStyle(.blue)
-                                .frame(width: 20)
+                                .frame(width: 28)
 
                             VStack(alignment: .leading, spacing: 2) {
+                                Text(p.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.blue)
+
                                 Text("Parent Due Date")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                Text(p.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.blue)
                             }
 
                             Spacer()
                         }
-                        .padding(10)
-                        .background(Color.blue.opacity(0.08))
-                        .cornerRadius(6)
-                        .padding(.bottom, 8)
                     } else {
-                        infoMessage(
-                            icon: "calendar.badge.exclamationmark",
-                            text: "Parent has no due date set",
-                            style: .info
-                        )
-                        .padding(.bottom, 8)
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "info.circle")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28)
+
+                            Text("Parent has no due date set")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
                     }
+
+                    Divider()
                 }
 
                 Toggle(isSubtask ? "Set Custom Due Date" : "Set Due Date", isOn: $hasDueDate)
@@ -742,20 +690,30 @@ struct TaskComposerForm: View {
                     }
 
                     if isSubtask, parentDueDate != nil {
-                        infoMessage(
-                            icon: "info.circle.fill",
-                            text: "Must be on or before parent's due date",
-                            style: .warning
-                        )
-                        .padding(.top, 8)
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                                .frame(width: 28)
+
+                            Text("Must be on or before parent's due date")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.top, 4)
                     }
                 } else if isSubtask, parentDueDate != nil {
-                    infoMessage(
-                        icon: "checkmark.circle.fill",
-                        text: "Will inherit parent's due date",
-                        style: .success
-                    )
-                    .padding(.top, 8)
+                    HStack(spacing: DesignSystem.Spacing.xs) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                            .frame(width: 28)
+
+                        Text("Will inherit parent's due date")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 4)
                 }
             }
             
@@ -772,28 +730,26 @@ struct TaskComposerForm: View {
 
                 // Show parent's auto-calculated estimate if subtask (duration mode only)
                 if unifiedEstimationMode == .duration && isSubtask, let parentTotal = parentSubtaskEstimateTotal, parentTotal > 0 {
-                    HStack(spacing: 10) {
+                    HStack(spacing: DesignSystem.Spacing.xs) {
                         Image(systemName: "clock.badge.checkmark")
                             .font(.body)
                             .foregroundStyle(.blue)
-                            .frame(width: 20)
+                            .frame(width: 28)
 
                         VStack(alignment: .leading, spacing: 2) {
+                            Text((parentTotal * 60).formattedTime())
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.blue)
+
                             Text("Parent's Estimate")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            Text((parentTotal * 60).formattedTime())
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.blue)
                         }
 
                         Spacer()
                     }
-                    .padding(10)
-                    .background(Color.blue.opacity(0.08))
-                    .cornerRadius(6)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 4)
                 }
 
                 // MODE 1: DURATION (Manual Entry)
@@ -815,12 +771,25 @@ struct TaskComposerForm: View {
                     
                     if !hasEstimate {
                         // Show auto-calculated info when NOT overriding
-                        resultCard(
-                            icon: "sum",
-                            title: "Auto-Calculated from Subtasks",
-                            value: ((taskSubtaskEstimateTotal ?? 0) * 60).formattedTime(),
-                            color: .green
-                        )
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "sum")
+                                .font(.body)
+                                .foregroundStyle(.green)
+                                .frame(width: 28)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(((taskSubtaskEstimateTotal ?? 0) * 60).formattedTime())
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.green)
+
+                                Text("Auto-Calculated from Subtasks")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+                        }
                     }
                 } else {
                     // Regular task or parent without subtask estimates - standard toggle
@@ -865,29 +834,52 @@ struct TaskComposerForm: View {
                     // Show calculated total below
                     let totalMinutes = (estimateHours * 60) + estimateMinutes
                     if totalMinutes > 0 {
-                        resultCard(
-                            icon: "clock.fill",
-                            title: "Estimated Duration",
-                            value: (totalMinutes * 60).formattedTime(),
-                            color: .blue
-                        )
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "clock.fill")
+                                .font(.body)
+                                .foregroundStyle(.blue)
+                                .frame(width: 28)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text((totalMinutes * 60).formattedTime())
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.blue)
+
+                                Text("Estimated Duration")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+                        }
                         .padding(.top, 4)
                     } else {
-                        infoMessage(
-                            icon: "exclamationmark.triangle",
-                            text: "Setting 0 time will remove the estimate",
-                            style: .warning
-                        )
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                                .frame(width: 28)
+
+                            Text("Setting 0 time will remove the estimate")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         .padding(.top, 4)
                     }
 
                     // Show override warning when parent overriding subtasks
                     if hasSubtasksWithEstimates {
-                        infoMessage(
-                            icon: "info.circle.fill",
-                            text: "Custom estimate will be used instead of auto-calculated \(((taskSubtaskEstimateTotal ?? 0) * 60).formattedTime()) from subtasks",
-                            style: .warning
-                        )
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "info.circle")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                                .frame(width: 28)
+
+                            Text("Custom estimate will be used instead of auto-calculated \(((taskSubtaskEstimateTotal ?? 0) * 60).formattedTime()) from subtasks")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         .padding(.top, 4)
                     }
                 }
@@ -937,18 +929,37 @@ struct TaskComposerForm: View {
             Section("Personnel") {
                 if personnelIsAutoCalculated {
                     // Read-only display when auto-calculated
-                    infoMessage(
-                        icon: "lock.fill",
-                        text: "Personnel count is auto-calculated from the estimation calculator above",
-                        style: .info
-                    )
+                    HStack(spacing: DesignSystem.Spacing.xs) {
+                        Image(systemName: "lock.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.blue)
+                            .frame(width: 28)
 
-                    resultCard(
-                        icon: "person.2.fill",
-                        title: "Expected Personnel",
-                        value: "\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")",
-                        color: .blue
-                    )
+                        Text("Personnel count is auto-calculated from the estimation calculator above")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+
+                    HStack(spacing: DesignSystem.Spacing.xs) {
+                        Image(systemName: "person.2.fill")
+                            .font(.body)
+                            .foregroundStyle(.blue)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.blue)
+
+                            Text("Expected Personnel")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+                    }
                     .padding(.top, 8)
 
                     Button {
@@ -976,18 +987,29 @@ struct TaskComposerForm: View {
                         .pickerStyle(.wheel)
                         .frame(height: 120)
 
-                        infoMessage(
-                            icon: "info.circle.fill",
-                            text: "Pre-fills time entry forms with this count",
-                            style: .info
-                        )
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.blue)
+                                .frame(width: 28)
+
+                            Text("Pre-fills time entry forms with this count")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         .padding(.top, 8)
                     } else {
-                        infoMessage(
-                            icon: "info.circle.fill",
-                            text: "Defaults to 1 person if not set",
-                            style: .info
-                        )
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.blue)
+                                .frame(width: 28)
+
+                            Text("Defaults to 1 person if not set")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
             }
