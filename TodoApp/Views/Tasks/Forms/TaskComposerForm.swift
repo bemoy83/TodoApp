@@ -159,6 +159,68 @@ struct TaskComposerForm: View {
         }
     }
 
+    // MARK: - Reusable UI Components
+
+    /// A card-style container for displaying calculated results
+    @ViewBuilder
+    private func resultCard(icon: String, title: String, value: String, color: Color = .green) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(color)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(color)
+            }
+
+            Spacer()
+        }
+        .padding(12)
+        .background(color.opacity(0.08))
+        .cornerRadius(8)
+    }
+
+    /// A standardized info/warning/success message box
+    @ViewBuilder
+    private func infoMessage(icon: String, text: String, style: InfoMessageStyle = .info) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundStyle(style.color)
+                .frame(width: 20)
+
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(style.color)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(style.color.opacity(0.08))
+        .cornerRadius(6)
+    }
+
+    private enum InfoMessageStyle {
+        case info, success, warning, error
+
+        var color: Color {
+            switch self {
+            case .info: return .blue
+            case .success: return .green
+            case .warning: return .orange
+            case .error: return .red
+            }
+        }
+    }
+
     // MARK: - View Builders
 
     @ViewBuilder
@@ -206,14 +268,27 @@ struct TaskComposerForm: View {
 
             // Show historical productivity if available
             if let productivity = historicalProductivity {
-                HStack {
-                    Image(systemName: "chart.bar.fill")
-                        .font(.caption2)
+                HStack(spacing: 8) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.body)
                         .foregroundStyle(.green)
-                    Text("Historical avg: \(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .frame(width: 20)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Historical Average")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.green)
+                    }
+
+                    Spacer()
                 }
+                .padding(10)
+                .background(Color.green.opacity(0.08))
+                .cornerRadius(6)
             }
         }
 
@@ -253,6 +328,7 @@ struct TaskComposerForm: View {
                 DisclosureGroup {
                     HStack {
                         Text("Productivity Rate")
+                            .font(.subheadline)
                         Spacer()
                         TextField("Rate", value: Binding(
                             get: { productivityRate ?? 0 },
@@ -265,24 +341,24 @@ struct TaskComposerForm: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    .padding(.top, 8)
                 } label: {
-                    HStack {
+                    Label {
+                        Text("Override Productivity Rate")
+                            .font(.subheadline)
+                    } icon: {
                         Image(systemName: "slider.horizontal.3")
-                            .font(.caption2)
-                        Text("Override Rate")
-                            .font(.caption)
                     }
                     .foregroundStyle(.blue)
                 }
+                .padding(.top, 8)
             }
         } else if taskType != nil {
-            HStack {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.caption2)
-                Text("Select a task type with a quantifiable unit")
-                    .font(.caption2)
-            }
-            .foregroundStyle(.orange)
+            infoMessage(
+                icon: "exclamationmark.triangle.fill",
+                text: "Select a task type with a quantifiable unit to enable quantity tracking",
+                style: .warning
+            )
         }
     }
 
@@ -309,15 +385,13 @@ struct TaskComposerForm: View {
         if hasEstimate {
             let totalSeconds = (estimateHours * 3600) + (estimateMinutes * 60)
             if totalSeconds > 0 {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("Estimated Duration:")
-                    Spacer()
-                    Text(totalSeconds.formattedTime())
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.green)
-                }
+                resultCard(
+                    icon: "checkmark.circle.fill",
+                    title: "Estimated Duration",
+                    value: totalSeconds.formattedTime(),
+                    color: .green
+                )
+                .padding(.top, 8)
             }
         }
     }
@@ -365,37 +439,24 @@ struct TaskComposerForm: View {
 
         // Show calculated result
         if hasPersonnel, let personnel = expectedPersonnelCount {
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                Text("Required Personnel:")
-                Spacer()
-                Text("\(personnel) \(personnel == 1 ? "person" : "people")")
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.green)
-            }
+            resultCard(
+                icon: "person.2.fill",
+                title: "Required Personnel",
+                value: "\(personnel) \(personnel == 1 ? "person" : "people")",
+                color: .green
+            )
+            .padding(.top, 8)
         }
     }
 
     @ViewBuilder
     private var manualEntryInfo: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "info.circle")
-                    .font(.caption)
-                    .foregroundStyle(.blue)
-                Text("Manual Entry Mode")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.blue)
-            }
-
-            Text("Track quantity and set time/personnel manually. Productivity rate will be calculated when the task is completed.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.vertical, 4)
+        infoMessage(
+            icon: "hand.tap.fill",
+            text: "Track quantity and set time/personnel manually. Productivity rate will be calculated when the task is completed.",
+            style: .info
+        )
+        .padding(.top, 8)
     }
 
     var body: some View {
@@ -431,25 +492,32 @@ struct TaskComposerForm: View {
             // Project
             if isSubtask {
                 Section("Project") {
-                    HStack {
-                        Image(systemName: "info.circle")
-                            .foregroundStyle(.secondary)
-                            .font(.subheadline)
-                        
-                        if let project = inheritedProject {
-                            HStack(spacing: 8) {
-                                Circle()
-                                    .fill(Color(hex: project.color))
-                                    .frame(width: 10, height: 10)
-                                Text("\(project.title) (inherited from parent)")
+                    if let project = inheritedProject {
+                        HStack(spacing: 10) {
+                            Circle()
+                                .fill(Color(hex: project.color))
+                                .frame(width: 24, height: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Inherited from Parent")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(project.title)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
                             }
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        } else {
-                            Text("No project (inherited from parent)")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+
+                            Spacer()
                         }
+                        .padding(10)
+                        .background(Color(hex: project.color).opacity(0.08))
+                        .cornerRadius(6)
+                    } else {
+                        infoMessage(
+                            icon: "folder.badge.questionmark",
+                            text: "No project (inherited from parent)",
+                            style: .info
+                        )
                     }
                 }
             } else {
@@ -482,30 +550,41 @@ struct TaskComposerForm: View {
             // Due date
             Section("Due Date") {
                 if isSubtask {
-                    HStack {
-                        Image(systemName: "calendar")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        if let p = parentDueDate {
+                    if let p = parentDueDate {
+                        HStack(spacing: 10) {
+                            Image(systemName: "calendar.badge.clock")
+                                .font(.body)
+                                .foregroundStyle(.blue)
+                                .frame(width: 20)
+
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Parent due date:")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                                Text(p.formatted(date: .abbreviated, time: .shortened))
+                                Text("Parent Due Date")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
+                                Text(p.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.blue)
                             }
-                        } else {
-                            Text("Parent has no due date")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+
+                            Spacer()
                         }
+                        .padding(10)
+                        .background(Color.blue.opacity(0.08))
+                        .cornerRadius(6)
+                        .padding(.bottom, 8)
+                    } else {
+                        infoMessage(
+                            icon: "calendar.badge.exclamationmark",
+                            text: "Parent has no due date set",
+                            style: .info
+                        )
+                        .padding(.bottom, 8)
                     }
-                    .padding(.vertical, 4)
                 }
-                
+
                 Toggle(isSubtask ? "Set Custom Due Date" : "Set Due Date", isOn: $hasDueDate)
-                
+
                 if hasDueDate {
                     DatePicker(
                         "Due Date",
@@ -515,24 +594,22 @@ struct TaskComposerForm: View {
                     .onChange(of: dueDate) { _, newValue in
                         validateSubtaskDueDate(newValue)
                     }
-                    
+
                     if isSubtask, parentDueDate != nil {
-                        HStack {
-                            Image(systemName: "info.circle")
-                                .font(.caption2)
-                            Text("Must be on or before parent's due date")
-                                .font(.caption2)
-                        }
-                        .foregroundStyle(.orange)
+                        infoMessage(
+                            icon: "info.circle.fill",
+                            text: "Must be on or before parent's due date",
+                            style: .warning
+                        )
+                        .padding(.top, 8)
                     }
                 } else if isSubtask, parentDueDate != nil {
-                    HStack {
-                        Image(systemName: "checkmark.circle")
-                            .font(.caption2)
-                        Text("Will inherit parent's due date")
-                            .font(.caption2)
-                    }
-                    .foregroundStyle(.green)
+                    infoMessage(
+                        icon: "checkmark.circle.fill",
+                        text: "Will inherit parent's due date",
+                        style: .success
+                    )
+                    .padding(.top, 8)
                 }
             }
             
@@ -549,20 +626,28 @@ struct TaskComposerForm: View {
 
                 // Show parent's auto-calculated estimate if subtask (duration mode only)
                 if unifiedEstimationMode == .duration && isSubtask, let parentTotal = parentSubtaskEstimateTotal, parentTotal > 0 {
-                    HStack {
-                        Image(systemName: "info.circle")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 10) {
+                        Image(systemName: "clock.badge.checkmark")
+                            .font(.body)
+                            .foregroundStyle(.blue)
+                            .frame(width: 20)
+
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Parent's estimate (from subtasks):")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                            Text((parentTotal * 60).formattedTime())
+                            Text("Parent's Estimate")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                            Text((parentTotal * 60).formattedTime())
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.blue)
                         }
+
+                        Spacer()
                     }
-                    .padding(.vertical, 4)
+                    .padding(10)
+                    .background(Color.blue.opacity(0.08))
+                    .cornerRadius(6)
+                    .padding(.bottom, 8)
                 }
 
                 // MODE 1: DURATION (Manual Entry)
@@ -584,15 +669,12 @@ struct TaskComposerForm: View {
                     
                     if !hasEstimate {
                         // Show auto-calculated info when NOT overriding
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "checkmark.circle")
-                                .font(.caption2)
-                                .padding(.top, 2)
-                            Text("Auto-calculated from subtasks: \(((taskSubtaskEstimateTotal ?? 0) * 60).formattedTime())")
-                                .font(.caption2)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .foregroundStyle(.green)
+                        resultCard(
+                            icon: "sum",
+                            title: "Auto-Calculated from Subtasks",
+                            value: ((taskSubtaskEstimateTotal ?? 0) * 60).formattedTime(),
+                            color: .green
+                        )
                     }
                 } else {
                     // Regular task or parent without subtask estimates - standard toggle
@@ -637,34 +719,30 @@ struct TaskComposerForm: View {
                     // Show calculated total below
                     let totalMinutes = (estimateHours * 60) + estimateMinutes
                     if totalMinutes > 0 {
-                        HStack {
-                            Image(systemName: "clock")
-                                .font(.caption2)
-                            Text("Total: \((totalMinutes * 60).formattedTime())")
-                                .font(.caption)
-                        }
-                        .foregroundStyle(.secondary)
+                        resultCard(
+                            icon: "clock.fill",
+                            title: "Estimated Duration",
+                            value: (totalMinutes * 60).formattedTime(),
+                            color: .blue
+                        )
+                        .padding(.top, 4)
                     } else {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.caption2)
-                            Text("Setting 0 time will remove the estimate")
-                                .font(.caption2)
-                        }
-                        .foregroundStyle(.orange)
+                        infoMessage(
+                            icon: "exclamationmark.triangle",
+                            text: "Setting 0 time will remove the estimate",
+                            style: .warning
+                        )
+                        .padding(.top, 4)
                     }
 
                     // Show override warning when parent overriding subtasks
                     if hasSubtasksWithEstimates {
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "info.circle")
-                                .font(.caption2)
-                                .padding(.top, 2)
-                            Text("Custom estimate will be used instead of auto-calculated \(((taskSubtaskEstimateTotal ?? 0) * 60).formattedTime()) from subtasks")
-                                .font(.caption2)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .foregroundStyle(.orange)
+                        infoMessage(
+                            icon: "info.circle.fill",
+                            text: "Custom estimate will be used instead of auto-calculated \(((taskSubtaskEstimateTotal ?? 0) * 60).formattedTime()) from subtasks",
+                            style: .warning
+                        )
+                        .padding(.top, 4)
                     }
                 }
                 } // End Duration Mode
@@ -713,29 +791,27 @@ struct TaskComposerForm: View {
             Section("Personnel") {
                 if personnelIsAutoCalculated {
                     // Read-only display when auto-calculated
-                    HStack {
-                        Image(systemName: "lock.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.blue)
-                        Text("Auto-calculated from estimation")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    infoMessage(
+                        icon: "lock.fill",
+                        text: "Personnel count is auto-calculated from the estimation calculator above",
+                        style: .info
+                    )
 
-                    HStack {
-                        Text("Expected Personnel")
-                        Spacer()
-                        Text("\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")")
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.blue)
-                    }
+                    resultCard(
+                        icon: "person.2.fill",
+                        title: "Expected Personnel",
+                        value: "\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")",
+                        color: .blue
+                    )
+                    .padding(.top, 8)
 
-                    Button("Switch to Manual Mode") {
-                        // Switch to duration mode to allow manual entry
+                    Button {
                         unifiedEstimationMode = .duration
+                    } label: {
+                        Label("Switch to Manual Mode", systemImage: "arrow.triangle.2.circlepath")
+                            .font(.subheadline)
                     }
-                    .font(.caption)
-                    .foregroundStyle(.blue)
+                    .padding(.top, 4)
                 } else {
                     // Editable mode
                     Toggle("Set Expected Personnel", isOn: $hasPersonnel)
@@ -754,21 +830,18 @@ struct TaskComposerForm: View {
                         .pickerStyle(.wheel)
                         .frame(height: 120)
 
-                        HStack {
-                            Image(systemName: "info.circle")
-                                .font(.caption2)
-                            Text("Pre-fills time entry forms with this count")
-                                .font(.caption2)
-                        }
-                        .foregroundStyle(.secondary)
+                        infoMessage(
+                            icon: "info.circle.fill",
+                            text: "Pre-fills time entry forms with this count",
+                            style: .info
+                        )
+                        .padding(.top, 8)
                     } else {
-                        HStack {
-                            Image(systemName: "info.circle")
-                                .font(.caption2)
-                            Text("Defaults to 1 person if not set")
-                                .font(.caption2)
-                        }
-                        .foregroundStyle(.secondary)
+                        infoMessage(
+                            icon: "info.circle.fill",
+                            text: "Defaults to 1 person if not set",
+                            style: .info
+                        )
                     }
                 }
             }

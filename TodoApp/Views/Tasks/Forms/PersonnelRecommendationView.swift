@@ -31,47 +31,51 @@ struct PersonnelRecommendationView: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
-
+        VStack(alignment: .leading, spacing: 10) {
             // Header
-            HStack {
-                Image(systemName: "chart.bar.doc.horizontal")
+            HStack(spacing: 8) {
+                Image(systemName: "chart.bar.doc.horizontal.fill")
+                    .font(.body)
                     .foregroundStyle(.blue)
+                    .frame(width: 20)
+
                 Text("Resource Planning")
-                    .font(.caption)
+                    .font(.subheadline)
                     .fontWeight(.semibold)
+                    .foregroundStyle(.blue)
             }
-            .foregroundStyle(.blue)
+            .padding(.bottom, 4)
 
             // Available time
             HStack {
                 Text("Available time:")
-                    .font(.caption2)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Text(String(format: "%.1f hours", availableHours))
-                    .font(.caption2)
-                    .fontWeight(.medium)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
             }
-            .foregroundStyle(.secondary)
 
             // Minimum crew
             HStack {
                 Text("Minimum crew:")
-                    .font(.caption2)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(minimumPersonnel) \(minimumPersonnel == 1 ? "person" : "people")")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.orange)
             }
 
             Divider()
+                .padding(.vertical, 4)
 
             // Scenarios label
             Text("Scenarios:")
-                .font(.caption)
-                .fontWeight(.medium)
+                .font(.subheadline)
+                .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
 
             // Scenario buttons
@@ -92,37 +96,38 @@ struct PersonnelRecommendationView: View {
             onSelect(scenario.people)
             HapticManager.selection()
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Image(systemName: scenario.icon)
-                    .font(.caption2)
+                    .font(.body)
                     .foregroundStyle(scenario.people == minimumPersonnel ? .orange : .green)
-                    .frame(width: 16)
+                    .frame(width: 18)
 
                 Text("\(scenario.people) \(scenario.people == 1 ? "person" : "people")")
-                    .font(.caption)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
 
                 Spacer()
 
-                Text(String(format: "%.1f hrs/person", scenario.hoursPerPerson))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Text(scenario.status)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundStyle(scenario.people == minimumPersonnel ? .orange : .green)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(String(format: "%.1f hrs/person", scenario.hoursPerPerson))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(scenario.status)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(scenario.people == minimumPersonnel ? .orange : .green)
+                }
 
                 if currentSelection == scenario.people {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.caption)
+                        .font(.body)
                         .foregroundStyle(.blue)
                 }
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
+            .padding(10)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(currentSelection == scenario.people ? Color.blue.opacity(0.1) : Color.secondary.opacity(0.05))
+                    .fill(currentSelection == scenario.people ? Color.blue.opacity(0.12) : Color.secondary.opacity(0.06))
             )
         }
         .buttonStyle(.plain)
