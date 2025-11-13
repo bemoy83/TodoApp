@@ -6,7 +6,7 @@ import SwiftUI
 class TaskComposerCalculatorViewModel {
     // Inputs
     var quantity: String = ""
-    var unit: UnitType = .hours
+    var unit: UnitType = .none
     var taskType: String?
     var calculationMode: TaskEstimator.QuantityCalculationMode = .calculateDuration
     var productivityRate: Double?
