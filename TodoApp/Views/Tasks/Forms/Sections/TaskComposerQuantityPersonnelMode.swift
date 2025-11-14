@@ -26,6 +26,9 @@ struct TaskComposerQuantityPersonnelMode: View {
             productivityOverrideView
             calculatedResultView
         }
+        .transaction { transaction in
+            transaction.animation = nil
+        }
     }
 
     // MARK: - Subviews
@@ -86,6 +89,7 @@ struct TaskComposerQuantityPersonnelMode: View {
             .frame(height: 120)
             .clipped()
         }
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder
