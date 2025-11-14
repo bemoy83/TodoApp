@@ -90,28 +90,23 @@ struct TaskComposerQuantitySection: View {
     private var quantityPickerSheet: some View {
         NavigationStack {
             VStack(spacing: DesignSystem.Spacing.lg) {
-                Text("Set Quantity")
+                Text(taskType != nil ? "Set Quantity for \(taskType!)" : "Set Quantity")
                     .font(.headline)
                     .padding(.top, DesignSystem.Spacing.md)
 
-                HStack {
-                    Image(systemName: unit.icon)
-                        .foregroundStyle(.blue)
+                HStack(spacing: 4) {
+                    TextField("0", text: $quantity)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.center)
+                        .font(.title2)
+                        .focused($isQuantityFieldFocused)
+                        .frame(maxWidth: 120)
+
                     Text(unit.displayName)
-                        .font(.subheadline)
+                        .font(.title2)
                         .foregroundStyle(.secondary)
                 }
-
-                TextField("Enter quantity", text: $quantity)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.center)
-                    .font(.title2)
-                    .focused($isQuantityFieldFocused)
-                    .padding(.horizontal)
-
-                Text("Enter the quantity for this task")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                .padding(.horizontal)
 
                 Spacer()
             }
