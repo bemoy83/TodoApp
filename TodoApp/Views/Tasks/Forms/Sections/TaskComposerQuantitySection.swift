@@ -94,24 +94,29 @@ struct TaskComposerQuantitySection: View {
                     .font(.headline)
                     .padding(.top, DesignSystem.Spacing.md)
 
-                HStack(spacing: DesignSystem.Spacing.md) {
-                    Image(systemName: unit.icon)
-                        .font(.title2)
-                        .foregroundStyle(.blue)
-                        .frame(width: 30)
+                VStack(spacing: DesignSystem.Spacing.sm) {
+                    // Unit badge
+                    HStack(spacing: 6) {
+                        Image(systemName: unit.icon)
+                            .font(.subheadline)
+                        Text(unit.displayName)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundStyle(.blue)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
 
+                    // Input field
                     TextField("0", text: $quantity)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.center)
-                        .font(.title2)
+                        .font(.system(size: 48, weight: .regular))
                         .focused($isQuantityFieldFocused)
-
-                    Text(unit.displayName)
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 100, alignment: .leading)
+                        .frame(maxWidth: 200)
                 }
-                .padding(.horizontal)
 
                 Spacer()
             }
