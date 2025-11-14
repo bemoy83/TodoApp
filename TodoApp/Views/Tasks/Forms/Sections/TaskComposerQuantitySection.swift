@@ -124,6 +124,7 @@ struct TaskComposerQuantitySection: View {
                 unit: unit,
                 onUpdate: onCalculationUpdate
             )
+            .id("duration-mode")
 
         case .calculatePersonnel:
             TaskComposerQuantityPersonnelMode(
@@ -138,12 +139,14 @@ struct TaskComposerQuantitySection: View {
                 unit: unit,
                 onUpdate: onCalculationUpdate
             )
+            .id("personnel-mode")
 
         case .manualEntry:
             TaskComposerQuantityManualMode(
                 productivityRate: productivityRate,
                 unit: unit
             )
+            .id("manual-mode")
         }
     }
 

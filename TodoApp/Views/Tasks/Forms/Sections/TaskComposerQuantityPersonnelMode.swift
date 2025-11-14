@@ -83,7 +83,8 @@ struct TaskComposerQuantityPersonnelMode: View {
             )
             .labelsHidden()
             .datePickerStyle(.wheel)
-            .frame(maxWidth: .infinity, alignment: .center)
+            .frame(height: 120)
+            .clipped()
         }
     }
 
