@@ -22,8 +22,7 @@ struct TaskComposerQuantityPersonnelMode: View {
                 Divider()
             }
 
-            durationHoursPickerView
-            durationMinutesPickerView
+            durationPickerView
             productivityOverrideView
             calculatedResultView
         }
@@ -55,45 +54,36 @@ struct TaskComposerQuantityPersonnelMode: View {
         }
     }
 
-    private var durationHoursPickerView: some View {
-        HStack {
-            Text("Duration (hours)")
-            Spacer()
-            Picker("Hours", selection: Binding(
-                get: { estimateHours },
-                set: {
-                    estimateHours = $0
-                    hasEstimate = true
-                    onUpdate()
-                }
-            )) {
-                ForEach(0..<100, id: \.self) { hour in
-                    Text("\(hour)").tag(hour)
-                }
-            }
-            .pickerStyle(.menu)
-            .frame(width: 70)
-        }
-    }
+    private var durationPickerView: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            Text("Duration")
+                .font(.subheadline)
+                .foregroundStyle(.primary)
 
-    private var durationMinutesPickerView: some View {
-        HStack {
-            Text("Minutes")
-            Spacer()
-            Picker("Minutes", selection: Binding(
-                get: { estimateMinutes },
-                set: {
-                    estimateMinutes = $0
-                    hasEstimate = true
-                    onUpdate()
-                }
-            )) {
-                ForEach([0, 15, 30, 45], id: \.self) { minute in
-                    Text("\(minute)").tag(minute)
-                }
-            }
-            .pickerStyle(.menu)
-            .frame(width: 70)
+            DatePicker(
+                "Set Duration",
+                selection: Binding(
+                    get: {
+                        Calendar.current.date(
+                            from: DateComponents(
+                                hour: estimateHours,
+                                minute: estimateMinutes
+                            )
+                        ) ?? Date()
+                    },
+                    set: { newValue in
+                        let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+                        estimateHours = components.hour ?? 0
+                        estimateMinutes = components.minute ?? 0
+                        hasEstimate = true
+                        onUpdate()
+                    }
+                ),
+                displayedComponents: [.hourAndMinute]
+            )
+            .labelsHidden()
+            .datePickerStyle(.wheel)
+            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 
