@@ -73,7 +73,6 @@ struct TaskComposerQuantityDurationMode: View {
                             }
                         ), format: .number)
                         .keyboardType(.decimalPad)
-                        .textFieldStyle(.roundedBorder)
 
                         Text("\(unit.displayName)/person-hr")
                             .font(.caption)
