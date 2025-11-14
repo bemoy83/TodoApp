@@ -37,15 +37,17 @@ struct TaskComposerQuantityDurationMode: View {
 
     private func productivityRateView(_ productivity: Double) -> some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            // Historical Average (Read-Only)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Historical Average")
+            // Historical Average Badge
+            HStack(spacing: 4) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.caption2)
+                Text("Historical Average:")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
                 Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.caption)
+                    .fontWeight(.medium)
             }
+            .foregroundStyle(.secondary)
 
             // Toggle for custom rate
             Toggle("Use Custom Rate", isOn: $useCustomRate)
