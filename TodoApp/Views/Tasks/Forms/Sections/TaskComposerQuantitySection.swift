@@ -94,17 +94,22 @@ struct TaskComposerQuantitySection: View {
                     .font(.headline)
                     .padding(.top, DesignSystem.Spacing.md)
 
-                HStack(spacing: 4) {
+                HStack(spacing: DesignSystem.Spacing.md) {
+                    Image(systemName: unit.icon)
+                        .font(.title2)
+                        .foregroundStyle(.blue)
+                        .frame(width: 30)
+
                     TextField("0", text: $quantity)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.center)
                         .font(.title2)
                         .focused($isQuantityFieldFocused)
-                        .frame(maxWidth: 120)
 
                     Text(unit.displayName)
                         .font(.title2)
                         .foregroundStyle(.secondary)
+                        .frame(width: 100, alignment: .leading)
                 }
                 .padding(.horizontal)
 
