@@ -15,6 +15,8 @@ struct TaskComposerQuantityDurationMode: View {
     let unit: UnitType
     let onUpdate: () -> Void
 
+    @State private var showPersonnelPicker = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             if let productivity = historicalProductivity {
@@ -55,20 +57,57 @@ struct TaskComposerQuantityDurationMode: View {
     }
 
     private var personnelStepperView: some View {
-        Stepper(value: Binding(
-            get: { expectedPersonnelCount ?? 1 },
-            set: {
-                expectedPersonnelCount = $0
-                hasPersonnel = true
-                onUpdate()
-            }
-        ), in: 1...20) {
-            HStack {
-                Text("Personnel")
+        HStack {
+            Text("Personnel")
+            Spacer()
+            Text("\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")")
+                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            showPersonnelPicker = true
+        }
+        .sheet(isPresented: $showPersonnelPicker) {
+            personnelPickerSheet
+        }
+    }
+
+    private var personnelPickerSheet: some View {
+        NavigationStack {
+            VStack(spacing: DesignSystem.Spacing.lg) {
+                Text("Select Personnel Count")
+                    .font(.headline)
+                    .padding(.top, DesignSystem.Spacing.md)
+
+                Picker("Personnel", selection: Binding(
+                    get: { expectedPersonnelCount ?? 1 },
+                    set: {
+                        expectedPersonnelCount = $0
+                        hasPersonnel = true
+                        onUpdate()
+                    }
+                )) {
+                    ForEach(1...20, id: \.self) { count in
+                        Text("\(count) \(count == 1 ? "person" : "people")")
+                            .tag(count)
+                    }
+                }
+                .pickerStyle(.wheel)
+
                 Spacer()
-                Text("\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")")
-                    .foregroundStyle(.secondary)
             }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        showPersonnelPicker = false
+                    }
+                }
+            }
+            .presentationDetents([.height(300)])
+            .presentationDragIndicator(.visible)
         }
     }
 
