@@ -95,21 +95,10 @@ struct TaskComposerQuantitySection: View {
                     .padding(.top, DesignSystem.Spacing.md)
 
                 VStack(spacing: DesignSystem.Spacing.sm) {
-                    // Unit badge
-                    HStack(spacing: 6) {
-                        Image(systemName: unit.icon)
-                            .font(.subheadline)
-                        Text(unit.displayName)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                    }
-                    .foregroundStyle(.blue)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
+                    Text("Unit type: \(unit.displayName)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
-                    // Input field
                     TextField("0", text: $quantity)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.center)
