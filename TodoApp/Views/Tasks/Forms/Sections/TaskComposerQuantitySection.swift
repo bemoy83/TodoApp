@@ -70,9 +70,6 @@ struct TaskComposerQuantitySection: View {
 
     private var quantityInputRow: some View {
         HStack {
-            Image(systemName: unit.icon)
-                .foregroundStyle(.blue)
-                .frame(width: 20)
             Text("Quantity")
             Spacer()
             Text(formattedQuantity)
@@ -107,7 +104,6 @@ struct TaskComposerQuantitySection: View {
 
                 TextField("Enter quantity", text: $quantity)
                     .keyboardType(.decimalPad)
-                    .textFieldStyle(.roundedBorder)
                     .multilineTextAlignment(.center)
                     .font(.title2)
                     .focused($isQuantityFieldFocused)
