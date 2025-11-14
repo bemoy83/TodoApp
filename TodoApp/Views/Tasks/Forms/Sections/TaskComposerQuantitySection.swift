@@ -20,6 +20,7 @@ struct TaskComposerQuantitySection: View {
 
     @State private var historicalProductivity: Double?
     @State private var isProductivityOverrideExpanded = false
+    @FocusState private var isQuantityFieldFocused: Bool
 
     let onCalculationUpdate: () -> Void
 
@@ -82,6 +83,7 @@ struct TaskComposerQuantitySection: View {
         HStack {
             TextField("Quantity", text: $quantity)
                 .keyboardType(.decimalPad)
+                .focused($isQuantityFieldFocused)
 
             Text(unit.displayName)
                 .foregroundStyle(.secondary)
@@ -104,13 +106,15 @@ struct TaskComposerQuantitySection: View {
             .pickerStyle(.segmented)
             .onChange(of: quantityCalculationMode) { _, _ in
                 isProductivityOverrideExpanded = false
+                isQuantityFieldFocused = false // Dismiss keyboard when switching modes
             }
         }
     }
 
     @ViewBuilder
     private var calculationModeView: some View {
-        switch quantityCalculationMode {
+        Group {
+            switch quantityCalculationMode {
         case .calculateDuration:
             TaskComposerQuantityDurationMode(
                 historicalProductivity: $historicalProductivity,
@@ -147,7 +151,9 @@ struct TaskComposerQuantitySection: View {
                 unit: unit
             )
             .id("manual-mode")
+            }
         }
+        .animation(nil, value: quantityCalculationMode)
     }
 
     // MARK: - Helper Methods
