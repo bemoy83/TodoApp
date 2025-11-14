@@ -5,7 +5,6 @@ import SwiftUI
 struct TaskComposerQuantityDurationMode: View {
     @Binding var historicalProductivity: Double?
     @Binding var productivityRate: Double?
-    @Binding var isProductivityOverrideExpanded: Bool
     @Binding var expectedPersonnelCount: Int?
     @Binding var hasPersonnel: Bool
     @Binding var hasEstimate: Bool
@@ -16,6 +15,7 @@ struct TaskComposerQuantityDurationMode: View {
     let onUpdate: () -> Void
 
     @State private var showPersonnelPicker = false
+    @State private var showProductivitySheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -25,7 +25,6 @@ struct TaskComposerQuantityDurationMode: View {
             }
 
             personnelStepperView
-            productivityOverrideView
             calculatedResultView
         }
     }
@@ -34,25 +33,20 @@ struct TaskComposerQuantityDurationMode: View {
 
     private func historicalProductivityView(_ productivity: Double) -> some View {
         HStack {
-            TaskRowIconValueLabel(
-                icon: "chart.line.uptrend.xyaxis",
-                label: "Historical Average",
-                value: "\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr",
-                tint: DesignSystem.Colors.success
-            )
-
+            Text("Productivity Rate")
             Spacer()
-
-            Button {
-                withAnimation {
-                    isProductivityOverrideExpanded.toggle()
-                }
-            } label: {
-                Image(systemName: isProductivityOverrideExpanded ? "pencil.circle.fill" : "pencil.circle")
-                    .font(.body)
-                    .foregroundStyle(.blue)
-            }
-            .buttonStyle(.plain)
+            Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
+                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            showProductivitySheet = true
+        }
+        .sheet(isPresented: $showProductivitySheet) {
+            productivityRateSheet
         }
     }
 
@@ -111,28 +105,63 @@ struct TaskComposerQuantityDurationMode: View {
         }
     }
 
-    @ViewBuilder
-    private var productivityOverrideView: some View {
-        if productivityRate != nil && isProductivityOverrideExpanded {
-            Divider()
+    private var productivityRateSheet: some View {
+        NavigationStack {
+            VStack(spacing: DesignSystem.Spacing.lg) {
+                VStack(spacing: DesignSystem.Spacing.xs) {
+                    Text("Productivity Rate")
+                        .font(.headline)
 
-            HStack {
-                Text("Custom Rate")
-                Spacer()
-                TextField("Rate", value: Binding(
-                    get: { productivityRate ?? 0 },
-                    set: {
-                        productivityRate = $0
+                    Text("Enter custom rate or use historical average")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, DesignSystem.Spacing.md)
+
+                HStack {
+                    TextField("Rate", value: Binding(
+                        get: { productivityRate ?? historicalProductivity ?? 0 },
+                        set: {
+                            productivityRate = $0
+                            onUpdate()
+                        }
+                    ), format: .number)
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.center)
+                    .font(.title2)
+
+                    Text("\(unit.displayName)/person-hr")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, DesignSystem.Spacing.lg)
+
+                if let historical = historicalProductivity {
+                    Button {
+                        productivityRate = historical
                         onUpdate()
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                            Text("Use Historical Average (\(String(format: "%.1f", historical)))")
+                        }
+                        .font(.subheadline)
                     }
-                ), format: .number)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-                Text("\(unit.displayName)/person-hr")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .buttonStyle(.bordered)
+                }
+
+                Spacer()
             }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        showProductivitySheet = false
+                    }
+                }
+            }
+            .presentationDetents([.height(280)])
+            .presentationDragIndicator(.visible)
         }
     }
 

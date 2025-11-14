@@ -19,7 +19,6 @@ struct TaskComposerQuantitySection: View {
     @Query(filter: #Predicate<Task> { task in !task.isArchived }, sort: \Task.order) private var allTasks: [Task]
 
     @State private var historicalProductivity: Double?
-    @State private var isProductivityOverrideExpanded = false
     @FocusState private var isQuantityFieldFocused: Bool
 
     let onCalculationUpdate: () -> Void
@@ -105,7 +104,6 @@ struct TaskComposerQuantitySection: View {
             }
             .pickerStyle(.segmented)
             .onChange(of: quantityCalculationMode) { _, _ in
-                isProductivityOverrideExpanded = false
                 isQuantityFieldFocused = false // Dismiss keyboard when switching modes
             }
         }
@@ -119,7 +117,6 @@ struct TaskComposerQuantitySection: View {
             TaskComposerQuantityDurationMode(
                 historicalProductivity: $historicalProductivity,
                 productivityRate: $productivityRate,
-                isProductivityOverrideExpanded: $isProductivityOverrideExpanded,
                 expectedPersonnelCount: $expectedPersonnelCount,
                 hasPersonnel: $hasPersonnel,
                 hasEstimate: $hasEstimate,
@@ -134,7 +131,6 @@ struct TaskComposerQuantitySection: View {
             TaskComposerQuantityPersonnelMode(
                 historicalProductivity: $historicalProductivity,
                 productivityRate: $productivityRate,
-                isProductivityOverrideExpanded: $isProductivityOverrideExpanded,
                 estimateHours: $estimateHours,
                 estimateMinutes: $estimateMinutes,
                 hasEstimate: $hasEstimate,
