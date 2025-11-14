@@ -19,6 +19,7 @@ struct TaskComposerQuantitySection: View {
     @Query(filter: #Predicate<Task> { task in !task.isArchived }, sort: \Task.order) private var allTasks: [Task]
 
     @State private var historicalProductivity: Double?
+    @State private var showQuantityPicker = false
     @FocusState private var isQuantityFieldFocused: Bool
 
     let onCalculationUpdate: () -> Void
@@ -27,12 +28,8 @@ struct TaskComposerQuantitySection: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             taskTypePickerView
 
-            if taskType != nil {
-                unitDisplayView
-            }
-
             if unit.isQuantifiable {
-                quantityInputView
+                quantityInputRow
                 calculationStrategyView
                 calculationModeView
             } else if taskType != nil {
@@ -64,48 +61,89 @@ struct TaskComposerQuantitySection: View {
         }
     }
 
-    @ViewBuilder
-    private var unitDisplayView: some View {
+    private var formattedQuantity: String {
+        if quantity.isEmpty || quantity == "0" {
+            return "Not set"
+        }
+        return "\(quantity) \(unit.displayName)"
+    }
+
+    private var quantityInputRow: some View {
         HStack {
-            Text("Unit")
+            Image(systemName: unit.icon)
+                .foregroundStyle(.blue)
+                .frame(width: 20)
+            Text("Quantity")
             Spacer()
-            HStack {
-                Image(systemName: unit.icon)
-                Text(unit.displayName)
-            }
-            .foregroundStyle(.secondary)
+            Text(formattedQuantity)
+                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            showQuantityPicker = true
+        }
+        .sheet(isPresented: $showQuantityPicker) {
+            quantityPickerSheet
         }
     }
 
-    @ViewBuilder
-    private var quantityInputView: some View {
-        HStack {
-            TextField("Quantity", text: $quantity)
-                .keyboardType(.decimalPad)
-                .focused($isQuantityFieldFocused)
+    private var quantityPickerSheet: some View {
+        NavigationStack {
+            VStack(spacing: DesignSystem.Spacing.lg) {
+                Text("Set Quantity")
+                    .font(.headline)
+                    .padding(.top, DesignSystem.Spacing.md)
 
-            Text(unit.displayName)
-                .foregroundStyle(.secondary)
+                HStack {
+                    Image(systemName: unit.icon)
+                        .foregroundStyle(.blue)
+                    Text(unit.displayName)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                TextField("Enter quantity", text: $quantity)
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.center)
+                    .font(.title2)
+                    .focused($isQuantityFieldFocused)
+                    .padding(.horizontal)
+
+                Text("Enter the quantity for this task")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+            }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        showQuantityPicker = false
+                        isQuantityFieldFocused = false
+                    }
+                }
+            }
+            .presentationDetents([.height(300)])
+            .presentationDragIndicator(.visible)
+            .onAppear {
+                isQuantityFieldFocused = true
+            }
         }
     }
 
     private var calculationStrategyView: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-            TaskFormSectionHeader(title: "Calculation Strategy")
-
-            Text("Choose what to calculate from quantity and productivity rate")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Picker("Calculator Mode", selection: $quantityCalculationMode) {
-                Text("Duration").tag(TaskEstimator.QuantityCalculationMode.calculateDuration)
-                Text("Personnel").tag(TaskEstimator.QuantityCalculationMode.calculatePersonnel)
-                Text("Manual").tag(TaskEstimator.QuantityCalculationMode.manualEntry)
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: quantityCalculationMode) { _, _ in
-                isQuantityFieldFocused = false // Dismiss keyboard when switching modes
-            }
+        Picker("Calculator Mode", selection: $quantityCalculationMode) {
+            Text("Duration").tag(TaskEstimator.QuantityCalculationMode.calculateDuration)
+            Text("Personnel").tag(TaskEstimator.QuantityCalculationMode.calculatePersonnel)
+            Text("Manual").tag(TaskEstimator.QuantityCalculationMode.manualEntry)
+        }
+        .pickerStyle(.segmented)
+        .onChange(of: quantityCalculationMode) { _, _ in
+            isQuantityFieldFocused = false // Dismiss keyboard when switching modes
         }
     }
 
