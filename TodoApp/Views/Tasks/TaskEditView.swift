@@ -15,6 +15,7 @@ struct TaskEditView: View {
     @State private var dueDate: Date
     @State private var selectedProject: Project?
     @State private var notesText: String
+    @State private var hasNotes: Bool
 
     // NEW: Time estimate state
     @State private var hasEstimate: Bool
@@ -50,6 +51,7 @@ struct TaskEditView: View {
         _dueDate = State(initialValue: task.dueDate ?? .now)
         _selectedProject = State(initialValue: task.project)
         _notesText = State(initialValue: task.notes ?? "")
+        _hasNotes = State(initialValue: !(task.notes ?? "").isEmpty)
 
         // Initialize estimate state (convert seconds to hours/minutes for display)
         let estimateSeconds = task.estimatedSeconds ?? 0
@@ -88,6 +90,7 @@ struct TaskEditView: View {
             TaskComposerForm(
                 title: $task.title,
                 notes: $notesText,
+                hasNotes: $hasNotes,
                 selectedProject: Binding(
                     get: { task.project ?? selectedProject },
                     set: { task.project = $0; selectedProject = $0 }
