@@ -30,6 +30,10 @@ struct TaskComposerQuantitySection: View {
 
             if unit.isQuantifiable {
                 quantityInputRow
+
+                Divider()
+                    .padding(.vertical, DesignSystem.Spacing.md)
+
                 calculationStrategyView
                 calculationModeView
             } else if taskType != nil {
@@ -96,13 +100,13 @@ struct TaskComposerQuantitySection: View {
 
                 VStack(spacing: DesignSystem.Spacing.sm) {
                     Text("Unit type: \(unit.displayName)")
-                        .font(.caption)
+                        .font(.headline)
                         .foregroundStyle(.secondary)
 
                     TextField("0", text: $quantity)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.center)
-                        .font(.system(size: 48, weight: .regular))
+                        .font(.title2)
                         .focused($isQuantityFieldFocused)
                         .frame(maxWidth: 200)
                 }
