@@ -41,9 +41,19 @@ struct TaskComposerEstimateSection: View {
 
     var body: some View {
         Section("Time Estimation & Calculator") {
-            estimationModePickerView
-            parentEstimateView
-            estimationContentView
+            Toggle("Set Estimate", isOn: $hasEstimate)
+
+            if hasEstimate {
+                estimationModePickerView
+                parentEstimateView
+                estimationContentView
+            } else {
+                TaskInlineInfoRow(
+                    icon: "info.circle",
+                    message: "No estimate set for this task",
+                    style: .info
+                )
+            }
         }
     }
 
