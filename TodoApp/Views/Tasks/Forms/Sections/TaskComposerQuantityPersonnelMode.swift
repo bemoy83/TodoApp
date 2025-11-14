@@ -15,38 +15,86 @@ struct TaskComposerQuantityPersonnelMode: View {
     let onUpdate: () -> Void
 
     @State private var showDurationPicker = false
-    @State private var showProductivitySheet = false
+    @State private var useCustomRate = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             if let productivity = historicalProductivity {
-                historicalProductivityView(productivity)
+                productivityRateView(productivity)
                 Divider()
             }
 
             durationPickerView
             calculatedResultView
         }
+        .onAppear {
+            // Set initial toggle state based on whether custom rate exists
+            useCustomRate = productivityRate != nil && productivityRate != historicalProductivity
+        }
     }
 
     // MARK: - Subviews
 
-    private func historicalProductivityView(_ productivity: Double) -> some View {
-        HStack {
-            Text("Productivity Rate")
-            Spacer()
-            Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
-                .foregroundStyle(.secondary)
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            showProductivitySheet = true
-        }
-        .sheet(isPresented: $showProductivitySheet) {
-            productivityRateSheet
+    private func productivityRateView(_ productivity: Double) -> some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // Historical Average (Read-Only)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Historical Average")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+            }
+
+            // Toggle for custom rate
+            Toggle("Use Custom Rate", isOn: $useCustomRate)
+                .onChange(of: useCustomRate) { _, newValue in
+                    if !newValue {
+                        // Reset to historical when disabled
+                        productivityRate = productivity
+                        onUpdate()
+                    }
+                }
+
+            // Expanded custom rate input
+            if useCustomRate {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                    Text("Custom Rate")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    HStack {
+                        TextField("Rate", value: Binding(
+                            get: { productivityRate ?? productivity },
+                            set: {
+                                productivityRate = $0
+                                onUpdate()
+                            }
+                        ), format: .number)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
+
+                        Text("\(unit.displayName)/person-hr")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Button {
+                        productivityRate = productivity
+                        onUpdate()
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.caption)
+                            Text("Use Historical Average (\(String(format: "%.1f", productivity)))")
+                                .font(.caption)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
         }
     }
 
@@ -126,66 +174,6 @@ struct TaskComposerQuantityPersonnelMode: View {
             return "\(estimateHours)h"
         } else {
             return "\(estimateMinutes)m"
-        }
-    }
-
-    private var productivityRateSheet: some View {
-        NavigationStack {
-            VStack(spacing: DesignSystem.Spacing.lg) {
-                VStack(spacing: DesignSystem.Spacing.xs) {
-                    Text("Productivity Rate")
-                        .font(.headline)
-
-                    Text("Enter custom rate or use historical average")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, DesignSystem.Spacing.md)
-
-                HStack {
-                    TextField("Rate", value: Binding(
-                        get: { productivityRate ?? historicalProductivity ?? 0 },
-                        set: {
-                            productivityRate = $0
-                            onUpdate()
-                        }
-                    ), format: .number)
-                    .keyboardType(.decimalPad)
-                    .textFieldStyle(.roundedBorder)
-                    .multilineTextAlignment(.center)
-                    .font(.title2)
-
-                    Text("\(unit.displayName)/person-hr")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, DesignSystem.Spacing.lg)
-
-                if let historical = historicalProductivity {
-                    Button {
-                        productivityRate = historical
-                        onUpdate()
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.counterclockwise")
-                            Text("Use Historical Average (\(String(format: "%.1f", historical)))")
-                        }
-                        .font(.subheadline)
-                    }
-                    .buttonStyle(.bordered)
-                }
-
-                Spacer()
-            }
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        showProductivitySheet = false
-                    }
-                }
-            }
-            .presentationDetents([.height(280)])
-            .presentationDragIndicator(.visible)
         }
     }
 
