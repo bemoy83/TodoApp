@@ -54,6 +54,22 @@ struct TaskComposerQuantitySection: View {
                 personnelInputRow
                 durationInputRow
 
+                // Shared calculation mode menu
+                    .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
+                        Button("Calculate Duration") {
+                            quantityCalculationMode = .calculateDuration
+                        }
+                        Button("Calculate Personnel") {
+                            quantityCalculationMode = .calculatePersonnel
+                        }
+                        Button("Calculate Productivity (Manual)") {
+                            quantityCalculationMode = .manualEntry
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("Choose what to calculate from quantity and other inputs")
+                    }
+
                 // Show result summary
                 if hasEstimate || hasPersonnel {
                     Divider()
@@ -209,17 +225,6 @@ struct TaskComposerQuantitySection: View {
         }
         .sheet(isPresented: $showPersonnelPicker) {
             personnelPickerSheet
-        }
-        .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
-            Button("Calculate Duration") {
-                quantityCalculationMode = .calculateDuration
-            }
-            Button("Calculate Productivity (Manual)") {
-                quantityCalculationMode = .manualEntry
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Choose what to calculate from quantity and other inputs")
         }
     }
 
