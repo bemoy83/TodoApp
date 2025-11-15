@@ -167,6 +167,9 @@ struct TaskComposerQuantitySection: View {
         .sheet(isPresented: $showQuantityPicker) {
             quantityPickerSheet
         }
+        .onChange(of: quantity) { _, _ in
+            onCalculationUpdate()
+        }
     }
 
     // Productivity row - can be input or calculated (for manual mode)
