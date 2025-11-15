@@ -75,6 +75,11 @@ struct TaskComposerPersonnelSection: View {
     private var manualPersonnelView: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Toggle("Set Expected Personnel", isOn: $hasPersonnel)
+                .onChange(of: hasPersonnel) { _, newValue in
+                    if newValue && expectedPersonnelCount == nil {
+                        expectedPersonnelCount = 1
+                    }
+                }
 
             if hasPersonnel {
                 Divider()
