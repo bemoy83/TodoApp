@@ -15,6 +15,7 @@ struct AddTaskView: View {
     // Draft state
     @State private var title: String = ""
     @State private var notes: String = ""
+    @State private var hasNotes: Bool = false
     @State private var selectedProject: Project?
     @State private var hasDueDate: Bool = false
     @State private var dueDate: Date = .now
@@ -64,6 +65,7 @@ struct AddTaskView: View {
             TaskComposerForm(
                 title: $title,
                 notes: $notes,
+                hasNotes: $hasNotes,
                 selectedProject: $selectedProject,
                 hasDueDate: $hasDueDate,
                 dueDate: $dueDate,

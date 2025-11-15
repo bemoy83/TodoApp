@@ -17,8 +17,6 @@ struct TaskComposerEstimateSection: View {
     @Binding var effortHours: Double
     @Binding var hasPersonnel: Bool
     @Binding var expectedPersonnelCount: Int?
-    @Binding var hasDueDate: Bool
-    let dueDate: Date
 
     // Quantity mode bindings
     @Binding var taskType: String?
@@ -40,14 +38,70 @@ struct TaskComposerEstimateSection: View {
     @Query(filter: #Predicate<Task> { task in !task.isArchived }, sort: \Task.order) private var allTasks: [Task]
 
     var body: some View {
-        Section("Time Estimation & Calculator") {
-            estimationModePickerView
-            parentEstimateView
-            estimationContentView
+        Section("Estimate") {
+            Toggle("Set Estimate", isOn: $hasEstimate)
+
+            if hasEstimate {
+                persistentEstimateSummary
+                estimationModePickerView
+                parentEstimateView
+                estimationContentView
+            } else {
+                TaskInlineInfoRow(
+                    icon: "info.circle",
+                    message: "No estimate set for this task",
+                    style: .info
+                )
+            }
         }
     }
 
     // MARK: - Subviews
+
+    private var estimateSourceLabel: String {
+        switch unifiedEstimationMode {
+        case .duration:
+            if hasCustomEstimate {
+                return "Custom Duration (overriding subtasks)"
+            } else if (taskSubtaskEstimateTotal ?? 0) > 0 {
+                return "Auto-calculated from Subtasks"
+            }
+            return "Estimated Duration"
+        case .effort:
+            if hasPersonnel {
+                let personnel = expectedPersonnelCount ?? 1
+                return "Duration from Effort (\(personnel) \(personnel == 1 ? "person" : "people"))"
+            }
+            return "Duration from Effort"
+        case .quantity:
+            return "Duration from Quantity"
+        }
+    }
+
+    private var formattedEstimate: String {
+        let totalSeconds = (estimateHours * 3600) + (estimateMinutes * 60)
+        return totalSeconds.formattedTime()
+    }
+
+    @ViewBuilder
+    private var persistentEstimateSummary: some View {
+        let totalMinutes = (estimateHours * 60) + estimateMinutes
+
+        if totalMinutes > 0 {
+            TaskRowIconValueLabel(
+                icon: "clock.badge.checkmark",
+                label: estimateSourceLabel,
+                value: formattedEstimate,
+                tint: .green
+            )
+        } else {
+            TaskInlineInfoRow(
+                icon: "exclamationmark.triangle",
+                message: "No estimate set yet - enter values below",
+                style: .warning
+            )
+        }
+    }
 
     private var estimationModePickerView: some View {
         Picker("Estimation Method", selection: $unifiedEstimationMode) {
@@ -93,11 +147,12 @@ struct TaskComposerEstimateSection: View {
             EffortInputSection(
                 effortHours: $effortHours,
                 hasPersonnel: $hasPersonnel,
-                expectedPersonnelCount: $expectedPersonnelCount,
-                hasDueDate: $hasDueDate,
-                dueDate: dueDate
+                expectedPersonnelCount: $expectedPersonnelCount
             )
             .onChange(of: effortHours) { _, _ in
+                onEffortUpdate()
+            }
+            .onChange(of: hasPersonnel) { _, _ in
                 onEffortUpdate()
             }
             .onChange(of: expectedPersonnelCount) { _, _ in

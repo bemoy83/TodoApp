@@ -7,6 +7,7 @@ struct TaskComposerForm: View {
     // Draft bindings
     @Binding var title: String
     @Binding var notes: String
+    @Binding var hasNotes: Bool
     @Binding var selectedProject: Project?
     @Binding var hasDueDate: Bool
     @Binding var dueDate: Date
@@ -95,11 +96,11 @@ struct TaskComposerForm: View {
         Form {
             titleSection
             notesSection
-            projectSection
             dueDateSection
-            estimateSection
             prioritySection
+            projectSection
             personnelSection
+            estimateSection
         }
         .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
             Button("OK") {
@@ -133,23 +134,27 @@ struct TaskComposerForm: View {
 
     private var notesSection: some View {
         Section("Notes") {
-            ZStack(alignment: .topLeading) {
-                if notes.isEmpty {
-                    Text("Add notes...")
-                        .font(DesignSystem.Typography.body)
-                        .foregroundStyle(DesignSystem.Colors.secondary.opacity(0.5))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+            Toggle("Add Notes", isOn: $hasNotes)
 
-                TextEditor(text: $notes)
-                    .font(DesignSystem.Typography.body)
-                    .frame(height: 100)
-                    .scrollContentBackground(.hidden)
-                    .opacity(notes.isEmpty ? 0.25 : 1)
+            if hasNotes {
+                ZStack(alignment: .topLeading) {
+                    if notes.isEmpty {
+                        Text("Add notes...")
+                            .font(DesignSystem.Typography.body)
+                            .foregroundStyle(DesignSystem.Colors.secondary.opacity(0.5))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    TextEditor(text: $notes)
+                        .font(DesignSystem.Typography.body)
+                        .frame(height: 100)
+                        .scrollContentBackground(.hidden)
+                        .opacity(notes.isEmpty ? 0.25 : 1)
+                }
+                .frame(height: 100)
             }
-            .frame(height: 100)
         }
     }
 
@@ -182,8 +187,6 @@ struct TaskComposerForm: View {
             effortHours: $effortHours,
             hasPersonnel: $hasPersonnel,
             expectedPersonnelCount: $expectedPersonnelCount,
-            hasDueDate: $hasDueDate,
-            dueDate: dueDate,
             taskType: $taskType,
             unit: $unit,
             quantity: $quantity,
