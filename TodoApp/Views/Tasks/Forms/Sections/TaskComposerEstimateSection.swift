@@ -42,6 +42,7 @@ struct TaskComposerEstimateSection: View {
             Toggle("Set Estimate", isOn: $hasEstimate)
 
             if hasEstimate {
+                persistentEstimateSummary
                 estimationModePickerView
                 parentEstimateView
                 estimationContentView
@@ -56,6 +57,53 @@ struct TaskComposerEstimateSection: View {
     }
 
     // MARK: - Subviews
+
+    private var estimateSourceLabel: String {
+        switch unifiedEstimationMode {
+        case .duration:
+            if hasCustomEstimate {
+                return "Custom Duration (overriding subtasks)"
+            } else if (taskSubtaskEstimateTotal ?? 0) > 0 {
+                return "Auto-calculated from Subtasks"
+            }
+            return "Estimated Duration"
+        case .effort:
+            if let personnel = expectedPersonnelCount, personnel > 0 {
+                return "Duration from Effort (\(personnel) \(personnel == 1 ? "person" : "people"))"
+            }
+            return "Duration from Effort"
+        case .quantity:
+            return "Duration from Quantity"
+        }
+    }
+
+    private var formattedEstimate: String {
+        let totalSeconds = (estimateHours * 3600) + (estimateMinutes * 60)
+        return totalSeconds.formattedTime()
+    }
+
+    private var persistentEstimateSummary: some View {
+        VStack(spacing: DesignSystem.Spacing.xs) {
+            let totalMinutes = (estimateHours * 60) + estimateMinutes
+
+            if totalMinutes > 0 {
+                TaskRowIconValueLabel(
+                    icon: "clock.badge.checkmark",
+                    label: estimateSourceLabel,
+                    value: formattedEstimate,
+                    tint: .green
+                )
+            } else {
+                TaskInlineInfoRow(
+                    icon: "exclamationmark.triangle",
+                    message: "No estimate set yet - enter values below",
+                    style: .warning
+                )
+            }
+
+            Divider()
+        }
+    }
 
     private var estimationModePickerView: some View {
         Picker("Estimation Method", selection: $unifiedEstimationMode) {
