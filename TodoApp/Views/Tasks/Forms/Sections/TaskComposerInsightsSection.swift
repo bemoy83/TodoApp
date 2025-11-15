@@ -23,7 +23,7 @@ struct TaskComposerInsightsSection: View {
     @Binding var productivityRate: Double?
     let historicalProductivity: Double? // Optional - may not always be available
 
-    @State private var showInsights = true
+    @State private var showInsights = false
 
     var body: some View {
         Section {
