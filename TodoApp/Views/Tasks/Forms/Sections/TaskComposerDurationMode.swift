@@ -31,7 +31,6 @@ struct TaskComposerDurationMode: View {
             }
 
             timePickerRow
-            estimateSummaryView
         }
         .onAppear {
             hasCustomEstimate = hasSubtasksWithEstimates
@@ -120,19 +119,6 @@ struct TaskComposerDurationMode: View {
             }
             .presentationDetents([.height(300)])
             .presentationDragIndicator(.visible)
-        }
-    }
-
-    @ViewBuilder
-    private var estimateSummaryView: some View {
-        let totalMinutes = (estimateHours * 60) + estimateMinutes
-        if totalMinutes == 0 {
-            TaskInlineInfoRow(
-                icon: "exclamationmark.triangle",
-                message: "Setting 0 time will remove the estimate",
-                style: .warning
-            )
-            .padding(.top, DesignSystem.Spacing.xs)
         }
     }
 }

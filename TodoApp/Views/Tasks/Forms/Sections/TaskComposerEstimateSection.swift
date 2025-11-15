@@ -83,25 +83,21 @@ struct TaskComposerEstimateSection: View {
     }
 
     private var persistentEstimateSummary: some View {
-        VStack(spacing: DesignSystem.Spacing.xs) {
-            let totalMinutes = (estimateHours * 60) + estimateMinutes
+        let totalMinutes = (estimateHours * 60) + estimateMinutes
 
-            if totalMinutes > 0 {
-                TaskRowIconValueLabel(
-                    icon: "clock.badge.checkmark",
-                    label: estimateSourceLabel,
-                    value: formattedEstimate,
-                    tint: .green
-                )
-            } else {
-                TaskInlineInfoRow(
-                    icon: "exclamationmark.triangle",
-                    message: "No estimate set yet - enter values below",
-                    style: .warning
-                )
-            }
-
-            Divider()
+        if totalMinutes > 0 {
+            TaskRowIconValueLabel(
+                icon: "clock.badge.checkmark",
+                label: estimateSourceLabel,
+                value: formattedEstimate,
+                tint: .green
+            )
+        } else {
+            TaskInlineInfoRow(
+                icon: "exclamationmark.triangle",
+                message: "No estimate set yet - enter values below",
+                style: .warning
+            )
         }
     }
 
