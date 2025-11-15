@@ -96,11 +96,11 @@ struct TaskComposerForm: View {
         Form {
             titleSection
             notesSection
-            projectSection
             dueDateSection
-            estimateSection
             prioritySection
+            projectSection
             personnelSection
+            estimateSection
         }
         .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
             Button("OK") {

@@ -26,27 +26,49 @@ struct TaskComposerPersonnelSection: View {
 
     private var autoCalculatedPersonnelView: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            TaskInlineInfoRow(
-                icon: "lock.fill",
-                message: "Personnel count is auto-calculated from the estimation calculator above",
-                style: .info
-            )
+            // Linked badge indicator
+            HStack(spacing: 6) {
+                Image(systemName: "link.circle.fill")
+                    .font(.subheadline)
+                Text("Linked to Estimate (below)")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            .foregroundStyle(.blue)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(8)
 
+            Divider()
+
+            // Personnel count display
             TaskRowIconValueLabel(
                 icon: "person.2.fill",
-                label: "Expected Personnel",
+                label: "Required Personnel",
                 value: "\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")",
-                tint: .blue
+                tint: .green
+            )
+
+            // Calculation mode context
+            TaskInlineInfoRow(
+                icon: "info.circle",
+                message: quantityCalculationMode == .calculatePersonnel
+                    ? "Auto-calculated from quantity, productivity rate, and duration in Estimate section"
+                    : "Personnel is being calculated by the Estimate section",
+                style: .info
             )
             .padding(.top, DesignSystem.Spacing.xs)
 
-            Button {
-                unifiedEstimationMode = .duration
-            } label: {
-                Label("Switch to Manual Mode", systemImage: "arrow.triangle.2.circlepath")
-                    .font(.subheadline)
-            }
-            .padding(.top, 4)
+            Divider()
+
+            // How to unlink context
+            TaskInlineInfoRow(
+                icon: "lightbulb",
+                message: "To set personnel manually, change Estimate mode to Duration or Effort",
+                style: .info
+            )
+            .padding(.top, DesignSystem.Spacing.xs)
         }
     }
 
