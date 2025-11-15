@@ -68,7 +68,8 @@ struct TaskComposerEstimateSection: View {
             }
             return "Estimated Duration"
         case .effort:
-            if let personnel = expectedPersonnelCount, personnel > 0 {
+            if hasPersonnel {
+                let personnel = expectedPersonnelCount ?? 1
                 return "Duration from Effort (\(personnel) \(personnel == 1 ? "person" : "people"))"
             }
             return "Duration from Effort"
@@ -149,6 +150,9 @@ struct TaskComposerEstimateSection: View {
                 expectedPersonnelCount: $expectedPersonnelCount
             )
             .onChange(of: effortHours) { _, _ in
+                onEffortUpdate()
+            }
+            .onChange(of: hasPersonnel) { _, _ in
                 onEffortUpdate()
             }
             .onChange(of: expectedPersonnelCount) { _, _ in
