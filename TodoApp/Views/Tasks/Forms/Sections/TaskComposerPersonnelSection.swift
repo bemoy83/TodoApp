@@ -77,14 +77,13 @@ struct TaskComposerPersonnelSection: View {
             Toggle("Set Expected Personnel", isOn: $hasPersonnel)
 
             if hasPersonnel {
+                Divider()
+
                 personnelPickerView
+
+                Divider()
+
                 personnelInfoView
-            } else {
-                TaskInlineInfoRow(
-                    icon: "info.circle.fill",
-                    message: "Defaults to 1 person if not set",
-                    style: .info
-                )
             }
         }
     }
