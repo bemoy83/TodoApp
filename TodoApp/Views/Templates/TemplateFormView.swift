@@ -12,6 +12,7 @@ struct TemplateFormView: View {
 
     @State private var name: String
     @State private var defaultUnit: UnitType
+    @State private var defaultProductivityRate: String
     @State private var showDuplicateAlert = false
 
     init(template: TaskTemplate?) {
@@ -20,6 +21,13 @@ struct TemplateFormView: View {
         // Initialize state from template or defaults
         _name = State(initialValue: template?.name ?? "")
         _defaultUnit = State(initialValue: template?.defaultUnit ?? .none)
+
+        // Initialize productivity rate as string for TextField
+        if let rate = template?.defaultProductivityRate {
+            _defaultProductivityRate = State(initialValue: String(format: "%.1f", rate))
+        } else {
+            _defaultProductivityRate = State(initialValue: "")
+        }
     }
 
     private var isEditing: Bool {
@@ -75,6 +83,23 @@ struct TemplateFormView: View {
                 } footer: {
                     Text("The unit of measurement for quantity tracking. Each name + unit combination must be unique for accurate productivity tracking.")
                 }
+
+                // Expected Productivity Rate (only for quantifiable units)
+                if defaultUnit.isQuantifiable {
+                    Section {
+                        HStack {
+                            TextField("e.g., 10.0", text: $defaultProductivityRate)
+                                .keyboardType(.decimalPad)
+
+                            Text("\(defaultUnit.displayName)/person-hr")
+                                .foregroundStyle(.secondary)
+                        }
+                    } header: {
+                        Text("Expected Productivity Rate")
+                    } footer: {
+                        Text("Optional. Set your expected productivity rate. This will be used until you build historical data from completed tasks. Leave empty to use system default.")
+                    }
+                }
             }
             .navigationTitle(isEditing ? "Edit Template" : "New Template")
             .navigationBarTitleDisplayMode(.inline)
@@ -113,15 +138,26 @@ struct TemplateFormView: View {
             return
         }
 
+        // Parse productivity rate (optional)
+        let productivityRate: Double? = {
+            let trimmed = defaultProductivityRate.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, let value = Double(trimmed), value > 0 else {
+                return nil
+            }
+            return value
+        }()
+
         if let existing = template {
             // Update existing template
             existing.name = trimmedName
             existing.defaultUnit = defaultUnit
+            existing.defaultProductivityRate = productivityRate
         } else {
             // Create new template
             let newTemplate = TaskTemplate(
                 name: trimmedName,
-                defaultUnit: defaultUnit
+                defaultUnit: defaultUnit,
+                defaultProductivityRate: productivityRate
             )
             modelContext.insert(newTemplate)
         }
