@@ -550,12 +550,18 @@ struct TaskComposerQuantitySection: View {
 
         unit = template.defaultUnit
 
+        // Priority order:
+        // 1. Historical data (if available)
+        // 2. Template's expected productivity rate (if set)
+        // 3. Unit's default productivity rate (fallback)
         historicalProductivity = TemplateManager.getHistoricalProductivity(
             for: selectedTaskType,
             unit: template.defaultUnit,
             from: allTasks
-        ) ?? template.defaultUnit.defaultProductivityRate
+        )
 
         productivityRate = historicalProductivity
+            ?? template.defaultProductivityRate
+            ?? template.defaultUnit.defaultProductivityRate
     }
 }
