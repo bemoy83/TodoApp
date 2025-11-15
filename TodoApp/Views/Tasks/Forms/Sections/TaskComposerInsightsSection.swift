@@ -69,12 +69,52 @@ struct TaskComposerInsightsSection: View {
                 .font(.caption2)
             Text("Has Due Date: \(hasDueDate ? "Yes" : "No")")
                 .font(.caption2)
+            if hasDueDate {
+                let calendar = Calendar.current
+                let days = calendar.dateComponents([.day], from: Date(), to: dueDate).day ?? 0
+                Text("Days until deadline: \(days)")
+                    .font(.caption2)
+                    .foregroundStyle(days > 0 ? .green : .red)
+            }
             Text("Due Date: \(dueDate.formatted())")
                 .font(.caption2)
             Text("Has Personnel: \(hasPersonnel ? "Yes" : "No")")
                 .font(.caption2)
             Text("Personnel Count: \(expectedPersonnelCount?.description ?? "nil")")
                 .font(.caption2)
+
+            Divider()
+
+            // Show why insights aren't appearing
+            Text("INSIGHT CHECKS:")
+                .font(.caption2)
+                .foregroundStyle(.orange)
+
+            if unifiedEstimationMode == .effort && effortHours > 0 && hasDueDate {
+                let calendar = Calendar.current
+                let days = calendar.dateComponents([.day], from: Date(), to: dueDate).day ?? 0
+                let recommended = Int(ceil(effortHours / (Double(days) * 8.0)))
+                let current = expectedPersonnelCount ?? 1
+                Text("Personnel: Recommended=\(recommended), Current=\(current), Match=\(recommended == current)")
+                    .font(.caption2)
+                    .foregroundStyle(recommended == current ? .orange : .green)
+            }
+
+            let totalMinutes = (estimateHours * 60) + estimateMinutes
+            if hasDueDate && totalMinutes > 0 {
+                let calendar = Calendar.current
+                let days = calendar.dateComponents([.day], from: Date(), to: dueDate).day ?? 0
+                if days > 0 {
+                    let personnel = expectedPersonnelCount ?? 1
+                    let availableHours = Double(days) * 8.0 * Double(personnel)
+                    let estimateHrs = Double(totalMinutes) / 60.0
+                    let util = (estimateHrs / availableHours) * 100
+                    Text("Deadline: Util=\(Int(util))%, Threshold=80%")
+                        .font(.caption2)
+                        .foregroundStyle(util > 80 ? .green : .orange)
+                }
+            }
+
             Divider()
         }
         .padding(8)
