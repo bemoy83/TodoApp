@@ -23,6 +23,8 @@ struct TaskComposerQuantitySection: View {
     @State private var showQuantityPicker = false
     @State private var showPersonnelPicker = false
     @State private var showDurationPicker = false
+    @State private var showProductivityRateEditor = false
+    @State private var showCalculationModeMenu = false
     @State private var useCustomRate = false
     @FocusState private var isQuantityFieldFocused: Bool
 
@@ -33,19 +35,31 @@ struct TaskComposerQuantitySection: View {
             taskTypePickerView
 
             if unit.isQuantifiable {
-                quantityInputRow
+                Divider()
+                    .padding(.vertical, DesignSystem.Spacing.xs)
+
+                // Info about tap-to-calculate
+                TaskInlineInfoRow(
+                    icon: "info.circle",
+                    message: "Tap any calculated value to change what's being calculated",
+                    style: .info
+                )
 
                 Divider()
-                    .padding(.vertical, DesignSystem.Spacing.md)
+                    .padding(.vertical, DesignSystem.Spacing.sm)
 
-                // Shared productivity rate view
-                if let productivity = historicalProductivity {
-                    productivityRateView(productivity)
+                // All inputs visible - one is calculated
+                quantityInputRow
+                productivityInputRow
+                personnelInputRow
+                durationInputRow
+
+                // Show result summary
+                if hasEstimate || hasPersonnel {
                     Divider()
+                        .padding(.vertical, DesignSystem.Spacing.xs)
+                    calculationSummary
                 }
-
-                calculationStrategyView
-                calculationModeView
             } else if taskType != nil {
                 TaskInlineInfoRow(
                     icon: "exclamationmark.triangle.fill",
@@ -86,12 +100,21 @@ struct TaskComposerQuantitySection: View {
         return "\(quantity) \(unit.displayName)"
     }
 
+    // Quantity is never calculated - always an input
     private var quantityInputRow: some View {
         HStack {
+            Image(systemName: "number")
+                .font(.subheadline)
+                .foregroundStyle(.blue)
+                .frame(width: 24)
+
             Text("Quantity")
+
             Spacer()
+
             Text(formattedQuantity)
                 .foregroundStyle(.secondary)
+
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
@@ -102,6 +125,141 @@ struct TaskComposerQuantitySection: View {
         }
         .sheet(isPresented: $showQuantityPicker) {
             quantityPickerSheet
+        }
+    }
+
+    // Productivity row - can be input or calculated (for manual mode)
+    private var productivityInputRow: some View {
+        let isCalculated = quantityCalculationMode == .manualEntry
+        let rate = productivityRate ?? historicalProductivity ?? 0
+
+        return HStack {
+            Image(systemName: isCalculated ? "lock.fill" : "chart.line.uptrend.xyaxis")
+                .font(.subheadline)
+                .foregroundStyle(isCalculated ? .orange : .blue)
+                .frame(width: 24)
+
+            Text("Productivity")
+
+            Spacer()
+
+            if isCalculated {
+                Text("Auto-calculated")
+                    .foregroundStyle(.orange)
+                    .font(.caption)
+            } else {
+                Text("\(String(format: "%.1f", rate)) \(unit.displayName)/person-hr")
+                    .foregroundStyle(.secondary)
+            }
+
+            if !isCalculated {
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if !isCalculated {
+                showProductivityRateEditor = true
+            } else {
+                showCalculationModeMenu = true
+            }
+        }
+        .sheet(isPresented: $showProductivityRateEditor) {
+            productivityRateEditorSheet
+        }
+    }
+
+    // Personnel row - can be input or calculated
+    private var personnelInputRow: some View {
+        let isCalculated = quantityCalculationMode == .calculatePersonnel
+        let personnel = expectedPersonnelCount ?? 1
+
+        return HStack {
+            Image(systemName: isCalculated ? "lock.fill" : "person.2.fill")
+                .font(.subheadline)
+                .foregroundStyle(isCalculated ? .green : .blue)
+                .frame(width: 24)
+
+            Text("Personnel")
+
+            Spacer()
+
+            Text("\(personnel) \(personnel == 1 ? "person" : "people")")
+                .foregroundStyle(isCalculated ? .green : .secondary)
+
+            if !isCalculated {
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            } else {
+                Image(systemName: "function")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if !isCalculated {
+                showPersonnelPicker = true
+            } else {
+                showCalculationModeMenu = true
+            }
+        }
+        .sheet(isPresented: $showPersonnelPicker) {
+            personnelPickerSheet
+        }
+        .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
+            Button("Calculate Duration") {
+                quantityCalculationMode = .calculateDuration
+            }
+            Button("Calculate Productivity (Manual)") {
+                quantityCalculationMode = .manualEntry
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Choose what to calculate from quantity and other inputs")
+        }
+    }
+
+    // Duration row - can be input or calculated
+    private var durationInputRow: some View {
+        let isCalculated = quantityCalculationMode == .calculateDuration
+
+        return HStack {
+            Image(systemName: isCalculated ? "lock.fill" : "clock.fill")
+                .font(.subheadline)
+                .foregroundStyle(isCalculated ? .green : .blue)
+                .frame(width: 24)
+
+            Text("Duration")
+
+            Spacer()
+
+            Text(formattedDuration)
+                .foregroundStyle(isCalculated ? .green : .secondary)
+
+            if !isCalculated {
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            } else {
+                Image(systemName: "function")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if !isCalculated {
+                showDurationPicker = true
+            } else {
+                showCalculationModeMenu = true
+            }
+        }
+        .sheet(isPresented: $showDurationPicker) {
+            durationPickerSheet
         }
     }
 
@@ -143,237 +301,64 @@ struct TaskComposerQuantitySection: View {
         }
     }
 
-    private var calculationStrategyView: some View {
-        Picker("Calculator Mode", selection: $quantityCalculationMode) {
-            Text("Duration").tag(TaskEstimator.QuantityCalculationMode.calculateDuration)
-            Text("Personnel").tag(TaskEstimator.QuantityCalculationMode.calculatePersonnel)
-            Text("Manual").tag(TaskEstimator.QuantityCalculationMode.manualEntry)
-        }
-        .pickerStyle(.segmented)
-        .onChange(of: quantityCalculationMode) { _, _ in
-            isQuantityFieldFocused = false // Dismiss keyboard when switching modes
-        }
-    }
+    // MARK: - Calculation Summary
 
-    @ViewBuilder
-    private var calculationModeView: some View {
-        switch quantityCalculationMode {
-        case .calculateDuration:
-            durationModeView
-        case .calculatePersonnel:
-            personnelModeView
-        case .manualEntry:
-            manualModeView
-        }
-    }
-
-    // MARK: - Duration Mode
-
-    private var durationModeView: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            personnelInputRow
-
-            if hasEstimate {
-                let totalSeconds = (estimateHours * 3600) + (estimateMinutes * 60)
-                if totalSeconds > 0 {
-                    calculationBreakdownDuration
-                }
-            }
-        }
-    }
-
-    private var calculationBreakdownDuration: some View {
+    private var calculationSummary: some View {
+        let quantityValue = Double(quantity) ?? 0
+        let rate = productivityRate ?? historicalProductivity ?? 1.0
+        let personnel = expectedPersonnelCount ?? 1
         let totalSeconds = (estimateHours * 3600) + (estimateMinutes * 60)
-        let personnel = expectedPersonnelCount ?? 1
-        let rate = productivityRate ?? historicalProductivity ?? 1.0
-        let quantityValue = Double(quantity) ?? 0
 
-        return VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Divider()
+        return VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            Text("Formula")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
 
-            // Input: Quantity
-            HStack {
-                Image(systemName: "number")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-                Text("Quantity:")
+            switch quantityCalculationMode {
+            case .calculateDuration:
+                Text("\(String(format: "%.0f", quantityValue)) ÷ \(String(format: "%.1f", rate)) ÷ \(personnel) = \(totalSeconds.formattedTime())")
                     .font(.subheadline)
-                Spacer()
-                Text("\(quantity) \(unit.displayName)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Operator: Division by rate
-            HStack {
-                Image(systemName: "divide")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-                Text("Productivity:")
-                    .font(.subheadline)
-                Spacer()
-                Text("\(String(format: "%.1f", rate)) \(unit.displayName)/person-hr")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Operator: Division by personnel
-            HStack {
-                Image(systemName: "divide")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-                Text("Personnel:")
-                    .font(.subheadline)
-                Spacer()
-                Text("\(personnel) \(personnel == 1 ? "person" : "people")")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            Divider()
-
-            // Result: Duration
-            TaskRowIconValueLabel(
-                icon: "clock.fill",
-                label: "Duration per person",
-                value: totalSeconds.formattedTime(),
-                tint: .green
-            )
-        }
-    }
-
-    // MARK: - Personnel Mode
-
-    private var personnelModeView: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            durationInputRow
-
-            if hasPersonnel, let personnel = expectedPersonnelCount {
-                calculationBreakdownPersonnel
-            }
-        }
-    }
-
-    private var calculationBreakdownPersonnel: some View {
-        let personnel = expectedPersonnelCount ?? 1
-        let rate = productivityRate ?? historicalProductivity ?? 1.0
-        let quantityValue = Double(quantity) ?? 0
-
-        return VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Divider()
-
-            // Input: Quantity
-            HStack {
-                Image(systemName: "number")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-                Text("Quantity:")
-                    .font(.subheadline)
-                Spacer()
-                Text("\(quantity) \(unit.displayName)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Operator: Division by rate
-            HStack {
-                Image(systemName: "divide")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-                Text("Productivity:")
-                    .font(.subheadline)
-                Spacer()
-                Text("\(String(format: "%.1f", rate)) \(unit.displayName)/person-hr")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Operator: Division by duration
-            HStack {
-                Image(systemName: "divide")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-                Text("Duration:")
-                    .font(.subheadline)
-                Spacer()
-                Text(formattedDuration)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            Divider()
-
-            // Result: Personnel
-            TaskRowIconValueLabel(
-                icon: "person.2.fill",
-                label: "Required Personnel",
-                value: "\(personnel) \(personnel == 1 ? "person" : "people")",
-                tint: .green
-            )
-        }
-    }
-
-    // MARK: - Manual Mode
-
-    private var manualModeView: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            TaskInlineInfoRow(
-                icon: "info.circle",
-                message: "Track quantity and set time/personnel manually. Productivity rate will be calculated when the task is completed.",
-                style: .info
-            )
-
-            if let rate = productivityRate {
-                Divider()
-
-                TaskRowIconValueLabel(
-                    icon: "chart.line.uptrend.xyaxis",
-                    label: "Reference Rate",
-                    value: "\(String(format: "%.1f", rate)) \(unit.displayName)/person-hr",
-                    tint: .secondary
-                )
-            }
-        }
-    }
-
-    // MARK: - Shared Productivity Rate View
-
-    private func productivityRateView(_ productivity: Double) -> some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            // Historical Average Badge
-            HStack(spacing: 4) {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.caption2)
-                Text("Historical Average:")
-                    .font(.caption)
-                Text("\(String(format: "%.1f", productivity)) \(unit.displayName)/person-hr")
-                    .font(.caption)
                     .fontWeight(.medium)
+
+            case .calculatePersonnel:
+                Text("\(String(format: "%.0f", quantityValue)) ÷ \(String(format: "%.1f", rate)) ÷ \(totalSeconds.formattedTime()) = \(personnel) \(personnel == 1 ? "person" : "people")")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+            case .manualEntry:
+                Text("Productivity will be calculated on task completion")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            .foregroundStyle(.secondary)
+        }
+    }
 
-            // Toggle for custom rate
-            Toggle("Use Custom Rate", isOn: $useCustomRate)
-                .onChange(of: useCustomRate) { _, newValue in
-                    if !newValue {
-                        // Reset to historical when disabled
-                        productivityRate = productivity
-                        onCalculationUpdate()
-                    }
-                }
+    // MARK: - Productivity Rate Editor Sheet
 
-            // Expanded custom rate input
-            if useCustomRate {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                    Text("Custom Rate")
-                        .font(.caption)
+    private var productivityRateEditorSheet: some View {
+        let productivity = historicalProductivity ?? 1.0
+
+        return NavigationStack {
+            VStack(spacing: DesignSystem.Spacing.lg) {
+                Text("Set Productivity Rate")
+                    .font(.headline)
+                    .padding(.top, DesignSystem.Spacing.md)
+
+                VStack(spacing: DesignSystem.Spacing.sm) {
+                    if let historical = historicalProductivity {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.caption2)
+                            Text("Historical Average:")
+                                .font(.caption)
+                            Text("\(String(format: "%.1f", historical)) \(unit.displayName)/person-hr")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
                         .foregroundStyle(.secondary)
+                        .padding(.bottom, DesignSystem.Spacing.sm)
+                    }
 
                     HStack {
                         TextField("Rate", value: Binding(
@@ -384,50 +369,47 @@ struct TaskComposerQuantitySection: View {
                             }
                         ), format: .number)
                         .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.center)
+                        .font(.title2)
+                        .frame(maxWidth: 200)
 
                         Text("\(unit.displayName)/person-hr")
-                            .font(.caption)
+                            .font(.headline)
                             .foregroundStyle(.secondary)
                     }
 
-                    Button {
-                        productivityRate = productivity
-                        onCalculationUpdate()
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.caption)
-                            Text("Use Historical Average (\(String(format: "%.1f", productivity)))")
-                                .font(.caption)
+                    if let historical = historicalProductivity {
+                        Button {
+                            productivityRate = historical
+                            onCalculationUpdate()
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.caption)
+                                Text("Use Historical Average")
+                                    .font(.caption)
+                            }
                         }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                }
+
+                Spacer()
+            }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        showProductivityRateEditor = false
+                    }
                 }
             }
+            .presentationDetents([.height(350)])
+            .presentationDragIndicator(.visible)
         }
     }
 
-    // MARK: - Input Rows
-
-    private var personnelInputRow: some View {
-        HStack {
-            Text("Personnel")
-            Spacer()
-            Text("\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")")
-                .foregroundStyle(.secondary)
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            showPersonnelPicker = true
-        }
-        .sheet(isPresented: $showPersonnelPicker) {
-            personnelPickerSheet
-        }
-    }
+    // MARK: - Sheet Views
 
     private var personnelPickerSheet: some View {
         NavigationStack {
@@ -462,25 +444,6 @@ struct TaskComposerQuantitySection: View {
             }
             .presentationDetents([.height(300)])
             .presentationDragIndicator(.visible)
-        }
-    }
-
-    private var durationInputRow: some View {
-        HStack {
-            Text("Duration")
-            Spacer()
-            Text(formattedDuration)
-                .foregroundStyle(.secondary)
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            showDurationPicker = true
-        }
-        .sheet(isPresented: $showDurationPicker) {
-            durationPickerSheet
         }
     }
 
