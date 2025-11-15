@@ -58,12 +58,22 @@ struct TaskComposerQuantitySection: View {
                     .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
                         Button("Calculate Duration") {
                             quantityCalculationMode = .calculateDuration
+                            // Ensure personnel is set for duration calculation
+                            if expectedPersonnelCount == nil {
+                                expectedPersonnelCount = 1
+                            }
+                            hasPersonnel = true
+                            onCalculationUpdate()
                         }
                         Button("Calculate Personnel") {
                             quantityCalculationMode = .calculatePersonnel
+                            // Ensure estimate is set for personnel calculation
+                            hasEstimate = true
+                            onCalculationUpdate()
                         }
                         Button("Calculate Productivity (Manual)") {
                             quantityCalculationMode = .manualEntry
+                            onCalculationUpdate()
                         }
                         Button("Cancel", role: .cancel) {}
                     } message: {
@@ -87,6 +97,21 @@ struct TaskComposerQuantitySection: View {
         .onAppear {
             // Set initial toggle state based on whether custom rate exists
             useCustomRate = productivityRate != nil && productivityRate != historicalProductivity
+
+            // Initialize required values based on calculation mode
+            switch quantityCalculationMode {
+            case .calculateDuration:
+                // Ensure personnel is set for duration calculation
+                if expectedPersonnelCount == nil {
+                    expectedPersonnelCount = 1
+                }
+                hasPersonnel = true
+            case .calculatePersonnel:
+                // Ensure estimate flag is set for personnel calculation
+                hasEstimate = true
+            case .manualEntry:
+                break
+            }
         }
     }
 
