@@ -101,7 +101,6 @@ struct TaskComposerForm: View {
             projectSection
             personnelSection
             estimateSection
-            insightsSection
         }
         .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
             Button("OK") {
@@ -226,22 +225,6 @@ struct TaskComposerForm: View {
             unifiedEstimationMode: $unifiedEstimationMode,
             personnelIsAutoCalculated: personnelIsAutoCalculated,
             quantityCalculationMode: quantityCalculationMode
-        )
-    }
-
-    private var insightsSection: some View {
-        TaskComposerInsightsSection(
-            unifiedEstimationMode: $unifiedEstimationMode,
-            estimateHours: $estimateHours,
-            estimateMinutes: $estimateMinutes,
-            effortHours: $effortHours,
-            hasPersonnel: $hasPersonnel,
-            expectedPersonnelCount: $expectedPersonnelCount,
-            hasDueDate: $hasDueDate,
-            dueDate: $dueDate,
-            taskType: $taskType,
-            productivityRate: $productivityRate,
-            historicalProductivity: nil // Not available from this level
         )
     }
 
