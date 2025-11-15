@@ -31,6 +31,9 @@ struct TaskComposerInsightsSection: View {
 
             if showInsights {
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                    // Debug info
+                    debugInfoView
+
                     if let recommendation = personnelRecommendation {
                         personnelRecommendationView(recommendation)
                     }
@@ -49,6 +52,34 @@ struct TaskComposerInsightsSection: View {
                 }
             }
         }
+    }
+
+    // MARK: - Debug View
+
+    private var debugInfoView: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("DEBUG INFO")
+                .font(.caption2)
+                .foregroundStyle(.red)
+            Text("Mode: \(unifiedEstimationMode.rawValue)")
+                .font(.caption2)
+            Text("Estimate: \(estimateHours)h \(estimateMinutes)m")
+                .font(.caption2)
+            Text("Effort: \(effortHours) person-hours")
+                .font(.caption2)
+            Text("Has Due Date: \(hasDueDate ? "Yes" : "No")")
+                .font(.caption2)
+            Text("Due Date: \(dueDate.formatted())")
+                .font(.caption2)
+            Text("Has Personnel: \(hasPersonnel ? "Yes" : "No")")
+                .font(.caption2)
+            Text("Personnel Count: \(expectedPersonnelCount?.description ?? "nil")")
+                .font(.caption2)
+            Divider()
+        }
+        .padding(8)
+        .background(Color.red.opacity(0.1))
+        .cornerRadius(4)
     }
 
     // MARK: - Insight Calculations
