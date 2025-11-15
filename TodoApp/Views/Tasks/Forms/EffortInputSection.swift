@@ -22,12 +22,25 @@ struct EffortInputSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Explanation of person-hours
+            TaskInlineInfoRow(
+                icon: "info.circle",
+                message: "Person-hours = total work required by all people combined",
+                style: .info
+            )
+
+            Divider()
+
             // Effort input row
             effortPickerRow
 
-            // Show calculated duration if personnel is set
-            if effortHours > 0 && hasPersonnel {
-                calculatedDurationDisplay
+            // Show calculation breakdown or prompt
+            if effortHours > 0 {
+                if hasPersonnel, let personnel = expectedPersonnelCount, personnel > 0 {
+                    calculationBreakdown
+                } else {
+                    personnelPrompt
+                }
             }
         }
     }
@@ -103,20 +116,67 @@ struct EffortInputSection: View {
         }
     }
 
-    private var calculatedDurationDisplay: some View {
+    private var personnelPrompt: some View {
+        TaskInlineInfoRow(
+            icon: "arrow.up.circle",
+            message: "Set Personnel above to calculate duration from effort",
+            style: .info
+        )
+        .padding(.top, DesignSystem.Spacing.sm)
+    }
+
+    private var calculationBreakdown: some View {
         let personnel = expectedPersonnelCount ?? 1
         let durationHours = effortHours / Double(personnel)
         let totalSeconds = Int(durationHours * 3600)
 
-        return VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+        return VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Divider()
 
-            TaskRowIconValueLabel(
-                icon: "clock.fill",
-                label: "Estimated Duration (with \(personnel) \(personnel == 1 ? "person" : "people"))",
-                value: totalSeconds.formattedTime(),
-                tint: .blue
-            )
+            // Calculation steps
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                // Input: Effort
+                HStack {
+                    Image(systemName: "briefcase.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20)
+                    Text("Total Effort:")
+                        .font(.subheadline)
+                    Spacer()
+                    Text(formattedEffort)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                // Operator: Division
+                HStack {
+                    Image(systemName: "divide")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20)
+                    Text("Personnel:")
+                        .font(.subheadline)
+                    Spacer()
+                    Text("\(personnel) \(personnel == 1 ? "person" : "people")")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Divider()
+                    .padding(.vertical, 2)
+
+                // Result: Duration
+                TaskRowIconValueLabel(
+                    icon: "clock.fill",
+                    label: "= Duration per person",
+                    value: totalSeconds.formattedTime(),
+                    tint: .green
+                )
+            }
+            .padding(12)
+            .background(Color.green.opacity(0.05))
+            .cornerRadius(8)
         }
     }
 }
