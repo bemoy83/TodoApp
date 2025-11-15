@@ -187,8 +187,6 @@ struct TaskComposerForm: View {
             effortHours: $effortHours,
             hasPersonnel: $hasPersonnel,
             expectedPersonnelCount: $expectedPersonnelCount,
-            hasDueDate: $hasDueDate,
-            dueDate: dueDate,
             taskType: $taskType,
             unit: $unit,
             quantity: $quantity,

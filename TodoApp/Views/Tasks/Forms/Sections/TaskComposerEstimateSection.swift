@@ -17,8 +17,6 @@ struct TaskComposerEstimateSection: View {
     @Binding var effortHours: Double
     @Binding var hasPersonnel: Bool
     @Binding var expectedPersonnelCount: Int?
-    @Binding var hasDueDate: Bool
-    let dueDate: Date
 
     // Quantity mode bindings
     @Binding var taskType: String?
@@ -103,9 +101,7 @@ struct TaskComposerEstimateSection: View {
             EffortInputSection(
                 effortHours: $effortHours,
                 hasPersonnel: $hasPersonnel,
-                expectedPersonnelCount: $expectedPersonnelCount,
-                hasDueDate: $hasDueDate,
-                dueDate: dueDate
+                expectedPersonnelCount: $expectedPersonnelCount
             )
             .onChange(of: effortHours) { _, _ in
                 onEffortUpdate()
