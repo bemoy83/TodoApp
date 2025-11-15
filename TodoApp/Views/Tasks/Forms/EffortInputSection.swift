@@ -7,6 +7,8 @@ struct EffortInputSection: View {
     @Binding var expectedPersonnelCount: Int?
 
     @State private var showEffortPicker = false
+    @State private var effortInput: String = ""
+    @FocusState private var isEffortFieldFocused: Bool
 
     private var formattedEffort: String {
         if effortHours == 0 {
@@ -73,34 +75,25 @@ struct EffortInputSection: View {
                     .font(.headline)
                     .padding(.top, DesignSystem.Spacing.md)
 
-                // Use DatePicker to select hours only
-                DatePicker(
-                    "Effort Hours",
-                    selection: Binding(
-                        get: {
-                            // Convert hours to a date
-                            let hours = Int(effortHours)
-                            let minutes = Int((effortHours - Double(hours)) * 60)
-                            return Calendar.current.date(
-                                from: DateComponents(hour: hours, minute: minutes)
-                            ) ?? Date()
-                        },
-                        set: { newValue in
-                            // Extract hours and minutes from date
-                            let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
-                            let hours = Double(components.hour ?? 0)
-                            let minutes = Double(components.minute ?? 0)
-                            effortHours = hours + (minutes / 60.0)
+                VStack(spacing: DesignSystem.Spacing.sm) {
+                    TextField("0", text: $effortInput)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.center)
+                        .font(.title2)
+                        .focused($isEffortFieldFocused)
+                        .frame(maxWidth: 200)
+                        .onChange(of: effortInput) { _, newValue in
+                            if let value = Double(newValue), value >= 0 {
+                                effortHours = value
+                            } else if newValue.isEmpty {
+                                effortHours = 0
+                            }
                         }
-                    ),
-                    displayedComponents: [.hourAndMinute]
-                )
-                .labelsHidden()
-                .datePickerStyle(.wheel)
 
-                Text("Total person-hours of work required")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Text("person-hours")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                }
 
                 Spacer()
             }
@@ -108,10 +101,24 @@ struct EffortInputSection: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         showEffortPicker = false
+                        isEffortFieldFocused = false
                     }
                 }
             }
-            .presentationDetents([.height(350)])
+            .onAppear {
+                if effortHours > 0 {
+                    // Show clean decimal format
+                    if effortHours.truncatingRemainder(dividingBy: 1) == 0 {
+                        effortInput = "\(Int(effortHours))"
+                    } else {
+                        effortInput = String(format: "%.1f", effortHours)
+                    }
+                } else {
+                    effortInput = ""
+                }
+                isEffortFieldFocused = true
+            }
+            .presentationDetents([.height(300)])
             .presentationDragIndicator(.visible)
         }
     }
