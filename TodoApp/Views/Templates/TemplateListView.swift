@@ -157,12 +157,24 @@ private struct TemplateRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    // Historical productivity
+                    // Expected productivity rate (if set)
+                    if let expectedRate = template.defaultProductivityRate {
+                        HStack(spacing: 4) {
+                            Image(systemName: "target")
+                                .font(.caption2)
+                            Text("Expected: \(String(format: "%.1f", expectedRate)) \(template.defaultUnit.displayName)/person-hr")
+                                .font(.caption)
+                        }
+                        .foregroundStyle(DesignSystem.Colors.info)
+                        .padding(.top, 2)
+                    }
+
+                    // Historical productivity (tracked average)
                     if let productivity = analytics.formattedProductivity {
                         HStack(spacing: 4) {
                             Image(systemName: "chart.line.uptrend.xyaxis")
                                 .font(.caption2)
-                            Text("Avg: \(productivity)")
+                            Text("Tracked: \(productivity)")
                                 .font(.caption)
                             Text("(\(analytics.historicalTaskCount) tasks)")
                                 .font(.caption2)
