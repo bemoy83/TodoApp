@@ -6,10 +6,13 @@ struct TemplateFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    @Query(sort: \TaskTemplate.order) private var existingTemplates: [TaskTemplate]
+
     let template: TaskTemplate? // nil = creating new, non-nil = editing
 
     @State private var name: String
     @State private var defaultUnit: UnitType
+    @State private var showDuplicateAlert = false
 
     init(template: TaskTemplate?) {
         self.template = template
@@ -25,6 +28,22 @@ struct TemplateFormView: View {
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// Check if a template with this name + unit combination already exists
+    private func isDuplicate(name: String, unit: UnitType) -> Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+
+        return existingTemplates.contains { existing in
+            // Skip the template we're currently editing
+            if let currentTemplate = template, existing.id == currentTemplate.id {
+                return false
+            }
+
+            // Check for exact name + unit match
+            return existing.name.lowercased() == trimmedName.lowercased() &&
+                   existing.defaultUnit == unit
+        }
     }
 
     var body: some View {
@@ -54,7 +73,7 @@ struct TemplateFormView: View {
                 } header: {
                     Text("Default Unit")
                 } footer: {
-                    Text("The unit of measurement for quantity tracking")
+                    Text("The unit of measurement for quantity tracking. Each name + unit combination must be unique for accurate productivity tracking.")
                 }
             }
             .navigationTitle(isEditing ? "Edit Template" : "New Template")
@@ -73,6 +92,11 @@ struct TemplateFormView: View {
                     .disabled(!canSave)
                 }
             }
+            .alert("Duplicate Template", isPresented: $showDuplicateAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("A template with the name \"\(name)\" and unit \"\(defaultUnit.displayName)\" already exists. Each template must have a unique name + unit combination for accurate productivity tracking.")
+            }
         }
     }
 
@@ -81,6 +105,13 @@ struct TemplateFormView: View {
     private func saveTemplate() {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         guard !trimmedName.isEmpty else { return }
+
+        // Check for duplicate name + unit combination
+        if isDuplicate(name: trimmedName, unit: defaultUnit) {
+            showDuplicateAlert = true
+            HapticManager.error()
+            return
+        }
 
         if let existing = template {
             // Update existing template
