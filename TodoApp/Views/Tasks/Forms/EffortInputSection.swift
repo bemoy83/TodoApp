@@ -143,32 +143,15 @@ struct EffortInputSection: View {
         let durationHours = effortHours / Double(personnel)
         let totalSeconds = Int(durationHours * 3600)
 
-        return HStack(spacing: 12) {
-            Image(systemName: "clock.arrow.circlepath")
-                .font(.title3)
-                .foregroundStyle(.blue)
-                .frame(width: 24)
+        return VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            Divider()
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Estimated Duration")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 4) {
-                    Text(totalSeconds.formattedTime())
-                        .font(.body)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.blue)
-                    Text("(with \(personnel) \(personnel == 1 ? "person" : "people"))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
+            TaskRowIconValueLabel(
+                icon: "clock.fill",
+                label: "Estimated Duration (with \(personnel) \(personnel == 1 ? "person" : "people"))",
+                value: totalSeconds.formattedTime(),
+                tint: .blue
+            )
         }
-        .padding(12)
-        .background(Color.blue.opacity(0.08))
-        .cornerRadius(8)
-        .padding(.top, 8)
     }
 }

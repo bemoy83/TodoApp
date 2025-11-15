@@ -40,7 +40,7 @@ struct TaskComposerEstimateSection: View {
     @Query(filter: #Predicate<Task> { task in !task.isArchived }, sort: \Task.order) private var allTasks: [Task]
 
     var body: some View {
-        Section("Time Estimation & Calculator") {
+        Section("Estimate") {
             Toggle("Set Estimate", isOn: $hasEstimate)
 
             if hasEstimate {

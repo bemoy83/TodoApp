@@ -10,6 +10,8 @@ struct TaskComposerPersonnelSection: View {
     let personnelIsAutoCalculated: Bool
     let quantityCalculationMode: TaskEstimator.QuantityCalculationMode
 
+    @State private var showPersonnelPicker = false
+
     var body: some View {
         Section("Personnel") {
             if personnelIsAutoCalculated {
@@ -66,17 +68,54 @@ struct TaskComposerPersonnelSection: View {
     }
 
     private var personnelPickerView: some View {
-        Picker("Expected crew size", selection: Binding(
-            get: { expectedPersonnelCount ?? 1 },
-            set: { expectedPersonnelCount = $0 }
-        )) {
-            ForEach(1...20, id: \.self) { count in
-                Text("\(count) \(count == 1 ? "person" : "people")")
-                    .tag(count)
-            }
+        HStack {
+            Text("Expected Personnel")
+            Spacer()
+            Text("\(expectedPersonnelCount ?? 1) \(expectedPersonnelCount == 1 ? "person" : "people")")
+                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
-        .pickerStyle(.wheel)
-        .frame(height: 120)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            showPersonnelPicker = true
+        }
+        .sheet(isPresented: $showPersonnelPicker) {
+            personnelPickerSheet
+        }
+    }
+
+    private var personnelPickerSheet: some View {
+        NavigationStack {
+            VStack(spacing: DesignSystem.Spacing.lg) {
+                Text("Select Personnel Count")
+                    .font(.headline)
+                    .padding(.top, DesignSystem.Spacing.md)
+
+                Picker("Personnel", selection: Binding(
+                    get: { expectedPersonnelCount ?? 1 },
+                    set: { expectedPersonnelCount = $0 }
+                )) {
+                    ForEach(1...20, id: \.self) { count in
+                        Text("\(count) \(count == 1 ? "person" : "people")")
+                            .tag(count)
+                    }
+                }
+                .pickerStyle(.wheel)
+
+                Spacer()
+            }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        showPersonnelPicker = false
+                    }
+                }
+            }
+            .presentationDetents([.height(300)])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private var personnelInfoView: some View {
