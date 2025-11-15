@@ -82,6 +82,7 @@ struct TaskComposerEstimateSection: View {
         return totalSeconds.formattedTime()
     }
 
+    @ViewBuilder
     private var persistentEstimateSummary: some View {
         let totalMinutes = (estimateHours * 60) + estimateMinutes
 
