@@ -8,6 +8,14 @@ struct ProductivityMetricsCard: View {
     let tasks: [Task]
     let dateRangeText: String
 
+    @Query private var allTemplates: [TaskTemplate]
+
+    /// Target productivity rate from template (if set)
+    private var targetProductivityRate: Double? {
+        guard let taskType = taskType else { return nil }
+        return allTemplates.first { $0.name == taskType }?.defaultProductivityRate
+    }
+
     private var productivityData: [ProductivityDataPoint] {
         tasks.compactMap { task in
             guard let productivity = task.unitsPerHour,
@@ -45,9 +53,20 @@ struct ProductivityMetricsCard: View {
                         .foregroundStyle(.primary)
 
                     if !productivityData.isEmpty {
-                        Text("Avg: \(formatProductivity(averageProductivity)) \(unit.displayName)/person-hr")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            Text("Avg: \(formatProductivity(averageProductivity))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            if let target = targetProductivityRate {
+                                Text("•")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.tertiary)
+                                Text("Target: \(formatProductivity(target))")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.blue)
+                            }
+                        }
                     } else {
                         Text("No data")
                             .font(.subheadline)
@@ -67,6 +86,7 @@ struct ProductivityMetricsCard: View {
                 ProductivityBarChart(
                     data: productivityData,
                     average: averageProductivity,
+                    target: targetProductivityRate,
                     maxValue: maxProductivity,
                     unit: unit
                 )
@@ -104,6 +124,7 @@ struct ProductivityDataPoint: Identifiable {
 private struct ProductivityBarChart: View {
     let data: [ProductivityDataPoint]
     let average: Double
+    let target: Double?
     let maxValue: Double
     let unit: UnitType
 
@@ -111,10 +132,48 @@ private struct ProductivityBarChart: View {
 
     private var chartHeight: CGFloat { 140 }
 
+    /// Use target for comparisons if available, otherwise fall back to average
+    private var comparisonValue: Double {
+        target ?? average
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
-                // Average line
+                // Target line (if available) - more prominent
+                if let target = target, target > 0 {
+                    let targetY = chartHeight * (1 - target / maxValue)
+
+                    HStack(spacing: 0) {
+                        // Line
+                        Path { path in
+                            path.move(to: CGPoint(x: 0, y: targetY))
+                            path.addLine(to: CGPoint(x: geometry.size.width, y: targetY))
+                        }
+                        .stroke(
+                            Color.blue.opacity(0.8),
+                            style: StrokeStyle(lineWidth: 2, dash: [5, 3])
+                        )
+                    }
+
+                    // Target label with icon
+                    HStack(spacing: 2) {
+                        Image(systemName: "target")
+                            .font(.system(size: 8))
+                        Text(String(format: "%.1f", target))
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.blue)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.blue.opacity(0.1))
+                    )
+                    .offset(x: 4, y: targetY - 12)
+                }
+
+                // Average line (more subtle if target is shown)
                 if average > 0 {
                     let averageY = chartHeight * (1 - average / maxValue)
 
@@ -125,40 +184,56 @@ private struct ProductivityBarChart: View {
                             path.addLine(to: CGPoint(x: geometry.size.width, y: averageY))
                         }
                         .stroke(
-                            DesignSystem.Colors.info.opacity(0.6),
-                            style: StrokeStyle(lineWidth: 2, dash: [5, 3])
+                            DesignSystem.Colors.secondary.opacity(target != nil ? 0.3 : 0.6),
+                            style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])
                         )
                     }
 
-                    // Average label
-                    Text(String(format: "%.1f", average))
-                        .font(.caption2)
-                        .foregroundStyle(DesignSystem.Colors.info)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(DesignSystem.Colors.info.opacity(0.1))
-                        )
-                        .offset(x: 4, y: averageY - 12)
+                    // Average label (only show if different from target or no target)
+                    if target == nil || abs(average - (target ?? 0)) > 0.5 {
+                        Text(String(format: "%.1f avg", average))
+                            .font(.caption2)
+                            .foregroundStyle(DesignSystem.Colors.secondary)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(DesignSystem.Colors.secondary.opacity(0.1))
+                            )
+                            .offset(x: geometry.size.width - 60, y: averageY - 12)
+                    }
                 }
 
                 // Bars
                 HStack(alignment: .bottom, spacing: 8) {
                     ForEach(data) { point in
                         VStack(spacing: 4) {
-                            // Value label
+                            // Value label with variance
                             if selectedBar == point.id {
-                                Text(String(format: "%.1f", point.productivity))
-                                    .font(.caption2)
-                                    .foregroundStyle(.primary)
-                                    .padding(.horizontal, 4)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(Color(.systemBackground))
-                                            .shadow(radius: 2)
-                                    )
+                                VStack(spacing: 2) {
+                                    Text(String(format: "%.1f", point.productivity))
+                                        .font(.caption2)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.primary)
+
+                                    // Show variance from target/average
+                                    if comparisonValue > 0 {
+                                        let variance = ((point.productivity - comparisonValue) / comparisonValue) * 100
+                                        let varianceColor = variance >= 0 ? DesignSystem.Colors.success : DesignSystem.Colors.error
+                                        let sign = variance >= 0 ? "+" : ""
+
+                                        Text("\(sign)\(String(format: "%.0f", variance))%")
+                                            .font(.caption2)
+                                            .foregroundStyle(varianceColor)
+                                    }
+                                }
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(Color(.systemBackground))
+                                        .shadow(radius: 2)
+                                )
                             }
 
                             // Bar
@@ -194,15 +269,18 @@ private struct ProductivityBarChart: View {
     }
 
     private func barColor(for productivity: Double) -> Color {
-        // Color based on relation to average
-        let ratio = productivity / average
+        // Color based on relation to target (if available) or average
+        guard comparisonValue > 0 else { return DesignSystem.Colors.info }
+        let ratio = productivity / comparisonValue
 
-        if ratio >= 1.2 {
-            return DesignSystem.Colors.success // 20%+ above average
-        } else if ratio >= 0.8 {
-            return DesignSystem.Colors.info // Within 20% of average
+        if ratio >= 1.1 {
+            return DesignSystem.Colors.success // 10%+ above target/average
+        } else if ratio >= 0.9 {
+            return DesignSystem.Colors.info // Within 10% of target/average (good)
+        } else if ratio >= 0.75 {
+            return DesignSystem.Colors.warning // 11-25% below target/average
         } else {
-            return DesignSystem.Colors.warning // Below average
+            return DesignSystem.Colors.error // More than 25% below target/average
         }
     }
 }
