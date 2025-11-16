@@ -104,10 +104,15 @@ struct EstimateAccuracyMetrics: Codable, Sendable {
     /// Total tasks with estimates analyzed
     let totalTasksAnalyzed: Int
 
-    /// Accuracy score (0-100): percentage of estimates within 25%
+    /// Accuracy score (0-100): inverse of MAPE (lower error = higher accuracy)
+    /// - 0% MAPE = 100% accuracy (perfect estimates)
+    /// - 10% MAPE = 90% accuracy
+    /// - 50% MAPE = 50% accuracy
+    /// - 100%+ MAPE = 0% accuracy
     var accuracyScore: Double {
-        guard totalTasksAnalyzed > 0 else { return 0.0 }
-        return (Double(estimatesWithin25Percent) / Double(totalTasksAnalyzed)) * 100.0
+        guard let mape = meanAbsolutePercentageError else { return 0.0 }
+        // Convert error percentage to accuracy score
+        return max(0, 100 - mape)
     }
 }
 

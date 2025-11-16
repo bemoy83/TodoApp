@@ -152,7 +152,9 @@ struct KPIDashboardView: View {
                 icon: "target",
                 title: "Accuracy",
                 score: kpis.accuracy.accuracyScore,
-                detail: "\(kpis.accuracy.estimatesWithin25Percent) within 25%",
+                detail: kpis.accuracy.meanAbsolutePercentageError != nil ?
+                    String(format: "%.1f%% avg error", kpis.accuracy.meanAbsolutePercentageError!) :
+                    "No data",
                 color: scoreColor(kpis.accuracy.accuracyScore),
                 onTap: {
                     showingAccuracyDetail = true
