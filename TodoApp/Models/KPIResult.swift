@@ -12,6 +12,11 @@ struct KPIDateRange: Codable, Sendable {
         Calendar.current.dateComponents([.day], from: start, to: end).day ?? 0
     }
 
+    static var allTime: KPIDateRange {
+        // Use distant past to capture all tasks
+        return KPIDateRange(start: Date.distantPast, end: Date())
+    }
+
     static var today: KPIDateRange {
         let now = Date()
         let start = Calendar.current.startOfDay(for: now)
@@ -82,6 +87,59 @@ struct TaskEfficiencyMetrics: Codable, Sendable {
     }
 }
 
+// MARK: - Task Type Accuracy
+
+/// Accuracy metrics for a specific task type
+struct TaskTypeAccuracy: Codable, Sendable, Identifiable {
+    let id = UUID()
+    let taskType: String
+    let averageError: Double  // MAPE for this task type
+    let taskCount: Int
+
+    var status: AccuracyStatus {
+        switch averageError {
+        case 0...20: return .excellent
+        case 21...40: return .good
+        case 41...60: return .needsImprovement
+        default: return .poor
+        }
+    }
+
+    enum AccuracyStatus: Codable, Sendable {
+        case excellent      // 0-20% error
+        case good          // 21-40% error
+        case needsImprovement  // 41-60% error
+        case poor          // >60% error
+
+        var label: String {
+            switch self {
+            case .excellent: return "Reliable estimates"
+            case .good: return "Good estimates"
+            case .needsImprovement: return "Review - needs improvement"
+            case .poor: return "Review - consistently high error"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .excellent: return "checkmark.circle.fill"
+            case .good: return "checkmark.circle"
+            case .needsImprovement: return "exclamationmark.triangle.fill"
+            case .poor: return "exclamationmark.triangle.fill"
+            }
+        }
+
+        var color: String {
+            switch self {
+            case .excellent: return "green"
+            case .good: return "blue"
+            case .needsImprovement: return "yellow"
+            case .poor: return "red"
+            }
+        }
+    }
+}
+
 // MARK: - Estimate Accuracy Metrics
 
 /// Measures how accurate task estimates are
@@ -95,19 +153,36 @@ struct EstimateAccuracyMetrics: Codable, Sendable {
     /// Root Mean Square Error: square root of average squared differences
     let rootMeanSquareError: Double?
 
-    /// Number of estimates within 10% accuracy
+    /// Number of estimates within 10% accuracy (legacy, for backward compatibility)
     let estimatesWithin10Percent: Int
 
-    /// Number of estimates within 25% accuracy
+    /// Number of estimates within 25% accuracy (legacy, for backward compatibility)
     let estimatesWithin25Percent: Int
+
+    /// Number of estimates within 20% accuracy (Excellent: 80-100 score range)
+    let estimatesWithin20Percent: Int
+
+    /// Number of estimates within 40% accuracy (Good: 60-79 score range)
+    let estimatesWithin40Percent: Int
+
+    /// Number of estimates within 60% accuracy (Needs Improvement: 40-59 score range)
+    let estimatesWithin60Percent: Int
 
     /// Total tasks with estimates analyzed
     let totalTasksAnalyzed: Int
 
-    /// Accuracy score (0-100): percentage of estimates within 25%
+    /// Accuracy breakdown by task type
+    let byTaskType: [TaskTypeAccuracy]
+
+    /// Accuracy score (0-100): inverse of MAPE (lower error = higher accuracy)
+    /// - 0% MAPE = 100% accuracy (perfect estimates)
+    /// - 10% MAPE = 90% accuracy
+    /// - 50% MAPE = 50% accuracy
+    /// - 100%+ MAPE = 0% accuracy
     var accuracyScore: Double {
-        guard totalTasksAnalyzed > 0 else { return 0.0 }
-        return (Double(estimatesWithin25Percent) / Double(totalTasksAnalyzed)) * 100.0
+        guard let mape = meanAbsolutePercentageError else { return 0.0 }
+        // Convert error percentage to accuracy score
+        return max(0, 100 - mape)
     }
 }
 
