@@ -122,14 +122,7 @@ struct AccuracyMetricsCard: View {
             }
         }
         .padding(DesignSystem.Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
-                .fill(scoreColor(metrics.accuracyScore).opacity(0.1))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
-                .strokeBorder(scoreColor(metrics.accuracyScore).opacity(0.3), lineWidth: 2)
-        )
+        .statCardStyle()
     }
 
     // MARK: - Helper Views

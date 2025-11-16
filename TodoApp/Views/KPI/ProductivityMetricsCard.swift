@@ -11,7 +11,7 @@ struct ProductivityMetricsCard: View {
     @Query private var allTemplates: [TaskTemplate]
 
     @State private var showAllTasks = false
-    @State private var isExpanded = true
+    @State private var isExpanded = false
 
     private let defaultTaskLimit = 5
 
