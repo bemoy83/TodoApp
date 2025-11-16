@@ -84,7 +84,7 @@ struct WorkBreakdownCard: View {
         // Create breakdowns
         return grouped.map { key, typeTasks in
             let taskType = typeTasks.first?.taskType ?? "Unknown"
-            let unit = typeTasks.first?.unit ?? .quantity
+            let unit = typeTasks.first?.unit ?? .none
             let icon = unit.icon
 
             let totalQuantity = typeTasks.reduce(0.0) { $0 + ($1.quantity ?? 0) }
@@ -367,13 +367,13 @@ struct WorkBreakdownCard: View {
             title: "Assemble chairs",
             taskType: "Furniture Assembly",
             quantity: 30.0,
-            unit: .quantity,
+            unit: .pieces,
             personHours: 4.0,
             container: container
         )
     ]
 
-    return ScrollView {
+    ScrollView {
         WorkBreakdownCard(
             tasks: tasks,
             dateRangeText: "This Week"
@@ -402,10 +402,10 @@ private func createSampleTaskWithQuantity(
 ) -> Task {
     let task = Task(
         title: title,
-        taskType: taskType,
         completedDate: Date(),
         quantity: quantity,
-        unit: unit
+        unit: unit,
+        taskType: taskType
     )
 
     let entry = TimeEntry(
