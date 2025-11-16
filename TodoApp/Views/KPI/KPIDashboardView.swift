@@ -18,8 +18,6 @@ struct KPIDashboardView: View {
     // Detail sheet states
     @State private var showingEfficiencyDetail = false
     @State private var showingAccuracyDetail = false
-    @State private var showingUtilizationDetail = false
-    @State private var showingTasksDetail = false
 
     // MARK: - Date Range Options
 
@@ -79,21 +77,6 @@ struct KPIDashboardView: View {
                         ProgressView("Calculating KPIs...")
                             .padding(.vertical, DesignSystem.Spacing.massive)
                     } else if let kpis = currentKPIs {
-                        // Overall Health Section
-                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-                            SectionHeader(
-                                title: "Overall Health",
-                                subtitle: selectedDateRange.subtitle
-                            )
-
-                            KPIHealthCard(
-                                healthStatus: kpis.healthStatus,
-                                overallScore: kpis.overallHealthScore,
-                                dateRangeText: selectedDateRange.rawValue
-                            )
-                        }
-                        .padding(.horizontal)
-
                         // Key Metrics Section
                         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
                             SectionHeader(
@@ -149,11 +132,6 @@ struct KPIDashboardView: View {
                     KPIAccuracyDetailView(metrics: kpis.accuracy, dateRange: selectedDateRange.rawValue)
                 }
             }
-            .sheet(isPresented: $showingUtilizationDetail) {
-                if let kpis = currentKPIs {
-                    KPIUtilizationDetailView(metrics: kpis.utilization, dateRange: selectedDateRange.rawValue)
-                }
-            }
         }
     }
 
@@ -195,17 +173,6 @@ struct KPIDashboardView: View {
                 color: scoreColor(kpis.accuracy.accuracyScore),
                 onTap: {
                     showingAccuracyDetail = true
-                }
-            )
-
-            KPIMetricCard(
-                icon: "person.2.fill",
-                title: "Team Balance",
-                score: teamBalanceScore(kpis.utilization.utilizationPercentage),
-                detail: String(format: "%.1f%% capacity used", kpis.utilization.utilizationPercentage),
-                color: utilizationColor(kpis.utilization.utilizationPercentage),
-                onTap: {
-                    showingUtilizationDetail = true
                 }
             )
 
@@ -299,57 +266,6 @@ struct KPIDashboardView: View {
                     )
                 }
             }
-
-            // Utilization details
-            detailCard(
-                title: "Team Utilization",
-                icon: "person.2.fill",
-                color: utilizationColor(kpis.utilization.utilizationPercentage)
-            ) {
-                VStack(spacing: DesignSystem.Spacing.xs) {
-                    KPISummaryRow(
-                        title: "Person-Hours Tracked",
-                        value: String(format: "%.1f", kpis.utilization.totalPersonHoursTracked)
-                    )
-
-                    KPISummaryRow(
-                        title: "Available Capacity",
-                        value: String(format: "%.1f", kpis.utilization.totalPersonHoursAvailable)
-                    )
-
-                    KPISummaryRow(
-                        title: "Active Contributors",
-                        value: "\(kpis.utilization.activeContributors)"
-                    )
-
-                    KPISummaryRow(
-                        title: "Time Entries",
-                        value: "\(kpis.utilization.totalTimeEntries)"
-                    )
-
-                    if kpis.utilization.isUnderUtilized {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(DesignSystem.Colors.warning)
-                            Text("Team is under-utilized")
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundStyle(DesignSystem.Colors.warning)
-                            Spacer()
-                        }
-                        .padding(.top, DesignSystem.Spacing.xs)
-                    } else if kpis.utilization.isOverUtilized {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(DesignSystem.Colors.error)
-                            Text("Team is over-utilized")
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundStyle(DesignSystem.Colors.error)
-                            Spacer()
-                        }
-                        .padding(.top, DesignSystem.Spacing.xs)
-                    }
-                }
-            }
         }
     }
 
@@ -412,37 +328,11 @@ struct KPIDashboardView: View {
         }
     }
 
-    /// Color based on distance from optimal utilization (80%)
-    /// Treats under-utilization and over-utilization equally as distance from target
-    private func utilizationColor(_ utilization: Double) -> Color {
-        let optimalTarget = 80.0
-        let distance = abs(utilization - optimalTarget)
-
-        switch distance {
-        case 0...10:   return DesignSystem.Colors.success  // 70-90%: Optimal range
-        case 10...20:  return DesignSystem.Colors.info     // 60-70% or 90-100%: Acceptable
-        case 20...30:  return DesignSystem.Colors.warning  // 50-60% or 100-110%: Concerning
-        default:       return DesignSystem.Colors.error    // <50% or >110%: Critical
-        }
-    }
-
     /// Color based on completion percentage
     private func completionColor(completed: Int, total: Int) -> Color {
         guard total > 0 else { return DesignSystem.Colors.info }
         let percentage = (Double(completed) / Double(total)) * 100
         return scoreColor(percentage)
-    }
-
-    /// Convert utilization percentage to team balance score (0-100)
-    /// Higher score = better. 80% utilization = 100 score (optimal)
-    private func teamBalanceScore(_ utilization: Double) -> Double {
-        let optimalTarget = 80.0
-        let distance = abs(utilization - optimalTarget)
-
-        // Score decreases by 2 points per 1% distance from optimal
-        // 80% = 100, 90% = 80, 100% = 60, 70% = 80, 60% = 60, etc.
-        let score = max(0, 100 - (distance * 2))
-        return score
     }
 
     // MARK: - Productivity Section
