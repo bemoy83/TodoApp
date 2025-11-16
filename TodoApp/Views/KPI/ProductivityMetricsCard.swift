@@ -10,6 +10,10 @@ struct ProductivityMetricsCard: View {
 
     @Query private var allTemplates: [TaskTemplate]
 
+    @State private var showAllTasks = false
+
+    private let defaultTaskLimit = 5
+
     /// Target productivity rate from template (if set)
     private var targetProductivityRate: Double? {
         guard let taskType = taskType else { return nil }
@@ -54,6 +58,35 @@ struct ProductivityMetricsCard: View {
     /// Use target for comparisons if available, otherwise fall back to average
     private var comparisonValue: Double {
         targetProductivityRate ?? averageProductivity
+    }
+
+    /// Tasks to display (limited or all)
+    private var displayedTasks: [ProductivityDataPoint] {
+        if showAllTasks || productivityData.count <= defaultTaskLimit {
+            return productivityData
+        }
+        return Array(productivityData.prefix(defaultTaskLimit))
+    }
+
+    /// Number of hidden tasks
+    private var hiddenTaskCount: Int {
+        max(0, productivityData.count - defaultTaskLimit)
+    }
+
+    /// Check if we should show "consider updating target" alert
+    /// Shows if 70%+ of tasks are below target
+    private var shouldShowTargetAlert: Bool {
+        guard let _ = targetProductivityRate,
+              tasksBelowTarget > 0,
+              productivityData.count >= 3 else { return false }
+
+        let belowPercentage = Double(tasksBelowTarget) / Double(productivityData.count)
+        return belowPercentage >= 0.7
+    }
+
+    /// Suggested new target based on current average
+    private var suggestedTarget: Double {
+        averageProductivity
     }
 
     var body: some View {
@@ -122,13 +155,59 @@ struct ProductivityMetricsCard: View {
                     }
                 }
 
+                // Target adjustment alert (if consistently missing target)
+                if shouldShowTargetAlert {
+                    Divider()
+                    targetAdjustmentAlert
+                }
+
                 Divider()
 
                 // Compact task list with horizontal bars
                 VStack(spacing: DesignSystem.Spacing.sm) {
-                    ForEach(productivityData) { point in
+                    ForEach(displayedTasks) { point in
                         compactTaskRow(for: point)
                     }
+                }
+
+                // Show more button
+                if hiddenTaskCount > 0 && !showAllTasks {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showAllTasks = true
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                            Text("Show \(hiddenTaskCount) more task\(hiddenTaskCount == 1 ? "" : "s")")
+                                .font(.subheadline)
+                        }
+                        .foregroundStyle(.blue)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DesignSystem.Spacing.sm)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // Show less button
+                if showAllTasks && productivityData.count > defaultTaskLimit {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showAllTasks = false
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "chevron.up")
+                                .font(.caption)
+                            Text("Show less")
+                                .font(.subheadline)
+                        }
+                        .foregroundStyle(.blue)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DesignSystem.Spacing.sm)
+                    }
+                    .buttonStyle(.plain)
                 }
             } else {
                 // Empty state
@@ -144,6 +223,36 @@ struct ProductivityMetricsCard: View {
     }
 
     // MARK: - Helper Views
+
+    private var targetAdjustmentAlert: some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.title3)
+                .foregroundStyle(DesignSystem.Colors.warning)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Consider Adjusting Target")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(DesignSystem.Colors.primary)
+
+                Text("70%+ tasks below target. Current average: \(formatProductivity(suggestedTarget)) \(unit.displayName)/hr")
+                    .font(.caption)
+                    .foregroundStyle(DesignSystem.Colors.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(DesignSystem.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
+                .fill(DesignSystem.Colors.warning.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
+                .strokeBorder(DesignSystem.Colors.warning.opacity(0.3), lineWidth: 1)
+        )
+    }
 
     private func summaryRow(icon: String, label: String, value: String, variance: Double? = nil, color: Color) -> some View {
         HStack(spacing: 6) {
