@@ -82,6 +82,59 @@ struct TaskEfficiencyMetrics: Codable, Sendable {
     }
 }
 
+// MARK: - Task Type Accuracy
+
+/// Accuracy metrics for a specific task type
+struct TaskTypeAccuracy: Codable, Sendable, Identifiable {
+    let id = UUID()
+    let taskType: String
+    let averageError: Double  // MAPE for this task type
+    let taskCount: Int
+
+    var status: AccuracyStatus {
+        switch averageError {
+        case 0...20: return .excellent
+        case 21...40: return .good
+        case 41...60: return .needsImprovement
+        default: return .poor
+        }
+    }
+
+    enum AccuracyStatus: Codable, Sendable {
+        case excellent      // 0-20% error
+        case good          // 21-40% error
+        case needsImprovement  // 41-60% error
+        case poor          // >60% error
+
+        var label: String {
+            switch self {
+            case .excellent: return "Reliable estimates"
+            case .good: return "Good estimates"
+            case .needsImprovement: return "Review - needs improvement"
+            case .poor: return "Review - consistently high error"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .excellent: return "checkmark.circle.fill"
+            case .good: return "checkmark.circle"
+            case .needsImprovement: return "exclamationmark.triangle.fill"
+            case .poor: return "exclamationmark.triangle.fill"
+            }
+        }
+
+        var color: String {
+            switch self {
+            case .excellent: return "green"
+            case .good: return "blue"
+            case .needsImprovement: return "yellow"
+            case .poor: return "red"
+            }
+        }
+    }
+}
+
 // MARK: - Estimate Accuracy Metrics
 
 /// Measures how accurate task estimates are
@@ -112,6 +165,9 @@ struct EstimateAccuracyMetrics: Codable, Sendable {
 
     /// Total tasks with estimates analyzed
     let totalTasksAnalyzed: Int
+
+    /// Accuracy breakdown by task type
+    let byTaskType: [TaskTypeAccuracy]
 
     /// Accuracy score (0-100): inverse of MAPE (lower error = higher accuracy)
     /// - 0% MAPE = 100% accuracy (perfect estimates)

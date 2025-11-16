@@ -131,7 +131,8 @@ struct KPIManager {
                 estimatesWithin20Percent: 0,
                 estimatesWithin40Percent: 0,
                 estimatesWithin60Percent: 0,
-                totalTasksAnalyzed: 0
+                totalTasksAnalyzed: 0,
+                byTaskType: []
             )
         }
 
@@ -188,6 +189,35 @@ struct KPIManager {
         let mape = sumAbsolutePercentageError / count
         let rmse = sqrt(sumSquaredError / count)
 
+        // Calculate accuracy breakdown by task type
+        var taskTypeErrors: [String: (sumError: Double, count: Int)] = [:]
+
+        for task in analyzableTasks {
+            guard let estimate = task.effectiveEstimate, estimate > 0 else { continue }
+
+            let taskType = task.taskType ?? "Unknown"
+            let actual = Double(task.totalTimeSpent)
+            let estimated = Double(estimate)
+            let absoluteError = abs(estimated - actual)
+            let percentageError = (absoluteError / estimated) * 100.0
+
+            if var existing = taskTypeErrors[taskType] {
+                existing.sumError += percentageError
+                existing.count += 1
+                taskTypeErrors[taskType] = existing
+            } else {
+                taskTypeErrors[taskType] = (sumError: percentageError, count: 1)
+            }
+        }
+
+        let taskTypeBreakdown = taskTypeErrors.map { taskType, data in
+            TaskTypeAccuracy(
+                taskType: taskType,
+                averageError: data.sumError / Double(data.count),
+                taskCount: data.count
+            )
+        }.sorted { $0.averageError > $1.averageError }  // Worst performers first
+
         return EstimateAccuracyMetrics(
             meanAbsoluteError: mae,
             meanAbsolutePercentageError: mape,
@@ -197,7 +227,8 @@ struct KPIManager {
             estimatesWithin20Percent: within20Percent,
             estimatesWithin40Percent: within40Percent,
             estimatesWithin60Percent: within60Percent,
-            totalTasksAnalyzed: analyzableTasks.count
+            totalTasksAnalyzed: analyzableTasks.count,
+            byTaskType: taskTypeBreakdown
         )
     }
 

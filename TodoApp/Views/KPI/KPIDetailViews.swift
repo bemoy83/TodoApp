@@ -238,6 +238,23 @@ struct KPIAccuracyDetailView: View {
                         .padding(.horizontal)
                     }
 
+                    // Accuracy by task type
+                    if !metrics.byTaskType.isEmpty {
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                            Text("Accuracy by Task Type")
+                                .font(DesignSystem.Typography.title3)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal)
+
+                            VStack(spacing: DesignSystem.Spacing.sm) {
+                                ForEach(metrics.byTaskType) { taskTypeAccuracy in
+                                    taskTypeAccuracyRow(taskTypeAccuracy)
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+
                     // Statistical metrics
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
                         Text("Statistical Measures")
@@ -318,6 +335,71 @@ struct KPIAccuracyDetailView: View {
         case 40..<60: return DesignSystem.Colors.warning
         default: return DesignSystem.Colors.error
         }
+    }
+
+    private func taskTypeAccuracyRow(_ taskTypeAccuracy: TaskTypeAccuracy) -> some View {
+        let statusColor: Color = {
+            switch taskTypeAccuracy.status {
+            case .excellent: return DesignSystem.Colors.success
+            case .good: return DesignSystem.Colors.info
+            case .needsImprovement: return DesignSystem.Colors.warning
+            case .poor: return DesignSystem.Colors.error
+            }
+        }()
+
+        return VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // Header row
+            HStack {
+                Text(taskTypeAccuracy.taskType)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Image(systemName: taskTypeAccuracy.status.icon)
+                    .font(.caption)
+                    .foregroundStyle(statusColor)
+            }
+
+            // Error percentage and task count
+            HStack(spacing: 4) {
+                Text(String(format: "%.1f%% avg error", taskTypeAccuracy.averageError))
+                    .font(.caption)
+                    .foregroundStyle(statusColor)
+                    .fontWeight(.medium)
+
+                Text("·")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+
+                Text("\(taskTypeAccuracy.taskCount) task\(taskTypeAccuracy.taskCount == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Status label
+            HStack(spacing: 4) {
+                Image(systemName: taskTypeAccuracy.status.icon)
+                    .font(.caption2)
+                    .foregroundStyle(statusColor)
+
+                Text(taskTypeAccuracy.status.label)
+                    .font(.caption)
+                    .foregroundStyle(statusColor)
+            }
+            .padding(.horizontal, DesignSystem.Spacing.sm)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(statusColor.opacity(0.1))
+            )
+        }
+        .padding(DesignSystem.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
+                .fill(Color(.systemGray6))
+        )
     }
 }
 
