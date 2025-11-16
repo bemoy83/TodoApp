@@ -131,10 +131,8 @@ struct KPIDashboardView: View {
     // MARK: - Metrics Grid
 
     private func metricsGrid(kpis: KPIResult) -> some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: DesignSystem.Spacing.md) {
+        VStack(spacing: DesignSystem.Spacing.md) {
+            // Accuracy metric
             KPIMetricCard(
                 icon: "target",
                 title: "Accuracy",
@@ -148,12 +146,10 @@ struct KPIDashboardView: View {
                 }
             )
 
-            KPIMetricCard(
-                icon: "checkmark.circle.fill",
-                title: "Completed",
-                score: kpis.totalTasks > 0 ? (Double(kpis.totalCompletedTasks) / Double(kpis.totalTasks)) * 100 : 0,
-                detail: "\(kpis.totalCompletedTasks) of \(kpis.totalTasks) tasks",
-                color: completionColor(completed: kpis.totalCompletedTasks, total: kpis.totalTasks)
+            // Work breakdown by task type
+            WorkBreakdownCard(
+                tasks: filteredTasksForDateRange,
+                dateRangeText: selectedDateRange.rawValue
             )
         }
     }
@@ -187,13 +183,6 @@ struct KPIDashboardView: View {
         case 40..<60: return DesignSystem.Colors.warning
         default: return DesignSystem.Colors.error
         }
-    }
-
-    /// Color based on completion percentage
-    private func completionColor(completed: Int, total: Int) -> Color {
-        guard total > 0 else { return DesignSystem.Colors.info }
-        let percentage = (Double(completed) / Double(total)) * 100
-        return scoreColor(percentage)
     }
 
     // MARK: - Productivity Section
@@ -231,6 +220,15 @@ struct KPIDashboardView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// Filter tasks in the selected date range (for Work Breakdown)
+    private var filteredTasksForDateRange: [TaskModel] {
+        let dateRange = selectedDateRange.dateRange
+        return allTasks.filter { task in
+            guard let completedDate = task.completedDate else { return false }
+            return completedDate >= dateRange.start && completedDate <= dateRange.end
         }
     }
 
