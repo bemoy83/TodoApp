@@ -11,6 +11,7 @@ struct ProductivityMetricsCard: View {
     @Query private var allTemplates: [TaskTemplate]
 
     @State private var showAllTasks = false
+    @State private var isExpanded = true
 
     private let defaultTaskLimit = 5
 
@@ -91,123 +92,142 @@ struct ProductivityMetricsCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-            // Header with task type and count
-            HStack {
-                Image(systemName: unit.icon)
-                    .font(.title3)
-                    .foregroundStyle(DesignSystem.Colors.info)
+            // Header with task type and count - tappable to expand/collapse
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: unit.icon)
+                        .font(.title3)
+                        .foregroundStyle(DesignSystem.Colors.info)
 
-                Text(taskType ?? "Unknown Type")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+                    Text(taskType ?? "Unknown Type")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
 
-                Spacer()
+                    Spacer()
 
-                Text("\(productivityData.count) task\(productivityData.count == 1 ? "" : "s")")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    Text("\(productivityData.count) task\(productivityData.count == 1 ? "" : "s")")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             }
+            .buttonStyle(.plain)
 
             if !productivityData.isEmpty {
-                Divider()
-
-                // Summary Statistics
-                VStack(spacing: DesignSystem.Spacing.xs) {
-                    if let target = targetProductivityRate {
-                        summaryRow(
-                            icon: "target",
-                            label: "Target:",
-                            value: "\(formatProductivity(target)) \(unit.displayName)/hr",
-                            color: .blue
-                        )
-                    }
-
-                    let avgVariance = targetProductivityRate != nil ? ((averageProductivity - (targetProductivityRate ?? 0)) / (targetProductivityRate ?? 1)) * 100 : 0
-                    summaryRow(
-                        icon: "chart.line.uptrend.xyaxis",
-                        label: "Average:",
-                        value: "\(formatProductivity(averageProductivity)) \(unit.displayName)/hr",
-                        variance: targetProductivityRate != nil ? avgVariance : nil,
-                        color: .secondary
-                    )
-
-                    if comparisonValue > 0 {
-                        HStack(spacing: DesignSystem.Spacing.sm) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(DesignSystem.Colors.success)
-                                Text("Above: \(tasksAboveTarget) (\(Int((Double(tasksAboveTarget) / Double(productivityData.count)) * 100))%)")
-                                    .font(.subheadline)
-                            }
-
-                            Spacer()
-
-                            HStack(spacing: 4) {
-                                Image(systemName: "exclamationmark.circle.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(DesignSystem.Colors.error)
-                                Text("Below: \(tasksBelowTarget) (\(Int((Double(tasksBelowTarget) / Double(productivityData.count)) * 100))%)")
-                                    .font(.subheadline)
-                            }
-                        }
-                        .foregroundStyle(.secondary)
-                    }
+                // Collapsed view: Show only badges
+                if !isExpanded {
+                    compactSummaryBadges
                 }
 
-                // Target adjustment alert (if consistently missing target)
-                if shouldShowTargetAlert {
+                // Expanded view: Show all details
+                if isExpanded {
                     Divider()
-                    targetAdjustmentAlert
-                }
 
-                Divider()
+                    // Summary Statistics
+                    VStack(spacing: DesignSystem.Spacing.xs) {
+                        if let target = targetProductivityRate {
+                            summaryRow(
+                                icon: "target",
+                                label: "Target:",
+                                value: "\(formatProductivity(target)) \(unit.displayName)/hr",
+                                color: .blue
+                            )
+                        }
 
-                // Compact task list with horizontal bars
-                VStack(spacing: DesignSystem.Spacing.sm) {
-                    ForEach(displayedTasks) { point in
-                        compactTaskRow(for: point)
+                        let avgVariance = targetProductivityRate != nil ? ((averageProductivity - (targetProductivityRate ?? 0)) / (targetProductivityRate ?? 1)) * 100 : 0
+                        summaryRow(
+                            icon: "chart.line.uptrend.xyaxis",
+                            label: "Average:",
+                            value: "\(formatProductivity(averageProductivity)) \(unit.displayName)/hr",
+                            variance: targetProductivityRate != nil ? avgVariance : nil,
+                            color: .secondary
+                        )
+
+                        if comparisonValue > 0 {
+                            HStack(spacing: DesignSystem.Spacing.sm) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(DesignSystem.Colors.success)
+                                    Text("Above: \(tasksAboveTarget) (\(Int((Double(tasksAboveTarget) / Double(productivityData.count)) * 100))%)")
+                                        .font(.subheadline)
+                                }
+
+                                Spacer()
+
+                                HStack(spacing: 4) {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(DesignSystem.Colors.error)
+                                    Text("Below: \(tasksBelowTarget) (\(Int((Double(tasksBelowTarget) / Double(productivityData.count)) * 100))%)")
+                                        .font(.subheadline)
+                                }
+                            }
+                            .foregroundStyle(.secondary)
+                        }
                     }
-                }
 
-                // Show more button
-                if hiddenTaskCount > 0 && !showAllTasks {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showAllTasks = true
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: "chevron.down")
-                                .font(.caption)
-                            Text("Show \(hiddenTaskCount) more task\(hiddenTaskCount == 1 ? "" : "s")")
-                                .font(.subheadline)
-                        }
-                        .foregroundStyle(.blue)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DesignSystem.Spacing.sm)
+                    // Target adjustment alert (if consistently missing target)
+                    if shouldShowTargetAlert {
+                        Divider()
+                        targetAdjustmentAlert
                     }
-                    .buttonStyle(.plain)
-                }
 
-                // Show less button
-                if showAllTasks && productivityData.count > defaultTaskLimit {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showAllTasks = false
+                    Divider()
+
+                    // Compact task list with horizontal bars
+                    VStack(spacing: DesignSystem.Spacing.sm) {
+                        ForEach(displayedTasks) { point in
+                            compactTaskRow(for: point)
                         }
-                    } label: {
-                        HStack {
-                            Image(systemName: "chevron.up")
-                                .font(.caption)
-                            Text("Show less")
-                                .font(.subheadline)
-                        }
-                        .foregroundStyle(.blue)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DesignSystem.Spacing.sm)
                     }
-                    .buttonStyle(.plain)
+
+                    // Show more button
+                    if hiddenTaskCount > 0 && !showAllTasks {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showAllTasks = true
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "chevron.down")
+                                    .font(.caption)
+                                Text("Show \(hiddenTaskCount) more task\(hiddenTaskCount == 1 ? "" : "s")")
+                                    .font(.subheadline)
+                            }
+                            .foregroundStyle(.blue)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // Show less button
+                    if showAllTasks && productivityData.count > defaultTaskLimit {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showAllTasks = false
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "chevron.up")
+                                    .font(.caption)
+                                Text("Show less")
+                                    .font(.subheadline)
+                            }
+                            .foregroundStyle(.blue)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             } else {
                 // Empty state
@@ -223,6 +243,57 @@ struct ProductivityMetricsCard: View {
     }
 
     // MARK: - Helper Views
+
+    /// Compact badges showing target and average when collapsed
+    private var compactSummaryBadges: some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            // Target badge (if available)
+            if let target = targetProductivityRate {
+                HStack(spacing: 4) {
+                    Image(systemName: "target")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                    Text("Target: \(formatProductivity(target)) \(unit.displayName)/hr")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
+                .padding(.horizontal, DesignSystem.Spacing.sm)
+                .padding(.vertical, DesignSystem.Spacing.xs)
+                .background(
+                    Capsule()
+                        .fill(Color.blue.opacity(0.1))
+                )
+            }
+
+            // Average badge with variance
+            HStack(spacing: 4) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("Avg: \(formatProductivity(averageProductivity)) \(unit.displayName)/hr")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                // Show variance if target is set
+                if let target = targetProductivityRate {
+                    let avgVariance = ((averageProductivity - target) / target) * 100
+                    let varianceColor = avgVariance >= 0 ? DesignSystem.Colors.success : DesignSystem.Colors.error
+                    let sign = avgVariance >= 0 ? "+" : ""
+                    Text("\(sign)\(String(format: "%.0f", avgVariance))%")
+                        .font(.caption2)
+                        .foregroundStyle(varianceColor)
+                }
+            }
+            .padding(.horizontal, DesignSystem.Spacing.sm)
+            .padding(.vertical, DesignSystem.Spacing.xs)
+            .background(
+                Capsule()
+                    .fill(Color(.systemGray6))
+            )
+
+            Spacer()
+        }
+    }
 
     private var targetAdjustmentAlert: some View {
         HStack(spacing: DesignSystem.Spacing.sm) {
