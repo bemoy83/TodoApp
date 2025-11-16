@@ -147,7 +147,9 @@ struct TaskComposerEstimateSection: View {
             EffortInputSection(
                 effortHours: $effortHours,
                 hasPersonnel: $hasPersonnel,
-                expectedPersonnelCount: $expectedPersonnelCount
+                expectedPersonnelCount: $expectedPersonnelCount,
+                estimateHours: $estimateHours,
+                estimateMinutes: $estimateMinutes
             )
             .onChange(of: effortHours) { _, _ in
                 onEffortUpdate()

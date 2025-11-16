@@ -5,20 +5,64 @@ struct EffortInputSection: View {
     @Binding var effortHours: Double
     @Binding var hasPersonnel: Bool
     @Binding var expectedPersonnelCount: Int?
+    @Binding var estimateHours: Int
+    @Binding var estimateMinutes: Int
 
     @State private var showEffortPicker = false
     @State private var effortInput: String = ""
+    @State private var manuallySetEffort: Double? = nil
     @FocusState private var isEffortFieldFocused: Bool
 
+    // MARK: - Computed Properties
+
+    /// Total duration in hours (from estimate)
+    private var durationInHours: Double {
+        Double(estimateHours) + (Double(estimateMinutes) / 60.0)
+    }
+
+    /// Check if effort should be calculated from duration × personnel
+    private var shouldCalculateEffort: Bool {
+        // Calculate if:
+        // 1. No manual effort is set
+        // 2. Personnel is set
+        // 3. Duration is set
+        return manuallySetEffort == nil &&
+               hasPersonnel &&
+               (estimateHours > 0 || estimateMinutes > 0)
+    }
+
+    /// Calculated effort from duration × personnel
+    private var calculatedEffort: Double {
+        guard shouldCalculateEffort else { return 0 }
+        let personnel = Double(expectedPersonnelCount ?? 1)
+        return durationInHours * personnel
+    }
+
+    /// The effective effort (manual takes precedence over calculated)
+    private var effectiveEffort: Double {
+        if let manual = manuallySetEffort {
+            return manual
+        } else if shouldCalculateEffort {
+            return calculatedEffort
+        }
+        return effortHours
+    }
+
+    /// Whether the current effort is calculated (not manual)
+    private var isEffortCalculated: Bool {
+        manuallySetEffort == nil && shouldCalculateEffort && calculatedEffort > 0
+    }
+
     private var formattedEffort: String {
-        if effortHours == 0 {
+        let effort = effectiveEffort
+        if effort == 0 {
             return "Not set"
         }
         // Show decimal if not a whole number
-        if effortHours.truncatingRemainder(dividingBy: 1) == 0 {
-            return "\(Int(effortHours)) person-hours"
+        if effort.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(effort)) person-hours"
         } else {
-            return String(format: "%.1f person-hours", effortHours)
+            return String(format: "%.1f person-hours", effort)
         }
     }
 
@@ -36,13 +80,28 @@ struct EffortInputSection: View {
             // Effort input row
             effortPickerRow
 
+            // Show calculated effort badge
+            if isEffortCalculated {
+                calculatedEffortBadge
+            }
+
             // Show calculation breakdown or prompt
-            if effortHours > 0 {
+            if effectiveEffort > 0 {
                 if hasPersonnel {
                     calculationBreakdown
                 } else {
                     personnelPrompt
                 }
+            }
+        }
+        .onChange(of: effectiveEffort) { _, newValue in
+            // Sync the binding
+            effortHours = newValue
+        }
+        .onAppear {
+            // Initialize manuallySetEffort if effortHours was already set
+            if effortHours > 0 {
+                manuallySetEffort = effortHours
             }
         }
     }
@@ -85,8 +144,10 @@ struct EffortInputSection: View {
                         .onChange(of: effortInput) { _, newValue in
                             if let value = Double(newValue), value >= 0 {
                                 effortHours = value
+                                manuallySetEffort = value
                             } else if newValue.isEmpty {
                                 effortHours = 0
+                                manuallySetEffort = nil
                             }
                         }
 
@@ -106,12 +167,13 @@ struct EffortInputSection: View {
                 }
             }
             .onAppear {
-                if effortHours > 0 {
+                let effort = effectiveEffort
+                if effort > 0 {
                     // Show clean decimal format
-                    if effortHours.truncatingRemainder(dividingBy: 1) == 0 {
-                        effortInput = "\(Int(effortHours))"
+                    if effort.truncatingRemainder(dividingBy: 1) == 0 {
+                        effortInput = "\(Int(effort))"
                     } else {
-                        effortInput = String(format: "%.1f", effortHours)
+                        effortInput = String(format: "%.1f", effort)
                     }
                 } else {
                     effortInput = ""
@@ -121,6 +183,18 @@ struct EffortInputSection: View {
             .presentationDetents([.height(300)])
             .presentationDragIndicator(.visible)
         }
+    }
+
+    private var calculatedEffortBadge: some View {
+        let personnel = expectedPersonnelCount ?? 1
+        let durationFormatted = (estimateHours * 3600 + estimateMinutes * 60).formattedTime()
+
+        return TaskInlineInfoRow(
+            icon: "function",
+            message: "Calculated from \(durationFormatted) × \(personnel) \(personnel == 1 ? "person" : "people")",
+            style: .info
+        )
+        .padding(.top, DesignSystem.Spacing.sm)
     }
 
     private var personnelPrompt: some View {
@@ -134,7 +208,7 @@ struct EffortInputSection: View {
 
     private var calculationBreakdown: some View {
         let personnel = expectedPersonnelCount ?? 1
-        let durationHours = effortHours / Double(personnel)
+        let durationHours = effectiveEffort / Double(personnel)
         let totalSeconds = Int(durationHours * 3600)
 
         return VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
