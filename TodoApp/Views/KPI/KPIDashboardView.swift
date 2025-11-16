@@ -21,7 +21,7 @@ struct KPIDashboardView: View {
     // MARK: - Date Range Options
 
     enum DateRangeOption: String, CaseIterable, Identifiable {
-        case today = "Today"
+        case allTime = "All Time"
         case thisWeek = "This Week"
         case thisMonth = "This Month"
 
@@ -29,7 +29,7 @@ struct KPIDashboardView: View {
 
         var dateRange: KPIDateRange {
             switch self {
-            case .today: return .today
+            case .allTime: return .allTime
             case .thisWeek: return .thisWeek
             case .thisMonth: return .thisMonth
             }
@@ -40,10 +40,8 @@ struct KPIDashboardView: View {
             let now = Date()
 
             switch self {
-            case .today:
-                let formatter = DateFormatter()
-                formatter.dateFormat = "EEEE, MMM d"
-                return formatter.string(from: now)
+            case .allTime:
+                return "All completed tasks"
 
             case .thisWeek:
                 if let weekInterval = calendar.dateInterval(of: .weekOfYear, for: now) {

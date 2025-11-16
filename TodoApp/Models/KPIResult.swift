@@ -12,6 +12,11 @@ struct KPIDateRange: Codable, Sendable {
         Calendar.current.dateComponents([.day], from: start, to: end).day ?? 0
     }
 
+    static var allTime: KPIDateRange {
+        // Use distant past to capture all tasks
+        return KPIDateRange(start: Date.distantPast, end: Date())
+    }
+
     static var today: KPIDateRange {
         let now = Date()
         let start = Calendar.current.startOfDay(for: now)
