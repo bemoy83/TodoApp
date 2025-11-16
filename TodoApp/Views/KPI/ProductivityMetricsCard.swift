@@ -89,12 +89,12 @@ struct ProductivityMetricsCard: View {
                         )
                     }
 
-                    let avgVariance = target != nil ? ((averageProductivity - (target ?? 0)) / (target ?? 1)) * 100 : 0
+                    let avgVariance = targetProductivityRate != nil ? ((averageProductivity - (targetProductivityRate ?? 0)) / (targetProductivityRate ?? 1)) * 100 : 0
                     summaryRow(
                         icon: "chart.line.uptrend.xyaxis",
                         label: "Average:",
                         value: "\(formatProductivity(averageProductivity)) \(unit.displayName)/hr",
-                        variance: target != nil ? avgVariance : nil,
+                        variance: targetProductivityRate != nil ? avgVariance : nil,
                         color: .secondary
                     )
 
