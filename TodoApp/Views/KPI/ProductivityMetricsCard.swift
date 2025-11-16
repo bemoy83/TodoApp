@@ -39,40 +39,34 @@ struct ProductivityMetricsCard: View {
         productivityData.map { $0.productivity }.max() ?? 1.0
     }
 
+    /// Tasks above target/average
+    private var tasksAboveTarget: Int {
+        guard comparisonValue > 0 else { return 0 }
+        return productivityData.filter { $0.productivity >= comparisonValue }.count
+    }
+
+    /// Tasks below target/average
+    private var tasksBelowTarget: Int {
+        guard comparisonValue > 0 else { return 0 }
+        return productivityData.filter { $0.productivity < comparisonValue }.count
+    }
+
+    /// Use target for comparisons if available, otherwise fall back to average
+    private var comparisonValue: Double {
+        targetProductivityRate ?? averageProductivity
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-            // Header
+            // Header with task type and count
             HStack {
                 Image(systemName: unit.icon)
                     .font(.title3)
                     .foregroundStyle(DesignSystem.Colors.info)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(taskType ?? "Unknown Type")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-
-                    if !productivityData.isEmpty {
-                        HStack(spacing: 4) {
-                            Text("Avg: \(formatProductivity(averageProductivity))")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-
-                            if let target = targetProductivityRate {
-                                Text("•")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.tertiary)
-                                Text("Target: \(formatProductivity(target))")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.blue)
-                            }
-                        }
-                    } else {
-                        Text("No data")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Text(taskType ?? "Unknown Type")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
 
                 Spacer()
 
@@ -82,15 +76,60 @@ struct ProductivityMetricsCard: View {
             }
 
             if !productivityData.isEmpty {
-                // Chart
-                ProductivityBarChart(
-                    data: productivityData,
-                    average: averageProductivity,
-                    target: targetProductivityRate,
-                    maxValue: maxProductivity,
-                    unit: unit
-                )
-                .frame(height: 180)
+                Divider()
+
+                // Summary Statistics
+                VStack(spacing: DesignSystem.Spacing.xs) {
+                    if let target = targetProductivityRate {
+                        summaryRow(
+                            icon: "target",
+                            label: "Target:",
+                            value: "\(formatProductivity(target)) \(unit.displayName)/hr",
+                            color: .blue
+                        )
+                    }
+
+                    let avgVariance = target != nil ? ((averageProductivity - (target ?? 0)) / (target ?? 1)) * 100 : 0
+                    summaryRow(
+                        icon: "chart.line.uptrend.xyaxis",
+                        label: "Average:",
+                        value: "\(formatProductivity(averageProductivity)) \(unit.displayName)/hr",
+                        variance: target != nil ? avgVariance : nil,
+                        color: .secondary
+                    )
+
+                    if comparisonValue > 0 {
+                        HStack(spacing: DesignSystem.Spacing.sm) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(DesignSystem.Colors.success)
+                                Text("Above: \(tasksAboveTarget) (\(Int((Double(tasksAboveTarget) / Double(productivityData.count)) * 100))%)")
+                                    .font(.subheadline)
+                            }
+
+                            Spacer()
+
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(DesignSystem.Colors.error)
+                                Text("Below: \(tasksBelowTarget) (\(Int((Double(tasksBelowTarget) / Double(productivityData.count)) * 100))%)")
+                                    .font(.subheadline)
+                            }
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                }
+
+                Divider()
+
+                // Compact task list with horizontal bars
+                VStack(spacing: DesignSystem.Spacing.sm) {
+                    ForEach(productivityData) { point in
+                        compactTaskRow(for: point)
+                    }
+                }
             } else {
                 // Empty state
                 Text("Complete tasks with quantity tracking to see productivity metrics")
@@ -102,6 +141,102 @@ struct ProductivityMetricsCard: View {
         }
         .padding(DesignSystem.Spacing.md)
         .statCardStyle()
+    }
+
+    // MARK: - Helper Views
+
+    private func summaryRow(icon: String, label: String, value: String, variance: Double? = nil, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundStyle(color)
+                .frame(width: 16)
+
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(color)
+
+            if let variance = variance {
+                let varianceColor = variance >= 0 ? DesignSystem.Colors.success : DesignSystem.Colors.error
+                let sign = variance >= 0 ? "+" : ""
+                Text("\(sign)\(String(format: "%.0f", variance))%")
+                    .font(.caption)
+                    .foregroundStyle(varianceColor)
+            }
+        }
+    }
+
+    private func compactTaskRow(for point: ProductivityDataPoint) -> some View {
+        let variance = comparisonValue > 0 ? ((point.productivity - comparisonValue) / comparisonValue) * 100 : 0
+        let barColor = getBarColor(for: point.productivity)
+
+        return VStack(alignment: .leading, spacing: 4) {
+            // Task name and values
+            HStack {
+                Text(point.taskTitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Spacer()
+
+                HStack(spacing: 6) {
+                    Text(formatProductivity(point.productivity))
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(barColor)
+
+                    if comparisonValue > 0 {
+                        let varianceColor = variance >= 0 ? DesignSystem.Colors.success : DesignSystem.Colors.error
+                        let sign = variance >= 0 ? "+" : ""
+                        Text("\(sign)\(String(format: "%.0f", variance))%")
+                            .font(.caption)
+                            .foregroundStyle(varianceColor)
+                    }
+                }
+            }
+
+            // Horizontal bar
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // Background bar
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray5))
+                        .frame(height: 6)
+
+                    // Progress bar
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(barColor)
+                        .frame(
+                            width: min(geometry.size.width * (point.productivity / maxProductivity), geometry.size.width),
+                            height: 6
+                        )
+                }
+            }
+            .frame(height: 6)
+        }
+    }
+
+    private func getBarColor(for productivity: Double) -> Color {
+        guard comparisonValue > 0 else { return DesignSystem.Colors.info }
+        let ratio = productivity / comparisonValue
+
+        if ratio >= 1.1 {
+            return DesignSystem.Colors.success
+        } else if ratio >= 0.9 {
+            return DesignSystem.Colors.info
+        } else if ratio >= 0.75 {
+            return DesignSystem.Colors.warning
+        } else {
+            return DesignSystem.Colors.error
+        }
     }
 
     private func formatProductivity(_ value: Double) -> String {
@@ -117,172 +252,6 @@ struct ProductivityDataPoint: Identifiable {
     let taskTitle: String
     let productivity: Double
     let completedDate: Date
-}
-
-// MARK: - Bar Chart Component
-
-private struct ProductivityBarChart: View {
-    let data: [ProductivityDataPoint]
-    let average: Double
-    let target: Double?
-    let maxValue: Double
-    let unit: UnitType
-
-    @State private var selectedBar: UUID?
-
-    private var chartHeight: CGFloat { 140 }
-
-    /// Use target for comparisons if available, otherwise fall back to average
-    private var comparisonValue: Double {
-        target ?? average
-    }
-
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .bottom) {
-                // Target line (if available) - more prominent
-                if let target = target, target > 0 {
-                    let targetY = chartHeight * (1 - target / maxValue)
-
-                    HStack(spacing: 0) {
-                        // Line
-                        Path { path in
-                            path.move(to: CGPoint(x: 0, y: targetY))
-                            path.addLine(to: CGPoint(x: geometry.size.width, y: targetY))
-                        }
-                        .stroke(
-                            Color.blue.opacity(0.8),
-                            style: StrokeStyle(lineWidth: 2, dash: [5, 3])
-                        )
-                    }
-
-                    // Target label with icon
-                    HStack(spacing: 2) {
-                        Image(systemName: "target")
-                            .font(.system(size: 8))
-                        Text(String(format: "%.1f", target))
-                            .font(.caption2)
-                    }
-                    .foregroundStyle(.blue)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.blue.opacity(0.1))
-                    )
-                    .offset(x: 4, y: targetY - 12)
-                }
-
-                // Average line (more subtle if target is shown)
-                if average > 0 {
-                    let averageY = chartHeight * (1 - average / maxValue)
-
-                    HStack(spacing: 0) {
-                        // Line
-                        Path { path in
-                            path.move(to: CGPoint(x: 0, y: averageY))
-                            path.addLine(to: CGPoint(x: geometry.size.width, y: averageY))
-                        }
-                        .stroke(
-                            DesignSystem.Colors.secondary.opacity(target != nil ? 0.3 : 0.6),
-                            style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])
-                        )
-                    }
-
-                    // Average label (only show if different from target or no target)
-                    if target == nil || abs(average - (target ?? 0)) > 0.5 {
-                        Text(String(format: "%.1f avg", average))
-                            .font(.caption2)
-                            .foregroundStyle(DesignSystem.Colors.secondary)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 2)
-                            .background(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(DesignSystem.Colors.secondary.opacity(0.1))
-                            )
-                            .offset(x: geometry.size.width - 60, y: averageY - 12)
-                    }
-                }
-
-                // Bars
-                HStack(alignment: .bottom, spacing: 8) {
-                    ForEach(data) { point in
-                        VStack(spacing: 4) {
-                            // Value label with variance
-                            if selectedBar == point.id {
-                                VStack(spacing: 2) {
-                                    Text(String(format: "%.1f", point.productivity))
-                                        .font(.caption2)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
-
-                                    // Show variance from target/average
-                                    if comparisonValue > 0 {
-                                        let variance = ((point.productivity - comparisonValue) / comparisonValue) * 100
-                                        let varianceColor = variance >= 0 ? DesignSystem.Colors.success : DesignSystem.Colors.error
-                                        let sign = variance >= 0 ? "+" : ""
-
-                                        Text("\(sign)\(String(format: "%.0f", variance))%")
-                                            .font(.caption2)
-                                            .foregroundStyle(varianceColor)
-                                    }
-                                }
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(Color(.systemBackground))
-                                        .shadow(radius: 2)
-                                )
-                            }
-
-                            // Bar
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(barColor(for: point.productivity))
-                                .frame(height: barHeight(for: point.productivity))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .strokeBorder(
-                                            selectedBar == point.id ? Color.blue : Color.clear,
-                                            lineWidth: 2
-                                        )
-                                )
-                                .onTapGesture {
-                                    withAnimation(.spring(response: 0.3)) {
-                                        selectedBar = selectedBar == point.id ? nil : point.id
-                                    }
-                                    HapticManager.light()
-                                }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-            }
-            .frame(height: chartHeight)
-        }
-    }
-
-    private func barHeight(for productivity: Double) -> CGFloat {
-        guard maxValue > 0 else { return 0 }
-        let ratio = productivity / maxValue
-        return max(chartHeight * ratio, 4) // Minimum 4pt height
-    }
-
-    private func barColor(for productivity: Double) -> Color {
-        // Color based on relation to target (if available) or average
-        guard comparisonValue > 0 else { return DesignSystem.Colors.info }
-        let ratio = productivity / comparisonValue
-
-        if ratio >= 1.1 {
-            return DesignSystem.Colors.success // 10%+ above target/average
-        } else if ratio >= 0.9 {
-            return DesignSystem.Colors.info // Within 10% of target/average (good)
-        } else if ratio >= 0.75 {
-            return DesignSystem.Colors.warning // 11-25% below target/average
-        } else {
-            return DesignSystem.Colors.error // More than 25% below target/average
-        }
-    }
 }
 
 // MARK: - Preview

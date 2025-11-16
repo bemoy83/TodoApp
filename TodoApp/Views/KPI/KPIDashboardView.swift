@@ -16,7 +16,6 @@ struct KPIDashboardView: View {
     @State private var isCalculating = false
 
     // Detail sheet states
-    @State private var showingEfficiencyDetail = false
     @State private var showingAccuracyDetail = false
 
     // MARK: - Date Range Options
@@ -122,11 +121,6 @@ struct KPIDashboardView: View {
             .onChange(of: allTasks.count) {
                 calculateKPIs()
             }
-            .sheet(isPresented: $showingEfficiencyDetail) {
-                if let kpis = currentKPIs {
-                    KPIEfficiencyDetailView(metrics: kpis.efficiency, dateRange: selectedDateRange.rawValue)
-                }
-            }
             .sheet(isPresented: $showingAccuracyDetail) {
                 if let kpis = currentKPIs {
                     KPIAccuracyDetailView(metrics: kpis.accuracy, dateRange: selectedDateRange.rawValue)
@@ -155,17 +149,6 @@ struct KPIDashboardView: View {
             GridItem(.flexible())
         ], spacing: DesignSystem.Spacing.md) {
             KPIMetricCard(
-                icon: "gauge.with.dots.needle.67percent",
-                title: "Efficiency",
-                score: kpis.efficiency.efficiencyScore,
-                detail: "\(kpis.efficiency.tasksUnderEstimate) under estimate",
-                color: scoreColor(kpis.efficiency.efficiencyScore),
-                onTap: {
-                    showingEfficiencyDetail = true
-                }
-            )
-
-            KPIMetricCard(
                 icon: "target",
                 title: "Accuracy",
                 score: kpis.accuracy.accuracyScore,
@@ -190,48 +173,6 @@ struct KPIDashboardView: View {
 
     private func detailsSection(kpis: KPIResult) -> some View {
         VStack(spacing: DesignSystem.Spacing.sm) {
-            // Efficiency details
-            detailCard(
-                title: "Task Efficiency",
-                icon: "gauge.with.dots.needle.67percent",
-                color: scoreColor(kpis.efficiency.efficiencyScore)
-            ) {
-                VStack(spacing: DesignSystem.Spacing.xs) {
-                    if let avgRatio = kpis.efficiency.averageEfficiencyRatio {
-                        KPISummaryRow(
-                            title: "Avg Efficiency Ratio",
-                            value: String(format: "%.2f", avgRatio)
-                        )
-                    }
-
-                    KPISummaryRow(
-                        title: "Under Estimate",
-                        value: "\(kpis.efficiency.tasksUnderEstimate)",
-                        icon: "checkmark.circle.fill",
-                        color: DesignSystem.Colors.success
-                    )
-
-                    KPISummaryRow(
-                        title: "On Estimate",
-                        value: "\(kpis.efficiency.tasksOnEstimate)",
-                        icon: "checkmark.circle",
-                        color: DesignSystem.Colors.info
-                    )
-
-                    KPISummaryRow(
-                        title: "Over Estimate",
-                        value: "\(kpis.efficiency.tasksOverEstimate)",
-                        icon: "exclamationmark.circle",
-                        color: DesignSystem.Colors.warning
-                    )
-
-                    KPISummaryRow(
-                        title: "Tasks Analyzed",
-                        value: "\(kpis.efficiency.totalTasksAnalyzed)"
-                    )
-                }
-            }
-
             // Accuracy details
             detailCard(
                 title: "Estimate Accuracy",
