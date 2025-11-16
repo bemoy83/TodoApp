@@ -2,12 +2,13 @@ import Foundation
 import SwiftData
 
 /// Reusable task template for common work types (e.g., "Carpet Installation", "Booth Wall Setup")
-/// Pre-configures default unit for faster task creation
+/// Pre-configures default unit and expected productivity for faster task creation
 @Model
 final class TaskTemplate {
     var id: UUID
     var name: String
     var defaultUnit: UnitType
+    var defaultProductivityRate: Double? // Expected/target productivity rate (units/person-hr)
     var createdDate: Date
     var order: Int?
 
@@ -15,12 +16,14 @@ final class TaskTemplate {
         id: UUID = UUID(),
         name: String,
         defaultUnit: UnitType = UnitType.none,
+        defaultProductivityRate: Double? = nil,
         createdDate: Date = Date(),
         order: Int? = nil
     ) {
         self.id = id
         self.name = name
         self.defaultUnit = defaultUnit
+        self.defaultProductivityRate = defaultProductivityRate
         self.createdDate = createdDate
         self.order = order
     }

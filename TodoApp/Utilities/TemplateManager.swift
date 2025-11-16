@@ -71,6 +71,23 @@ struct TemplateManager {
         }.count
     }
 
+    /// Get count of historical tasks for a specific task type and unit
+    /// More accurate than unit-only lookup as it matches the exact work category
+    static func getHistoricalTaskCount(
+        for taskType: String,
+        unit: UnitType,
+        from tasks: [Task]
+    ) -> Int {
+        guard unit.isQuantifiable else { return 0 }
+
+        return tasks.filter { task in
+            task.taskType == taskType &&
+            task.unit == unit &&
+            task.hasProductivityData &&
+            task.isCompleted
+        }.count
+    }
+
     /// Create a task from a template with pre-filled defaults
     static func createTask(from template: TaskTemplate) -> Task {
         Task(
@@ -124,13 +141,17 @@ extension TemplateManager {
     }
 
     /// Calculate analytics for a template based on historical task data
+    /// Uses taskType + unit combination for accurate productivity tracking
     static func calculateAnalytics(
         for template: TaskTemplate,
         from tasks: [Task]
     ) -> TemplateAnalytics {
+        let taskType = template.name
         let unit = template.defaultUnit
-        let count = getHistoricalTaskCount(for: unit, from: tasks)
-        let avgProductivity = calculateHistoricalProductivity(for: unit, from: tasks)
+
+        // Use taskType-specific methods to get accurate data
+        let count = getHistoricalTaskCount(for: taskType, unit: unit, from: tasks)
+        let avgProductivity = getHistoricalProductivity(for: taskType, unit: unit, from: tasks)
 
         return TemplateAnalytics(
             template: template,

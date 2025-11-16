@@ -84,13 +84,20 @@ class TaskComposerCalculatorViewModel {
     func updateFromTemplate(_ template: TaskTemplate, tasks: [Task]) {
         unit = template.defaultUnit
 
+        // Store historical productivity separately for comparison
         historicalProductivity = TemplateManager.getHistoricalProductivity(
             for: template.name,
             unit: template.defaultUnit,
             from: tasks
-        ) ?? template.defaultUnit.defaultProductivityRate
+        )
 
-        productivityRate = historicalProductivity
+        // Priority order (goal-oriented approach):
+        // 1. Template's expected productivity rate (if set) - the goal
+        // 2. Historical data (if available) - fallback
+        // 3. Unit's default productivity rate (fallback)
+        productivityRate = template.defaultProductivityRate
+            ?? historicalProductivity
+            ?? template.defaultUnit.defaultProductivityRate
     }
 
     /// Reset override expansion state when mode changes
