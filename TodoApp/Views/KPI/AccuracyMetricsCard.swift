@@ -128,7 +128,7 @@ struct AccuracyMetricsCard: View {
     // MARK: - Helper Views
 
     private var collapsedSummary: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
+        HStack(spacing: DesignSystem.Spacing.md) {
             // Show top 2 worst performing task types
             ForEach(metrics.byTaskType.prefix(2)) { taskTypeAccuracy in
                 HStack(spacing: 4) {
@@ -146,12 +146,6 @@ struct AccuracyMetricsCard: View {
                         .foregroundStyle(statusColor(taskTypeAccuracy.status))
                         .fontWeight(.medium)
                 }
-                .padding(.horizontal, DesignSystem.Spacing.sm)
-                .padding(.vertical, DesignSystem.Spacing.xs)
-                .background(
-                    Capsule()
-                        .fill(Color(.systemGray6))
-                )
             }
 
             if metrics.byTaskType.count > 2 {

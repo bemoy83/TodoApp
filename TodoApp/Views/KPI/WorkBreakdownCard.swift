@@ -209,25 +209,18 @@ struct WorkBreakdownCard: View {
     // MARK: - Helper Views
 
     private var collapsedSummary: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
+        HStack(spacing: DesignSystem.Spacing.md) {
             // Show top 2 task types
             ForEach(breakdowns.prefix(2)) { breakdown in
                 HStack(spacing: 4) {
                     Image(systemName: breakdown.icon)
                         .font(.caption2)
-                        .foregroundStyle(breakdown.efficiency.color)
 
                     Text(breakdown.taskType)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                .padding(.horizontal, DesignSystem.Spacing.sm)
-                .padding(.vertical, DesignSystem.Spacing.xs)
-                .background(
-                    Capsule()
-                        .fill(Color(.systemGray6))
-                )
+                .foregroundStyle(.secondary)
             }
 
             if breakdowns.count > 2 {

@@ -246,33 +246,24 @@ struct ProductivityMetricsCard: View {
 
     /// Compact badges showing target and average when collapsed
     private var compactSummaryBadges: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
+        HStack(spacing: DesignSystem.Spacing.md) {
             // Target badge (if available)
             if let target = targetProductivityRate {
                 HStack(spacing: 4) {
                     Image(systemName: "target")
                         .font(.caption2)
-                        .foregroundStyle(.blue)
                     Text("Target: \(formatProductivity(target)) \(unit.displayName)/hr")
                         .font(.caption)
-                        .foregroundStyle(.blue)
                 }
-                .padding(.horizontal, DesignSystem.Spacing.sm)
-                .padding(.vertical, DesignSystem.Spacing.xs)
-                .background(
-                    Capsule()
-                        .fill(Color.blue.opacity(0.1))
-                )
+                .foregroundStyle(.blue)
             }
 
             // Average badge with variance
             HStack(spacing: 4) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
                 Text("Avg: \(formatProductivity(averageProductivity)) \(unit.displayName)/hr")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
 
                 // Show variance if target is set
                 if let target = targetProductivityRate {
@@ -284,12 +275,7 @@ struct ProductivityMetricsCard: View {
                         .foregroundStyle(varianceColor)
                 }
             }
-            .padding(.horizontal, DesignSystem.Spacing.sm)
-            .padding(.vertical, DesignSystem.Spacing.xs)
-            .background(
-                Capsule()
-                    .fill(Color(.systemGray6))
-            )
+            .foregroundStyle(.secondary)
 
             Spacer()
         }
