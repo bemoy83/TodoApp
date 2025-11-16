@@ -15,9 +15,6 @@ struct KPIDashboardView: View {
     @State private var currentKPIs: KPIResult?
     @State private var isCalculating = false
 
-    // Detail sheet states
-    @State private var showingAccuracyDetail = false
-
     // MARK: - Date Range Options
 
     enum DateRangeOption: String, CaseIterable, Identifiable {
@@ -106,11 +103,6 @@ struct KPIDashboardView: View {
             .onChange(of: allTasks.count) {
                 calculateKPIs()
             }
-            .sheet(isPresented: $showingAccuracyDetail) {
-                if let kpis = currentKPIs {
-                    KPIAccuracyDetailView(metrics: kpis.accuracy, dateRange: selectedDateRange.rawValue)
-                }
-            }
         }
     }
 
@@ -130,18 +122,10 @@ struct KPIDashboardView: View {
 
     private func metricsGrid(kpis: KPIResult) -> some View {
         VStack(spacing: DesignSystem.Spacing.md) {
-            // Accuracy metric
-            KPIMetricCard(
-                icon: "target",
-                title: "Accuracy",
-                score: kpis.accuracy.accuracyScore,
-                detail: kpis.accuracy.meanAbsolutePercentageError != nil ?
-                    String(format: "%.1f%% avg error", kpis.accuracy.meanAbsolutePercentageError!) :
-                    "No data",
-                color: scoreColor(kpis.accuracy.accuracyScore),
-                onTap: {
-                    showingAccuracyDetail = true
-                }
+            // Accuracy metric (inline expand/collapse)
+            AccuracyMetricsCard(
+                metrics: kpis.accuracy,
+                dateRangeText: selectedDateRange.rawValue
             )
 
             // Work breakdown by task type
