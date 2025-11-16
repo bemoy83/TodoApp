@@ -286,7 +286,7 @@ struct KPIAccuracyDetailView: View {
                     // Interpretation
                     interpretationCard(
                         title: "Understanding Accuracy",
-                        text: "Accuracy measures how close your estimates are to actual time spent. A score of 100% means all estimates were within 25% of actual time. Higher scores indicate more reliable estimation."
+                        text: "Accuracy measures how close your estimates are to actual time spent, using Mean Absolute Percentage Error (MAPE). A score of 100% means perfect estimates (0% error). A score of 90% means 10% average error. Higher scores indicate more reliable estimation."
                     )
                 }
                 .padding(.vertical)

@@ -89,19 +89,6 @@ struct KPIDashboardView: View {
                         }
                         .padding(.horizontal)
 
-                        // Detailed Insights Section
-                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-                            SectionHeader(
-                                title: "Detailed Insights",
-                                subtitle: "Metric breakdown",
-                                icon: "list.bullet.clipboard",
-                                iconColor: Color(hex: "#5856D6")
-                            )
-
-                            detailsSection(kpis: kpis)
-                        }
-                        .padding(.horizontal)
-
                         // Productivity Metrics Section
                         productivitySection
                     } else {
@@ -169,75 +156,6 @@ struct KPIDashboardView: View {
                 color: completionColor(completed: kpis.totalCompletedTasks, total: kpis.totalTasks)
             )
         }
-    }
-
-    // MARK: - Details Section
-
-    private func detailsSection(kpis: KPIResult) -> some View {
-        VStack(spacing: DesignSystem.Spacing.sm) {
-            // Accuracy details
-            detailCard(
-                title: "Estimate Accuracy",
-                icon: "target",
-                color: scoreColor(kpis.accuracy.accuracyScore)
-            ) {
-                VStack(spacing: DesignSystem.Spacing.xs) {
-                    if let mape = kpis.accuracy.meanAbsolutePercentageError {
-                        KPISummaryRow(
-                            title: "Avg Error",
-                            value: String(format: "%.1f%%", mape)
-                        )
-                    }
-
-                    KPISummaryRow(
-                        title: "Within 10%",
-                        value: "\(kpis.accuracy.estimatesWithin10Percent)",
-                        icon: "checkmark.circle.fill",
-                        color: DesignSystem.Colors.success
-                    )
-
-                    KPISummaryRow(
-                        title: "Within 25%",
-                        value: "\(kpis.accuracy.estimatesWithin25Percent)",
-                        icon: "checkmark.circle",
-                        color: DesignSystem.Colors.info
-                    )
-
-                    KPISummaryRow(
-                        title: "Tasks Analyzed",
-                        value: "\(kpis.accuracy.totalTasksAnalyzed)"
-                    )
-                }
-            }
-        }
-    }
-
-    // MARK: - Detail Card Helper
-
-    private func detailCard<Content: View>(
-        title: String,
-        icon: String,
-        color: Color,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-            HStack(spacing: DesignSystem.Spacing.sm) {
-                Image(systemName: icon)
-                    .foregroundStyle(color)
-
-                Text(title)
-                    .font(DesignSystem.Typography.headline)
-                    .foregroundStyle(DesignSystem.Colors.primary)
-            }
-
-            content()
-        }
-        .padding(DesignSystem.Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
-                .fill(Color(.systemBackground))
-        )
-        .designShadow(DesignSystem.Shadow.sm)
     }
 
     // MARK: - Empty State
