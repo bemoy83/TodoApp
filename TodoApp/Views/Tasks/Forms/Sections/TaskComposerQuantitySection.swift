@@ -1,6 +1,13 @@
 import SwiftUI
 import SwiftData
 
+/// Productivity mode selection for task estimation
+enum ProductivityMode: String, CaseIterable {
+    case expected = "Expected"
+    case historical = "Historical"
+    case custom = "Custom"
+}
+
 /// Quantity-based estimation calculator section
 /// Handles task type selection, unit tracking, and calculation modes
 /// Consolidated implementation with shared productivity view and calculation transparency
@@ -20,13 +27,16 @@ struct TaskComposerQuantitySection: View {
     @Query(filter: #Predicate<Task> { task in !task.isArchived }, sort: \Task.order) private var allTasks: [Task]
 
     @State private var historicalProductivity: Double?
+    @State private var expectedProductivity: Double?
+    @State private var productivityMode: ProductivityMode = .expected
+    @State private var customProductivityInput: String = ""
     @State private var showQuantityPicker = false
     @State private var showPersonnelPicker = false
     @State private var showDurationPicker = false
     @State private var showProductivityRateEditor = false
     @State private var showCalculationModeMenu = false
-    @State private var useCustomRate = false
     @FocusState private var isQuantityFieldFocused: Bool
+    @FocusState private var isCustomProductivityFocused: Bool
 
     let onCalculationUpdate: () -> Void
 
@@ -44,6 +54,11 @@ struct TaskComposerQuantitySection: View {
                     message: "Tap any calculated value to change what's being calculated",
                     style: .info
                 )
+
+                // Historical productivity badge
+                if let historical = historicalProductivity, taskType != nil {
+                    historicalProductivityBadge(historical: historical)
+                }
 
                 Divider()
                     .padding(.vertical, DesignSystem.Spacing.sm)
@@ -95,9 +110,6 @@ struct TaskComposerQuantitySection: View {
             }
         }
         .onAppear {
-            // Set initial toggle state based on whether custom rate exists
-            useCustomRate = productivityRate != nil && productivityRate != historicalProductivity
-
             // Initialize required values based on calculation mode
             switch quantityCalculationMode {
             case .calculateDuration:
@@ -370,75 +382,166 @@ struct TaskComposerQuantitySection: View {
     // MARK: - Productivity Rate Editor Sheet
 
     private var productivityRateEditorSheet: some View {
-        let productivity = historicalProductivity ?? 1.0
-
-        return NavigationStack {
+        NavigationStack {
             VStack(spacing: DesignSystem.Spacing.lg) {
                 Text("Set Productivity Rate")
                     .font(.headline)
                     .padding(.top, DesignSystem.Spacing.md)
 
-                VStack(spacing: DesignSystem.Spacing.sm) {
-                    if let historical = historicalProductivity {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                .font(.caption2)
-                            Text("Historical Average:")
-                                .font(.caption)
-                            Text("\(String(format: "%.1f", historical)) \(unit.displayName)/person-hr")
+                // Variance warning (if significant)
+                if let variance = calculateVariance(), variance.percentage > 30 {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Historical is \(String(format: "%.0f", variance.percentage))% \(variance.isPositive ? "faster" : "slower") than expected.")
                                 .font(.caption)
                                 .fontWeight(.medium)
+                            Text("Consider updating your template's expected rate.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                         }
-                        .foregroundStyle(.secondary)
-                        .padding(.bottom, DesignSystem.Spacing.sm)
+
+                        Spacer()
                     }
+                    .padding(DesignSystem.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.orange.opacity(0.1))
+                    )
+                }
 
-                    HStack {
-                        TextField("Rate", value: Binding(
-                            get: { productivityRate ?? productivity },
-                            set: {
-                                productivityRate = $0
-                                onCalculationUpdate()
-                            }
-                        ), format: .number)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.center)
-                        .font(.title2)
-                        .frame(maxWidth: 200)
+                // Segmented control for mode selection
+                Picker("Mode", selection: $productivityMode) {
+                    ForEach(ProductivityMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: productivityMode) { _, newMode in
+                    updateProductivityRate(for: newMode)
+                }
 
-                        Text("\(unit.displayName)/person-hr")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
+                // Show available productivity values
+                VStack(spacing: DesignSystem.Spacing.sm) {
+                    if let expected = expectedProductivity {
+                        HStack {
+                            Image(systemName: "target")
+                                .font(.caption)
+                                .foregroundStyle(DesignSystem.Colors.info)
+                                .frame(width: 20)
+                            Text("Expected:")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(String(format: "%.1f", expected)) \(unit.displayName)/person-hr")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
                     }
 
                     if let historical = historicalProductivity {
-                        Button {
-                            productivityRate = historical
-                            onCalculationUpdate()
-                        } label: {
-                            HStack {
-                                Image(systemName: "arrow.counterclockwise")
-                                    .font(.caption)
-                                Text("Use Historical Average")
-                                    .font(.caption)
-                            }
+                        HStack {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.caption)
+                                .foregroundStyle(DesignSystem.Colors.success)
+                                .frame(width: 20)
+                            Text("Historical:")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(String(format: "%.1f", historical)) \(unit.displayName)/person-hr")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                     }
+                }
+                .padding(.vertical, DesignSystem.Spacing.sm)
+
+                // Custom input field (only shown when Custom mode is selected)
+                if productivityMode == .custom {
+                    VStack(spacing: DesignSystem.Spacing.xs) {
+                        Text("Custom Rate")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+
+                        HStack {
+                            TextField("Enter rate", text: $customProductivityInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.center)
+                                .font(.title2)
+                                .focused($isCustomProductivityFocused)
+                                .frame(maxWidth: 200)
+                                .onChange(of: customProductivityInput) { _, newValue in
+                                    // Update productivity rate as user types
+                                    if let customRate = Double(newValue), customRate > 0 {
+                                        productivityRate = customRate
+                                        onCalculationUpdate()
+                                    }
+                                }
+
+                            Text("\(unit.displayName)/person-hr")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, DesignSystem.Spacing.sm)
                 }
 
                 Spacer()
             }
+            .padding(.horizontal, DesignSystem.Spacing.md)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         showProductivityRateEditor = false
+                        isCustomProductivityFocused = false
                     }
                 }
             }
-            .presentationDetents([.height(350)])
+            .presentationDetents([.height(450)])
             .presentationDragIndicator(.visible)
+            .onAppear {
+                // Initialize mode based on current productivity rate
+                if let current = productivityRate {
+                    if current == expectedProductivity {
+                        productivityMode = .expected
+                    } else if current == historicalProductivity {
+                        productivityMode = .historical
+                    } else {
+                        productivityMode = .custom
+                        customProductivityInput = String(format: "%.1f", current)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Update productivity rate based on selected mode
+    private func updateProductivityRate(for mode: ProductivityMode) {
+        switch mode {
+        case .expected:
+            if let expected = expectedProductivity {
+                productivityRate = expected
+                onCalculationUpdate()
+            }
+        case .historical:
+            if let historical = historicalProductivity {
+                productivityRate = historical
+                onCalculationUpdate()
+            }
+        case .custom:
+            // Focus custom input field
+            isCustomProductivityFocused = true
+
+            // Parse and apply custom rate
+            if let customRate = Double(customProductivityInput), customRate > 0 {
+                productivityRate = customRate
+                onCalculationUpdate()
+            }
         }
     }
 
@@ -542,6 +645,63 @@ struct TaskComposerQuantitySection: View {
 
     // MARK: - Helper Methods
 
+    /// Calculate variance percentage between historical and expected
+    private func calculateVariance() -> (percentage: Double, isPositive: Bool)? {
+        guard let historical = historicalProductivity,
+              let expected = expectedProductivity,
+              expected > 0 else {
+            return nil
+        }
+
+        let variance = ((historical - expected) / expected) * 100
+        return (abs(variance), variance > 0)
+    }
+
+    /// Historical productivity info badge with variance indicator
+    @ViewBuilder
+    private func historicalProductivityBadge(historical: Double) -> some View {
+        let variance = calculateVariance()
+        let hasSignificantVariance = if let variance = variance {
+            variance.percentage > 30
+        } else {
+            false
+        }
+
+        HStack(spacing: 6) {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.caption2)
+                .foregroundStyle(DesignSystem.Colors.success)
+
+            Text("Historical:")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text("\(String(format: "%.1f", historical)) \(unit.displayName)/person-hr")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundStyle(.primary)
+
+            // Variance indicator
+            if let variance = variance {
+                HStack(spacing: 2) {
+                    Image(systemName: variance.isPositive ? "arrow.up" : "arrow.down")
+                        .font(.caption2)
+                    Text("\(String(format: "%.0f", variance.percentage))%")
+                        .font(.caption2)
+                }
+                .foregroundStyle(variance.isPositive ? DesignSystem.Colors.success : .orange)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, DesignSystem.Spacing.xs)
+        .padding(.horizontal, DesignSystem.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(hasSignificantVariance ? Color.orange.opacity(0.1) : DesignSystem.Colors.success.opacity(0.1))
+        )
+    }
+
     private func handleTaskTypeChange(_ newValue: String?) {
         guard let selectedTaskType = newValue,
               let template = templates.first(where: { $0.name == selectedTaskType }) else {
@@ -550,18 +710,24 @@ struct TaskComposerQuantitySection: View {
 
         unit = template.defaultUnit
 
-        // Priority order:
-        // 1. Historical data (if available)
-        // 2. Template's expected productivity rate (if set)
-        // 3. Unit's default productivity rate (fallback)
+        // Store historical and expected productivity separately
         historicalProductivity = TemplateManager.getHistoricalProductivity(
             for: selectedTaskType,
             unit: template.defaultUnit,
             from: allTasks
         )
+        expectedProductivity = template.defaultProductivityRate
 
-        productivityRate = historicalProductivity
-            ?? template.defaultProductivityRate
+        // Reset to expected mode for each new task (goal-oriented)
+        productivityMode = .expected
+        customProductivityInput = ""
+
+        // Priority order (goal-oriented approach):
+        // 1. Template's expected productivity rate (if set) - the goal
+        // 2. Historical data (if available) - fallback
+        // 3. Unit's default productivity rate (fallback)
+        productivityRate = template.defaultProductivityRate
+            ?? historicalProductivity
             ?? template.defaultUnit.defaultProductivityRate
     }
 }
