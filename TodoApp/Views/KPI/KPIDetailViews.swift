@@ -199,7 +199,7 @@ struct KPIAccuracyDetailView: View {
                     )
                     .padding(.horizontal)
 
-                    // Accuracy breakdown
+                    // Accuracy breakdown (aligned with color thresholds)
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
                         Text("Estimate Accuracy")
                             .font(DesignSystem.Typography.title3)
@@ -208,24 +208,31 @@ struct KPIAccuracyDetailView: View {
 
                         VStack(spacing: DesignSystem.Spacing.sm) {
                             accuracyBar(
-                                title: "Within 10%",
-                                count: metrics.estimatesWithin10Percent,
+                                title: "Excellent (0-20% error)",
+                                count: metrics.estimatesWithin20Percent,
                                 total: metrics.totalTasksAnalyzed,
                                 color: DesignSystem.Colors.success
                             )
 
                             accuracyBar(
-                                title: "Within 25%",
-                                count: metrics.estimatesWithin25Percent,
+                                title: "Good (21-40% error)",
+                                count: metrics.estimatesWithin40Percent - metrics.estimatesWithin20Percent,
                                 total: metrics.totalTasksAnalyzed,
                                 color: DesignSystem.Colors.info
                             )
 
                             accuracyBar(
-                                title: "Over 25% Error",
-                                count: metrics.totalTasksAnalyzed - metrics.estimatesWithin25Percent,
+                                title: "Needs Improvement (41-60% error)",
+                                count: metrics.estimatesWithin60Percent - metrics.estimatesWithin40Percent,
                                 total: metrics.totalTasksAnalyzed,
                                 color: DesignSystem.Colors.warning
+                            )
+
+                            accuracyBar(
+                                title: "Poor (>60% error)",
+                                count: metrics.totalTasksAnalyzed - metrics.estimatesWithin60Percent,
+                                total: metrics.totalTasksAnalyzed,
+                                color: DesignSystem.Colors.error
                             )
                         }
                         .padding(.horizontal)

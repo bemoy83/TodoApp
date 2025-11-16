@@ -95,11 +95,20 @@ struct EstimateAccuracyMetrics: Codable, Sendable {
     /// Root Mean Square Error: square root of average squared differences
     let rootMeanSquareError: Double?
 
-    /// Number of estimates within 10% accuracy
+    /// Number of estimates within 10% accuracy (legacy, for backward compatibility)
     let estimatesWithin10Percent: Int
 
-    /// Number of estimates within 25% accuracy
+    /// Number of estimates within 25% accuracy (legacy, for backward compatibility)
     let estimatesWithin25Percent: Int
+
+    /// Number of estimates within 20% accuracy (Excellent: 80-100 score range)
+    let estimatesWithin20Percent: Int
+
+    /// Number of estimates within 40% accuracy (Good: 60-79 score range)
+    let estimatesWithin40Percent: Int
+
+    /// Number of estimates within 60% accuracy (Needs Improvement: 40-59 score range)
+    let estimatesWithin60Percent: Int
 
     /// Total tasks with estimates analyzed
     let totalTasksAnalyzed: Int

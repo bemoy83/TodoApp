@@ -128,6 +128,9 @@ struct KPIManager {
                 rootMeanSquareError: nil,
                 estimatesWithin10Percent: 0,
                 estimatesWithin25Percent: 0,
+                estimatesWithin20Percent: 0,
+                estimatesWithin40Percent: 0,
+                estimatesWithin60Percent: 0,
                 totalTasksAnalyzed: 0
             )
         }
@@ -137,6 +140,9 @@ struct KPIManager {
         var sumSquaredError: Double = 0.0
         var within10Percent = 0
         var within25Percent = 0
+        var within20Percent = 0
+        var within40Percent = 0
+        var within60Percent = 0
 
         for task in analyzableTasks {
             guard let estimate = task.effectiveEstimate, estimate > 0 else { continue }
@@ -156,12 +162,24 @@ struct KPIManager {
             let error = estimated - actual
             sumSquaredError += error * error
 
-            // Count accuracy thresholds
+            // Count accuracy thresholds (legacy)
             if percentageError <= 10.0 {
                 within10Percent += 1
                 within25Percent += 1
             } else if percentageError <= 25.0 {
                 within25Percent += 1
+            }
+
+            // Count accuracy thresholds (aligned with color coding)
+            if percentageError <= 20.0 {
+                within20Percent += 1
+                within40Percent += 1
+                within60Percent += 1
+            } else if percentageError <= 40.0 {
+                within40Percent += 1
+                within60Percent += 1
+            } else if percentageError <= 60.0 {
+                within60Percent += 1
             }
         }
 
@@ -176,6 +194,9 @@ struct KPIManager {
             rootMeanSquareError: rmse,
             estimatesWithin10Percent: within10Percent,
             estimatesWithin25Percent: within25Percent,
+            estimatesWithin20Percent: within20Percent,
+            estimatesWithin40Percent: within40Percent,
+            estimatesWithin60Percent: within60Percent,
             totalTasksAnalyzed: analyzableTasks.count
         )
     }
