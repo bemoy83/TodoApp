@@ -199,7 +199,7 @@ struct ProjectIssuesDetailView: View {
                        let progress = projectIssue.project.timeProgress {
                         BudgetWarningCard(
                             title: "Nearing Budget",
-                            message: "\(String(format: "%.0f", project.totalTimeSpentHours))h of \(String(format: "%.0f", budget))h used (\(Int(progress * 100))%)",
+                            message: "\(String(format: "%.0f", projectIssue.project.totalTimeSpentHours))h of \(String(format: "%.0f", budget))h used (\(Int(progress * 100))%)",
                             suggestion: "Monitor remaining tasks and adjust timeline if needed"
                         )
                     }
@@ -234,10 +234,10 @@ struct IssueTaskRow: View {
                         HStack(spacing: 2) {
                             Image(systemName: Priority(rawValue: task.priority)?.icon ?? "minus")
                                 .font(.caption2)
-                            Text(Priority(rawValue: task.priority)?.displayName ?? "")
+                            Text(Priority(rawValue: task.priority)?.label ?? "")
                                 .font(DesignSystem.Typography.caption2)
                         }
-                        .foregroundStyle(Color(Priority(rawValue: task.priority)?.color ?? "gray"))
+                        .foregroundStyle(Priority(rawValue: task.priority)?.color ?? .gray)
                     }
 
                     // Due date if overdue
