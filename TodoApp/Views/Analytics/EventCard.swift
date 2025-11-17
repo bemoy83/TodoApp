@@ -87,19 +87,73 @@ struct EventCard: View {
                         .frame(height: 6)
                     }
 
-                    // Time budget
-                    if let estimate = project.estimatedHours {
-                        HStack {
-                            Text("\(String(format: "%.1f", project.totalTimeSpentHours))h / \(String(format: "%.0f", estimate))h used")
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundStyle(DesignSystem.Colors.secondary)
-
-                            Spacer()
-
-                            if let progress = project.timeProgress {
-                                Text("\(Int(progress * 100))%")
+                    // Budget tracking - three-tier view
+                    if let budget = project.estimatedHours {
+                        VStack(alignment: .leading, spacing: 4) {
+                            // Budget (contract)
+                            HStack {
+                                Text("Budget:")
                                     .font(DesignSystem.Typography.caption)
-                                    .foregroundStyle(progress > 0.85 ? DesignSystem.Colors.warning : DesignSystem.Colors.secondary)
+                                    .foregroundStyle(DesignSystem.Colors.tertiary)
+                                Text("\(String(format: "%.0f", budget))h")
+                                    .font(DesignSystem.Typography.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(DesignSystem.Colors.secondary)
+
+                                Spacer()
+
+                                Text("(contract)")
+                                    .font(DesignSystem.Typography.caption2)
+                                    .foregroundStyle(DesignSystem.Colors.tertiary)
+                            }
+
+                            // Planned (from tasks)
+                            if let planned = project.taskPlannedHours {
+                                HStack {
+                                    Text("Planned:")
+                                        .font(DesignSystem.Typography.caption)
+                                        .foregroundStyle(DesignSystem.Colors.tertiary)
+                                    Text("\(String(format: "%.1f", planned))h")
+                                        .font(DesignSystem.Typography.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(DesignSystem.Colors.secondary)
+
+                                    Spacer()
+
+                                    // Show variance if over budget
+                                    if let variance = project.planningVariance, variance > 0 {
+                                        HStack(spacing: 2) {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .font(.caption2)
+                                            Text("+\(String(format: "%.0f", variance))h")
+                                                .font(DesignSystem.Typography.caption2)
+                                        }
+                                        .foregroundStyle(variance > budget * 0.2 ? DesignSystem.Colors.error : DesignSystem.Colors.warning)
+                                    } else {
+                                        Text("(from tasks)")
+                                            .font(DesignSystem.Typography.caption2)
+                                            .foregroundStyle(DesignSystem.Colors.tertiary)
+                                    }
+                                }
+                            }
+
+                            // Actual (logged)
+                            HStack {
+                                Text("Actual:")
+                                    .font(DesignSystem.Typography.caption)
+                                    .foregroundStyle(DesignSystem.Colors.tertiary)
+                                Text("\(String(format: "%.1f", project.totalTimeSpentHours))h")
+                                    .font(DesignSystem.Typography.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(DesignSystem.Colors.secondary)
+
+                                Spacer()
+
+                                if let progress = project.timeProgress {
+                                    Text("\(Int(progress * 100))%")
+                                        .font(DesignSystem.Typography.caption)
+                                        .foregroundStyle(progress > 0.85 ? DesignSystem.Colors.warning : DesignSystem.Colors.tertiary)
+                                }
                             }
                         }
                     }

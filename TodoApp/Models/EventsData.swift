@@ -90,6 +90,7 @@ struct ProjectAttentionNeeded {
             var blockedCount = 0
             var missingEstimates = 0
             var nearingBudget = 0
+            var overPlanned = false
 
             // Check for overdue tasks
             let now = Date()
@@ -104,9 +105,14 @@ struct ProjectAttentionNeeded {
             // Check for missing estimates
             missingEstimates = incompleteTasks.filter { $0.effectiveEstimate == nil }.count
 
-            // Check if project is nearing budget
+            // Check if actual time is nearing budget
             if let progress = project.timeProgress, progress >= 0.85 {
                 nearingBudget = 1
+            }
+
+            // Check if task planning exceeds budget
+            if project.isOverPlanned {
+                overPlanned = true
             }
 
             // Build issue descriptions
@@ -118,6 +124,13 @@ struct ProjectAttentionNeeded {
             }
             if missingEstimates > 0 {
                 projectIssues.append("\(missingEstimates) missing estimates")
+            }
+            if overPlanned {
+                if let variance = project.planningVariance {
+                    projectIssues.append("over-planned by \(String(format: "%.0f", variance))h")
+                } else {
+                    projectIssues.append("over-planned")
+                }
             }
             if nearingBudget > 0 {
                 projectIssues.append("nearing budget")
@@ -131,7 +144,8 @@ struct ProjectAttentionNeeded {
                     overdueCount: overdueCount,
                     blockedCount: blockedCount,
                     missingEstimatesCount: missingEstimates,
-                    nearingBudget: nearingBudget > 0
+                    nearingBudget: nearingBudget > 0,
+                    overPlanned: overPlanned
                 ))
             }
         }
@@ -157,11 +171,12 @@ struct ProjectIssue: Identifiable {
     let blockedCount: Int
     let missingEstimatesCount: Int
     let nearingBudget: Bool
+    let overPlanned: Bool
 
     var id: UUID { project.id }
 
     var totalIssues: Int {
-        overdueCount + blockedCount + missingEstimatesCount + (nearingBudget ? 1 : 0)
+        overdueCount + blockedCount + missingEstimatesCount + (nearingBudget ? 1 : 0) + (overPlanned ? 1 : 0)
     }
 
     var summaryText: String {

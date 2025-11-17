@@ -68,25 +68,64 @@ final class Project {
         Double(totalTimeSpent) / 3600.0
     }
 
+    /// Sum of all task estimates converted to hours (what you think you need)
+    @Transient
+    var taskPlannedHours: Double? {
+        guard let tasks = tasks, !tasks.isEmpty else { return nil }
+
+        let totalSeconds = tasks.reduce(0) { sum, task in
+            sum + (task.effectiveEstimate ?? 0)
+        }
+
+        return totalSeconds > 0 ? Double(totalSeconds) / 3600.0 : nil
+    }
+
+    /// Variance between planned task estimates and budget (positive = over budget)
+    @Transient
+    var planningVariance: Double? {
+        guard let budget = estimatedHours, let planned = taskPlannedHours else { return nil }
+        return planned - budget
+    }
+
+    /// Whether task planning exceeds the budget
+    @Transient
+    var isOverPlanned: Bool {
+        guard let variance = planningVariance else { return false }
+        return variance > 0
+    }
+
+    /// Progress against budget based on actual time spent
     @Transient
     var timeProgress: Double? {
         guard let estimate = estimatedHours, estimate > 0 else { return nil }
         return totalTimeSpentHours / estimate
     }
 
+    /// Progress of task planning against budget
+    @Transient
+    var planningProgress: Double? {
+        guard let budget = estimatedHours, budget > 0, let planned = taskPlannedHours else { return nil }
+        return planned / budget
+    }
+
     @Transient
     var healthStatus: ProjectHealthStatus {
-        let progress = timeProgress ?? 0
+        let actualProgress = timeProgress ?? 0
         let taskCompletion = tasks?.isEmpty == false ?
             Double(completedTasks) / Double(tasks!.count) : 0
+        let planProgress = planningProgress ?? 0
 
-        // Over budget or way behind schedule
-        if progress > 1.0 || (progress > 0.9 && taskCompletion < 0.5) {
+        // Critical: Actual over budget OR Tasks over budget by 20%+ OR way behind schedule
+        if actualProgress > 1.0 ||
+           planProgress > 1.2 ||
+           (actualProgress > 0.9 && taskCompletion < 0.5) {
             return .critical
         }
 
-        // Nearing budget or slightly behind
-        if progress > 0.85 || (progress > 0.7 && taskCompletion < 0.4) {
+        // Warning: Nearing budget OR Tasks over budget by 10%+ OR slightly behind
+        if actualProgress > 0.85 ||
+           planProgress > 1.1 ||
+           (actualProgress > 0.7 && taskCompletion < 0.4) {
             return .warning
         }
 
