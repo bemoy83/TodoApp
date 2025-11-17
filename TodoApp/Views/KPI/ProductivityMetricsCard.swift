@@ -151,16 +151,17 @@ struct ProductivityMetricsCard: View {
                         )
 
                         if comparisonValue > 0 {
-                            HStack(spacing: DesignSystem.Spacing.sm) {
+                            VStack(spacing: DesignSystem.Spacing.xs) {
                                 HStack(spacing: 4) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.caption)
                                         .foregroundStyle(DesignSystem.Colors.success)
                                     Text("Above: \(tasksAboveTarget) (\(Int((Double(tasksAboveTarget) / Double(productivityData.count)) * 100))%)")
                                         .font(.subheadline)
-                                }
+                                        .foregroundStyle(.secondary)
 
-                                Spacer()
+                                    Spacer()
+                                }
 
                                 HStack(spacing: 4) {
                                     Image(systemName: "exclamationmark.circle.fill")
@@ -168,9 +169,11 @@ struct ProductivityMetricsCard: View {
                                         .foregroundStyle(DesignSystem.Colors.error)
                                     Text("Below: \(tasksBelowTarget) (\(Int((Double(tasksBelowTarget) / Double(productivityData.count)) * 100))%)")
                                         .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+
+                                    Spacer()
                                 }
                             }
-                            .foregroundStyle(.secondary)
                         }
                     }
 

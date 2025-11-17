@@ -104,9 +104,14 @@ struct AccuracyMetricsCard: View {
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.primary)
 
-                            VStack(spacing: DesignSystem.Spacing.sm) {
-                                ForEach(metrics.byTaskType) { taskTypeAccuracy in
+                            VStack(spacing: 0) {
+                                ForEach(Array(metrics.byTaskType.enumerated()), id: \.element.id) { index, taskTypeAccuracy in
                                     taskTypeRow(taskTypeAccuracy)
+
+                                    if index < metrics.byTaskType.count - 1 {
+                                        Divider()
+                                            .padding(.vertical, DesignSystem.Spacing.xs)
+                                    }
                                 }
                             }
                         }
@@ -242,11 +247,7 @@ struct AccuracyMetricsCard: View {
                     .fill(color.opacity(0.1))
             )
         }
-        .padding(DesignSystem.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                .fill(Color(.systemGray6))
-        )
+        .padding(.vertical, DesignSystem.Spacing.sm)
     }
 
     // MARK: - Color Helpers

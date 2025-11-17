@@ -7,53 +7,62 @@ struct AnalyticsView: View {
     @Query private var allProjects: [Project]
     @Query private var allTimeEntries: [TimeEntry]
 
-    @State private var showingActiveTimersDetail = false
-    @State private var showingCompletedTasksDetail = false
-    @State private var showingHoursDetail = false
-    @State private var showingPersonHoursDetail = false
-    @State private var showingOverdueTasksDetail = false
-    @State private var showingBlockedTasksDetail = false
-    @State private var showingNoEstimatesDetail = false
-    @State private var showingNearingEstimateDetail = false
-    @State private var showingArchivedTasksDetail = false
+    @State private var showingProjectDetail: Project?
+    @State private var showingProjectIssues: ProjectIssue?
+    @State private var selectedTab = 0
 
     // Refresh timer for active timers
     @State private var currentTime = Date()
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
-    private var todaysActivity: TodaysActivity {
-        TodaysActivity.calculate(from: allTasks, timeEntries: allTimeEntries)
+    private var activeEventsData: ActiveEventsData {
+        ActiveEventsData.calculate(from: allProjects, timeEntries: allTimeEntries)
     }
 
-    private var attentionNeeded: AttentionNeeded {
-        AttentionNeeded.calculate(from: allTasks)
+    private var projectAttention: ProjectAttentionNeeded {
+        ProjectAttentionNeeded.calculate(from: allProjects)
     }
 
-    private var lifecycleStats: LifecycleStats {
-        LifecycleStats.calculate(from: allTasks)
+    private var upcomingEvents: UpcomingEventsData {
+        UpcomingEventsData.calculate(from: allProjects)
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: DesignSystem.Spacing.xl) {
-                    // Today's Activity Section
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-                        SectionHeader(
-                            title: "Today's Activity",
-                            subtitle: formatDate(Date())
-                        )
+                    // Active Events Section
+                    if !activeEventsData.activeProjects.isEmpty {
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                            SectionHeader(
+                                title: "Active Events",
+                                subtitle: "\(activeEventsData.activeProjects.count) \(activeEventsData.activeProjects.count == 1 ? "event" : "events") in progress",
+                                icon: "hammer.fill",
+                                iconColor: DesignSystem.Colors.info
+                            )
 
-                        todaysActivityCards
+                            activeEventsCards
+                        }
+                        .padding(.horizontal)
+                    } else {
+                        // No active events
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                            SectionHeader(
+                                title: "Active Events",
+                                subtitle: "No events in progress"
+                            )
+
+                            noActiveEventsCard
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
 
                     // Attention Needed Section
-                    if attentionNeeded.hasIssues {
+                    if projectAttention.hasIssues {
                         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
                             SectionHeader(
                                 title: "Attention Needed",
-                                subtitle: "\(attentionNeeded.totalIssueCount) \(attentionNeeded.totalIssueCount == 1 ? "item" : "items")",
+                                subtitle: "\(projectAttention.projectsNeedingAttention.count) \(projectAttention.projectsNeedingAttention.count == 1 ? "event" : "events")",
                                 icon: "exclamationmark.triangle.fill",
                                 iconColor: DesignSystem.Colors.warning
                             )
@@ -62,7 +71,7 @@ struct AnalyticsView: View {
                         }
                         .padding(.horizontal)
                     } else {
-                        // No issues card
+                        // All clear
                         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
                             SectionHeader(
                                 title: "Attention Needed",
@@ -74,228 +83,84 @@ struct AnalyticsView: View {
                         .padding(.horizontal)
                     }
 
-                    // Lifecycle Stats Section
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-                        SectionHeader(
-                            title: "Lifecycle Stats",
-                            subtitle: "Task completion & archiving",
-                            icon: "chart.line.uptrend.xyaxis",
-                            iconColor: Color(hex: "#5856D6")
-                        )
+                    // Upcoming Events Section
+                    if !upcomingEvents.upcomingProjects.isEmpty {
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                            SectionHeader(
+                                title: "Upcoming Events",
+                                subtitle: "Next \(upcomingEvents.upcomingProjects.count) \(upcomingEvents.upcomingProjects.count == 1 ? "event" : "events")",
+                                icon: "calendar",
+                                iconColor: Color(hex: "#AF52DE")
+                            )
 
-                        lifecycleStatsCards
+                            upcomingEventsCards
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                 }
                 .padding(.vertical)
             }
             .background(Color(UIColor.systemGroupedBackground))
-            .navigationTitle("Analytics")
+            .navigationTitle("Events")
             .onReceive(timer) { _ in
                 currentTime = Date()
             }
-            .sheet(isPresented: $showingActiveTimersDetail) {
-                ActiveTimersDetailView(tasks: allTasks.filter { $0.hasActiveTimer })
+            .sheet(item: $showingProjectDetail) { project in
+                ProjectDetailView(project: project)
             }
-            .sheet(isPresented: $showingCompletedTasksDetail) {
-                CompletedTasksDetailView(tasks: allTasks)
-            }
-            .sheet(isPresented: $showingHoursDetail) {
-                TodaysTimeEntriesDetailView(entries: allTimeEntries)
-            }
-            .sheet(isPresented: $showingPersonHoursDetail) {
-                TodaysTimeEntriesDetailView(entries: allTimeEntries)
-            }
-            .sheet(isPresented: $showingOverdueTasksDetail) {
-                TaskListDetailView(
-                    title: "Overdue Tasks",
-                    tasks: attentionNeeded.overdueTasks,
-                    icon: "exclamationmark.triangle.fill",
-                    color: DesignSystem.Colors.error
-                )
-            }
-            .sheet(isPresented: $showingBlockedTasksDetail) {
-                TaskListDetailView(
-                    title: "Blocked Tasks",
-                    tasks: attentionNeeded.blockedTasks,
-                    icon: "hand.raised.fill",
-                    color: DesignSystem.Colors.warning
-                )
-            }
-            .sheet(isPresented: $showingNoEstimatesDetail) {
-                TaskListDetailView(
-                    title: "Missing Estimates",
-                    tasks: attentionNeeded.tasksWithoutEstimates,
-                    icon: "questionmark.circle.fill",
-                    color: DesignSystem.Colors.warning
-                )
-            }
-            .sheet(isPresented: $showingNearingEstimateDetail) {
-                TaskListDetailView(
-                    title: "Nearing Estimate",
-                    tasks: attentionNeeded.tasksNearingEstimate,
-                    icon: "gauge.with.dots.needle.67percent",
-                    color: DesignSystem.Colors.warning
-                )
-            }
-            .sheet(isPresented: $showingArchivedTasksDetail) {
-                ArchiveView()
+            .sheet(item: $showingProjectIssues) { issue in
+                ProjectIssuesDetailView(projectIssue: issue)
             }
         }
     }
 
-    // MARK: - Today's Activity Cards
+    // MARK: - Active Events Cards
 
-    private var todaysActivityCards: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: DesignSystem.Spacing.md) {
-            // Active Timers
-            TappableStatCard(
-                icon: "timer",
-                value: "\(todaysActivity.activeTimers)",
-                label: "Active Timers",
-                subtitle: todaysActivity.activeTimers > 0 ?
-                    "\(todaysActivity.activePersonnel) \(todaysActivity.activePersonnel == 1 ? "person" : "people")" : "no timers",
-                color: DesignSystem.Colors.info,
-                onTap: {
-                    showingActiveTimersDetail = true
+    private var activeEventsCards: some View {
+        VStack(spacing: DesignSystem.Spacing.md) {
+            ForEach(activeEventsData.activeProjects) { project in
+                EventCard(project: project) {
+                    showingProjectDetail = project
                 }
-            )
-
-            // Tasks Completed
-            TappableStatCard(
-                icon: "checkmark.circle.fill",
-                value: "\(todaysActivity.tasksCompletedToday)",
-                label: "Completed",
-                subtitle: todaysActivity.tasksCompletedToday == 1 ? "task" : "tasks",
-                color: DesignSystem.Colors.success,
-                onTap: {
-                    showingCompletedTasksDetail = true
-                }
-            )
-
-            // Hours Today
-            TappableStatCard(
-                icon: "clock.fill",
-                value: String(format: "%.1f", todaysActivity.hoursLoggedToday),
-                label: "Hours Logged",
-                subtitle: "today",
-                color: Color(hex: "#5856D6"), // Indigo
-                onTap: {
-                    showingHoursDetail = true
-                }
-            )
-
-            // Person-Hours Today
-            TappableStatCard(
-                icon: "person.2.fill",
-                value: String(format: "%.1f", todaysActivity.personHoursToday),
-                label: "Person-Hours",
-                subtitle: "today",
-                color: Color(hex: "#AF52DE"), // Purple
-                onTap: {
-                    showingPersonHoursDetail = true
-                }
-            )
+            }
         }
+    }
+
+    private var noActiveEventsCard: some View {
+        HStack(spacing: DesignSystem.Spacing.md) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.largeTitle)
+                .foregroundStyle(DesignSystem.Colors.success)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("No Active Events")
+                    .font(DesignSystem.Typography.headline)
+                    .foregroundStyle(DesignSystem.Colors.primary)
+
+                Text("All events are completed or on hold")
+                    .font(DesignSystem.Typography.subheadline)
+                    .foregroundStyle(DesignSystem.Colors.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(DesignSystem.Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
+                .fill(DesignSystem.Colors.success.opacity(0.1))
+        )
+        .designShadow(DesignSystem.Shadow.sm)
     }
 
     // MARK: - Attention Needed Cards
 
     private var attentionNeededCards: some View {
         VStack(spacing: DesignSystem.Spacing.sm) {
-            if !attentionNeeded.overdueTasks.isEmpty {
-                AttentionCard(
-                    title: "Overdue Tasks",
-                    count: attentionNeeded.overdueTasks.count,
-                    icon: "exclamationmark.triangle.fill",
-                    color: DesignSystem.Colors.error,
-                    onTap: { showingOverdueTasksDetail = true }
-                )
-            }
-
-            if !attentionNeeded.blockedTasks.isEmpty {
-                AttentionCard(
-                    title: "Blocked Tasks",
-                    count: attentionNeeded.blockedTasks.count,
-                    icon: "hand.raised.fill",
-                    color: DesignSystem.Colors.warning,
-                    onTap: { showingBlockedTasksDetail = true }
-                )
-            }
-
-            if !attentionNeeded.tasksWithoutEstimates.isEmpty {
-                AttentionCard(
-                    title: "Missing Estimates",
-                    count: attentionNeeded.tasksWithoutEstimates.count,
-                    icon: "questionmark.circle.fill",
-                    color: DesignSystem.Colors.warning,
-                    onTap: { showingNoEstimatesDetail = true }
-                )
-            }
-
-            if !attentionNeeded.tasksNearingEstimate.isEmpty {
-                AttentionCard(
-                    title: "Nearing Estimate",
-                    count: attentionNeeded.tasksNearingEstimate.count,
-                    icon: "gauge.with.dots.needle.67percent",
-                    color: DesignSystem.Colors.warning,
-                    onTap: { showingNearingEstimateDetail = true }
-                )
-            }
-        }
-    }
-
-    // MARK: - Lifecycle Stats Cards
-
-    private var lifecycleStatsCards: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: DesignSystem.Spacing.md) {
-            // Total Completed
-            StatCard(
-                icon: "checkmark.circle.fill",
-                value: "\(lifecycleStats.totalCompleted)",
-                label: "Total Completed",
-                subtitle: lifecycleStats.totalCompleted == 1 ? "task" : "tasks",
-                color: DesignSystem.Colors.success
-            )
-
-            // Completed This Week
-            StatCard(
-                icon: "calendar.badge.checkmark",
-                value: "\(lifecycleStats.completedThisWeek)",
-                label: "This Week",
-                subtitle: "completed",
-                color: Color(hex: "#34C759") // Green
-            )
-
-            // Total Archived
-            TappableStatCard(
-                icon: "archivebox.fill",
-                value: "\(lifecycleStats.totalArchived)",
-                label: "Total Archived",
-                subtitle: lifecycleStats.totalArchived == 1 ? "task" : "tasks",
-                color: Color(hex: "#8E8E93"), // Gray
-                onTap: {
-                    showingArchivedTasksDetail = true
+            ForEach(projectAttention.projectsNeedingAttention) { issue in
+                ProjectAttentionCard(projectIssue: issue) {
+                    showingProjectIssues = issue
                 }
-            )
-
-            // Archived This Week
-            TappableStatCard(
-                icon: "archivebox",
-                value: "\(lifecycleStats.archivedThisWeek)",
-                label: "This Week",
-                subtitle: "archived",
-                color: Color(hex: "#AEAEB2"), // Light Gray
-                onTap: {
-                    showingArchivedTasksDetail = true
-                }
-            )
+            }
         }
     }
 
@@ -310,18 +175,34 @@ struct AnalyticsView: View {
                     .font(DesignSystem.Typography.headline)
                     .foregroundStyle(DesignSystem.Colors.primary)
 
-                Text("No tasks need immediate attention")
+                Text("No events need immediate attention")
                     .font(DesignSystem.Typography.subheadline)
                     .foregroundStyle(DesignSystem.Colors.secondary)
             }
 
             Spacer()
         }
-        .padding(DesignSystem.Spacing.md)
+        .padding(DesignSystem.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
                 .fill(DesignSystem.Colors.success.opacity(0.1))
         )
+        .designShadow(DesignSystem.Shadow.sm)
+    }
+
+    // MARK: - Upcoming Events Cards
+
+    private var upcomingEventsCards: some View {
+        VStack(spacing: DesignSystem.Spacing.sm) {
+            ForEach(upcomingEvents.upcomingProjects) { project in
+                Button(action: {
+                    showingProjectDetail = project
+                }) {
+                    UpcomingEventCard(project: project)
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 
     // MARK: - Helper Functions

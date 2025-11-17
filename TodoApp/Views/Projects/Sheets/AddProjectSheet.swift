@@ -9,7 +9,14 @@ struct AddProjectSheet: View {
     
     @State private var title = ""
     @State private var selectedColor = "#007AFF"
-    
+    @State private var startDate = Date()
+    @State private var dueDate = Date()
+    @State private var estimatedHours = ""
+    @State private var status: ProjectStatus = .inProgress
+
+    @State private var hasStartDate = false
+    @State private var hasDueDate = false
+
     private let predefinedColors = [
         "#007AFF", "#34C759", "#FF9500", "#FF3B30",
         "#AF52DE", "#FF2D55", "#5AC8FA", "#FFCC00",
@@ -27,7 +34,48 @@ struct AddProjectSheet: View {
             Form {
                 Section("Project Details") {
                     TextField("Project Name", text: $title)
+
+                    Picker("Status", selection: $status) {
+                        ForEach(ProjectStatus.allCases, id: \.self) { status in
+                            Text(status.rawValue).tag(status)
+                        }
+                    }
                 }
+
+                Section("Event Scheduling") {
+                    // Start Date
+                    Toggle("Set Start Date", isOn: $hasStartDate)
+
+                    if hasStartDate {
+                        DatePicker(
+                            "Start Date",
+                            selection: $startDate,
+                            displayedComponents: [.date]
+                        )
+                    }
+
+                    // Due Date
+                    Toggle("Set Due Date", isOn: $hasDueDate)
+
+                    if hasDueDate {
+                        DatePicker(
+                            "Due Date",
+                            selection: $dueDate,
+                            displayedComponents: [.date]
+                        )
+                    }
+                }
+
+                Section("Budget") {
+                    HStack {
+                        TextField("Estimated Hours", text: $estimatedHours)
+                            .keyboardType(.decimalPad)
+
+                        Text("hours")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 Section("Color") {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: DesignSystem.Spacing.lg) {
                         ForEach(predefinedColors, id: \.self) { color in
@@ -60,7 +108,11 @@ struct AddProjectSheet: View {
         let newProject = Project(
             title: title,
             color: selectedColor,
-            order: nextOrder
+            order: nextOrder,
+            startDate: hasStartDate ? startDate : nil,
+            dueDate: hasDueDate ? dueDate : nil,
+            estimatedHours: Double(estimatedHours),
+            status: status
         )
         modelContext.insert(newProject)
         HapticManager.success()

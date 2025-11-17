@@ -178,9 +178,14 @@ struct WorkBreakdownCard: View {
                 if isExpanded {
                     Divider()
 
-                    VStack(spacing: DesignSystem.Spacing.md) {
-                        ForEach(breakdowns) { breakdown in
+                    VStack(spacing: 0) {
+                        ForEach(Array(breakdowns.enumerated()), id: \.element.id) { index, breakdown in
                             taskTypeRow(breakdown)
+
+                            if index < breakdowns.count - 1 {
+                                Divider()
+                                    .padding(.vertical, DesignSystem.Spacing.xs)
+                            }
                         }
                     }
 
@@ -305,11 +310,7 @@ struct WorkBreakdownCard: View {
                     .fill(breakdown.efficiency.color.opacity(0.1))
             )
         }
-        .padding(DesignSystem.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                .fill(Color(.systemGray6))
-        )
+        .padding(.vertical, DesignSystem.Spacing.sm)
     }
 
     // MARK: - Formatting Helpers
