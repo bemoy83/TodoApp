@@ -39,9 +39,9 @@ struct ProjectIssuesDetailView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                    // Project header
+            List {
+                // Project header
+                Section {
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                         HStack {
                             Circle()
@@ -67,50 +67,129 @@ struct ProjectIssuesDetailView: View {
                             .font(DesignSystem.Typography.subheadline)
                             .foregroundStyle(DesignSystem.Colors.secondary)
                     }
-                    .padding(.horizontal)
-                    .padding(.top)
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
 
-                    // Overdue tasks section
-                    if !overdueTasks.isEmpty {
-                        issueSection(
-                            title: "Overdue Tasks",
-                            count: overdueTasks.count,
-                            icon: "exclamationmark.triangle.fill",
-                            color: DesignSystem.Colors.error,
-                            tasks: overdueTasks
-                        )
-                    }
+                // Overdue tasks section
+                if !overdueTasks.isEmpty {
+                    Section {
+                        ForEach(overdueTasks) { task in
+                            Button {
+                                selectedTask = task
+                            } label: {
+                                IssueTaskRow(task: task)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } header: {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(DesignSystem.Colors.error)
 
-                    // Blocked tasks section
-                    if !blockedTasks.isEmpty {
-                        issueSection(
-                            title: "Blocked Tasks",
-                            count: blockedTasks.count,
-                            icon: "hand.raised.fill",
-                            color: DesignSystem.Colors.warning,
-                            tasks: blockedTasks
-                        )
-                    }
+                            Text("Overdue Tasks")
+                                .font(DesignSystem.Typography.headline)
+                                .fontWeight(.semibold)
 
-                    // Missing estimates section
-                    if !tasksWithMissingEstimates.isEmpty {
-                        issueSection(
-                            title: "Missing Estimates",
-                            count: tasksWithMissingEstimates.count,
-                            icon: "questionmark.circle.fill",
-                            color: Color(hex: "#FF9500"),
-                            tasks: tasksWithMissingEstimates
-                        )
-                    }
-
-                    // Budget warnings section
-                    if projectIssue.overPlanned || projectIssue.nearingBudget {
-                        budgetWarningSection()
+                            Text("(\(overdueTasks.count))")
+                                .font(DesignSystem.Typography.subheadline)
+                                .foregroundStyle(DesignSystem.Colors.secondary)
+                        }
                     }
                 }
-                .padding(.vertical)
+
+                // Blocked tasks section
+                if !blockedTasks.isEmpty {
+                    Section {
+                        ForEach(blockedTasks) { task in
+                            Button {
+                                selectedTask = task
+                            } label: {
+                                IssueTaskRow(task: task)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } header: {
+                        HStack {
+                            Image(systemName: "hand.raised.fill")
+                                .foregroundStyle(DesignSystem.Colors.warning)
+
+                            Text("Blocked Tasks")
+                                .font(DesignSystem.Typography.headline)
+                                .fontWeight(.semibold)
+
+                            Text("(\(blockedTasks.count))")
+                                .font(DesignSystem.Typography.subheadline)
+                                .foregroundStyle(DesignSystem.Colors.secondary)
+                        }
+                    }
+                }
+
+                // Missing estimates section
+                if !tasksWithMissingEstimates.isEmpty {
+                    Section {
+                        ForEach(tasksWithMissingEstimates) { task in
+                            Button {
+                                selectedTask = task
+                            } label: {
+                                IssueTaskRow(task: task)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } header: {
+                        HStack {
+                            Image(systemName: "questionmark.circle.fill")
+                                .foregroundStyle(Color(hex: "#FF9500"))
+
+                            Text("Missing Estimates")
+                                .font(DesignSystem.Typography.headline)
+                                .fontWeight(.semibold)
+
+                            Text("(\(tasksWithMissingEstimates.count))")
+                                .font(DesignSystem.Typography.subheadline)
+                                .foregroundStyle(DesignSystem.Colors.secondary)
+                        }
+                    }
+                }
+
+                // Budget warnings section
+                if projectIssue.overPlanned || projectIssue.nearingBudget {
+                    Section {
+                        if projectIssue.overPlanned {
+                            if let variance = projectIssue.project.planningVariance {
+                                BudgetWarningCard(
+                                    title: "Over-Planned",
+                                    message: "Task estimates exceed budget by \(String(format: "%.0f", variance))h",
+                                    suggestion: "Reduce scope, add more people, or negotiate budget increase"
+                                )
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            }
+                        }
+
+                        if projectIssue.nearingBudget {
+                            if let budget = projectIssue.project.estimatedHours,
+                               let progress = projectIssue.project.timeProgress {
+                                BudgetWarningCard(
+                                    title: "Nearing Budget",
+                                    message: "\(String(format: "%.0f", projectIssue.project.totalTimeSpentHours))h of \(String(format: "%.0f", budget))h used (\(Int(progress * 100))%)",
+                                    suggestion: "Monitor remaining tasks and adjust timeline if needed"
+                                )
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            }
+                        }
+                    } header: {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(DesignSystem.Colors.warning)
+
+                            Text("Budget Warnings")
+                                .font(DesignSystem.Typography.headline)
+                                .fontWeight(.semibold)
+                        }
+                    }
+                }
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .listStyle(.insetGrouped)
             .navigationTitle("Needs Attention")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -126,88 +205,6 @@ struct ProjectIssuesDetailView: View {
         }
     }
 
-    // MARK: - Issue Section
-
-    @ViewBuilder
-    private func issueSection(
-        title: String,
-        count: Int,
-        icon: String,
-        color: Color,
-        tasks: [Task]
-    ) -> some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundStyle(color)
-
-                Text(title)
-                    .font(DesignSystem.Typography.headline)
-                    .fontWeight(.semibold)
-
-                Text("(\(count))")
-                    .font(DesignSystem.Typography.subheadline)
-                    .foregroundStyle(DesignSystem.Colors.secondary)
-
-                Spacer()
-            }
-            .padding(.horizontal)
-
-            VStack(spacing: DesignSystem.Spacing.xs) {
-                ForEach(tasks) { task in
-                    Button {
-                        selectedTask = task
-                    } label: {
-                        IssueTaskRow(task: task)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal)
-        }
-    }
-
-    // MARK: - Budget Warning Section
-
-    @ViewBuilder
-    private func budgetWarningSection() -> some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            HStack {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(DesignSystem.Colors.warning)
-
-                Text("Budget Warnings")
-                    .font(DesignSystem.Typography.headline)
-                    .fontWeight(.semibold)
-
-                Spacer()
-            }
-            .padding(.horizontal)
-
-            VStack(spacing: DesignSystem.Spacing.xs) {
-                if projectIssue.overPlanned {
-                    if let variance = projectIssue.project.planningVariance {
-                        BudgetWarningCard(
-                            title: "Over-Planned",
-                            message: "Task estimates exceed budget by \(String(format: "%.0f", variance))h",
-                            suggestion: "Reduce scope, add more people, or negotiate budget increase"
-                        )
-                    }
-                }
-
-                if projectIssue.nearingBudget {
-                    if let budget = projectIssue.project.estimatedHours,
-                       let progress = projectIssue.project.timeProgress {
-                        BudgetWarningCard(
-                            title: "Nearing Budget",
-                            message: "\(String(format: "%.0f", projectIssue.project.totalTimeSpentHours))h of \(String(format: "%.0f", budget))h used (\(Int(progress * 100))%)",
-                            suggestion: "Monitor remaining tasks and adjust timeline if needed"
-                        )
-                    }
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Issue Task Row
@@ -283,10 +280,6 @@ struct IssueTaskRow: View {
                 .font(.caption)
                 .foregroundStyle(DesignSystem.Colors.tertiary)
         }
-        .padding(.horizontal, DesignSystem.Spacing.md)
-        .padding(.vertical, DesignSystem.Spacing.sm)
-        .background(DesignSystem.Colors.secondaryGroupedBackground)
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg))
     }
 
     private func formatDate(_ date: Date) -> String {
@@ -324,8 +317,9 @@ struct BudgetWarningCard: View {
             }
             .padding(.top, 2)
         }
-        .statCardStyle()
-        .padding(.horizontal)
+        .padding(DesignSystem.Spacing.md)
+        .background(DesignSystem.Colors.secondaryGroupedBackground)
+        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg))
     }
 }
 
