@@ -176,12 +176,7 @@ struct EventCard: View {
                     }
                 }
             }
-            .padding(DesignSystem.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
-                    .fill(Color(UIColor.systemBackground))
-            )
-            .designShadow(DesignSystem.Shadow.sm)
+            .statCardStyle()
         }
         .buttonStyle(.plain)
     }
@@ -246,12 +241,7 @@ struct ProjectAttentionCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(DesignSystem.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                    .fill(Color(UIColor.systemBackground))
-            )
-            .designShadow(DesignSystem.Shadow.sm)
+            .statCardStyle()
         }
         .buttonStyle(.plain)
     }
@@ -296,11 +286,7 @@ struct UpcomingEventCard: View {
 
             Spacer()
         }
-        .padding(DesignSystem.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
-        )
+        .statCardStyle()
     }
 
     private func formatDueDate(_ date: Date) -> String {

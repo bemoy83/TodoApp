@@ -144,11 +144,12 @@ struct AnalyticsView: View {
 
             Spacer()
         }
-        .padding(DesignSystem.Spacing.md)
+        .padding(DesignSystem.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
                 .fill(DesignSystem.Colors.success.opacity(0.1))
         )
+        .designShadow(DesignSystem.Shadow.sm)
     }
 
     // MARK: - Attention Needed Cards
@@ -181,11 +182,12 @@ struct AnalyticsView: View {
 
             Spacer()
         }
-        .padding(DesignSystem.Spacing.md)
+        .padding(DesignSystem.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
                 .fill(DesignSystem.Colors.success.opacity(0.1))
         )
+        .designShadow(DesignSystem.Shadow.sm)
     }
 
     // MARK: - Upcoming Events Cards

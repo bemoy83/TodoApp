@@ -273,9 +273,7 @@ struct IssueTaskRow: View {
                 .font(.caption)
                 .foregroundStyle(DesignSystem.Colors.tertiary)
         }
-        .padding(.horizontal)
-        .padding(.vertical, DesignSystem.Spacing.sm)
-        .background(Color(UIColor.systemBackground))
+        .statCardStyle()
     }
 
     private func formatDate(_ date: Date) -> String {
@@ -313,11 +311,7 @@ struct BudgetWarningCard: View {
             }
             .padding(.top, 2)
         }
-        .padding(DesignSystem.Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                .fill(Color(UIColor.systemBackground))
-        )
+        .statCardStyle()
         .padding(.horizontal)
     }
 }
