@@ -82,19 +82,6 @@ struct AnalyticsView: View {
                         .padding(.horizontal)
                     }
 
-                    // Resource Overview Section
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-                        SectionHeader(
-                            title: "This Week's Load",
-                            subtitle: "Resource allocation",
-                            icon: "chart.bar.fill",
-                            iconColor: Color(hex: "#5856D6")
-                        )
-
-                        resourceOverviewCards
-                    }
-                    .padding(.horizontal)
-
                     // Upcoming Events Section
                     if !upcomingEvents.upcomingProjects.isEmpty {
                         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
@@ -195,51 +182,6 @@ struct AnalyticsView: View {
             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
                 .fill(DesignSystem.Colors.success.opacity(0.1))
         )
-    }
-
-    // MARK: - Resource Overview Cards
-
-    private var resourceOverviewCards: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: DesignSystem.Spacing.md) {
-            // Active personnel
-            StatCard(
-                icon: "person.2.fill",
-                value: "\(activeEventsData.totalActivePersonnel)",
-                label: "Active Personnel",
-                subtitle: activeEventsData.totalActivePersonnel == 1 ? "person working" : "people working",
-                color: Color(hex: "#AF52DE") // Purple
-            )
-
-            // Hours this week
-            StatCard(
-                icon: "clock.fill",
-                value: String(format: "%.1f", activeEventsData.totalHoursThisWeek),
-                label: "Hours This Week",
-                subtitle: "logged",
-                color: Color(hex: "#5856D6") // Indigo
-            )
-
-            // Active events count
-            StatCard(
-                icon: "hammer.fill",
-                value: "\(activeEventsData.activeProjects.count)",
-                label: "Active Events",
-                subtitle: activeEventsData.activeProjects.count == 1 ? "event" : "events",
-                color: DesignSystem.Colors.info
-            )
-
-            // Upcoming count
-            StatCard(
-                icon: "calendar",
-                value: "\(upcomingEvents.upcomingProjects.count)",
-                label: "Upcoming",
-                subtitle: upcomingEvents.upcomingProjects.count == 1 ? "event" : "events",
-                color: Color(hex: "#FF9500") // Orange
-            )
-        }
     }
 
     // MARK: - Upcoming Events Cards
