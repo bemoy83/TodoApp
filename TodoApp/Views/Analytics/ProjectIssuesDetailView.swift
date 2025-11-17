@@ -163,6 +163,7 @@ struct ProjectIssuesDetailView: View {
                     .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal)
         }
     }
 
@@ -214,12 +215,21 @@ struct ProjectIssuesDetailView: View {
 struct IssueTaskRow: View {
     let task: Task
 
+    private var statusColor: Color {
+        switch task.status {
+        case .blocked: return DesignSystem.Colors.error
+        case .ready: return DesignSystem.Colors.secondary
+        case .inProgress: return DesignSystem.Colors.info
+        case .completed: return DesignSystem.Colors.success
+        }
+    }
+
     var body: some View {
         HStack(spacing: DesignSystem.Spacing.sm) {
             // Status icon
             Image(systemName: task.status.icon)
                 .font(.body)
-                .foregroundStyle(Color(task.status.color))
+                .foregroundStyle(statusColor)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -237,7 +247,7 @@ struct IssueTaskRow: View {
                             Text(Priority(rawValue: task.priority)?.label ?? "")
                                 .font(DesignSystem.Typography.caption2)
                         }
-                        .foregroundStyle(Priority(rawValue: task.priority)?.color ?? .gray)
+                        .foregroundStyle(Priority(rawValue: task.priority)?.color ?? Color.gray)
                     }
 
                     // Due date if overdue
@@ -273,7 +283,10 @@ struct IssueTaskRow: View {
                 .font(.caption)
                 .foregroundStyle(DesignSystem.Colors.tertiary)
         }
-        .statCardStyle()
+        .padding(.horizontal, DesignSystem.Spacing.md)
+        .padding(.vertical, DesignSystem.Spacing.sm)
+        .background(DesignSystem.Colors.secondaryGroupedBackground)
+        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg))
     }
 
     private func formatDate(_ date: Date) -> String {
