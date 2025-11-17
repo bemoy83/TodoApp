@@ -8,6 +8,7 @@ struct AnalyticsView: View {
     @Query private var allTimeEntries: [TimeEntry]
 
     @State private var showingProjectDetail: Project?
+    @State private var showingProjectIssues: ProjectIssue?
     @State private var selectedTab = 0
 
     // Refresh timer for active timers
@@ -107,6 +108,9 @@ struct AnalyticsView: View {
             .sheet(item: $showingProjectDetail) { project in
                 ProjectDetailView(project: project)
             }
+            .sheet(item: $showingProjectIssues) { issue in
+                ProjectIssuesDetailView(projectIssue: issue)
+            }
         }
     }
 
@@ -153,7 +157,7 @@ struct AnalyticsView: View {
         VStack(spacing: DesignSystem.Spacing.sm) {
             ForEach(projectAttention.projectsNeedingAttention) { issue in
                 ProjectAttentionCard(projectIssue: issue) {
-                    showingProjectDetail = issue.project
+                    showingProjectIssues = issue
                 }
             }
         }
