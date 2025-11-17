@@ -83,7 +83,7 @@ struct ProjectAttentionNeeded {
             guard project.status != .completed else { continue }
 
             let tasks = project.tasks ?? []
-            let incompleteTasks = tasks.filter { !$0.isCompleted }
+            let incompleteTasks = tasks.filter { !$0.isCompleted && !$0.isArchived }
 
             var projectIssues: [String] = []
             var overdueCount = 0

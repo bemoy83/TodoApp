@@ -77,7 +77,7 @@ struct AttentionNeeded {
 
     static func calculate(from tasks: [Task]) -> AttentionNeeded {
         let now = Date()
-        let incompleteTasks = tasks.filter { !$0.isCompleted }
+        let incompleteTasks = tasks.filter { !$0.isCompleted && !$0.isArchived }
 
         // Overdue tasks (have due date and it's passed)
         let overdueTasks = incompleteTasks.filter { task in
