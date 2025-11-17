@@ -57,7 +57,20 @@ final class Project {
     var completedTasks: Int {
         tasks?.filter { $0.isCompleted }.count ?? 0
     }
-    
+
+    @Transient
+    var blockedTasks: Int {
+        tasks?.filter { !$0.isCompleted && !$0.isArchived && $0.status == .blocked }.count ?? 0
+    }
+
+    @Transient
+    var overdueTasks: Int {
+        let now = Date()
+        return tasks?.filter { task in
+            !task.isCompleted && !task.isArchived && task.dueDate != nil && task.dueDate! < now
+        }.count ?? 0
+    }
+
     @Transient
     var totalTimeSpent: Int {
         tasks?.reduce(0) { $0 + $1.totalTimeSpent } ?? 0
@@ -115,17 +128,19 @@ final class Project {
             Double(completedTasks) / Double(tasks!.count) : 0
         let planProgress = planningProgress ?? 0
 
-        // Critical: Actual over budget OR Tasks over budget by 20%+ OR way behind schedule
+        // Critical: Actual over budget OR Tasks over budget by 20%+ OR way behind schedule OR has overdue tasks
         if actualProgress > 1.0 ||
            planProgress > 1.2 ||
-           (actualProgress > 0.9 && taskCompletion < 0.5) {
+           (actualProgress > 0.9 && taskCompletion < 0.5) ||
+           overdueTasks > 0 {
             return .critical
         }
 
-        // Warning: Nearing budget OR Tasks over budget by 10%+ OR slightly behind
+        // Warning: Nearing budget OR Tasks over budget by 10%+ OR slightly behind OR has blocked tasks
         if actualProgress > 0.85 ||
            planProgress > 1.1 ||
-           (actualProgress > 0.7 && taskCompletion < 0.4) {
+           (actualProgress > 0.7 && taskCompletion < 0.4) ||
+           blockedTasks > 0 {
             return .warning
         }
 
