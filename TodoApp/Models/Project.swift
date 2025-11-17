@@ -72,6 +72,15 @@ final class Project {
     }
 
     @Transient
+    var tasksWithMissingEstimates: Int {
+        // Only count missing estimates for non-planning projects and medium/high priority tasks
+        guard status != .planning else { return 0 }
+        return tasks?.filter { task in
+            !task.isCompleted && !task.isArchived && task.effectiveEstimate == nil && task.priority < 3
+        }.count ?? 0
+    }
+
+    @Transient
     var totalTimeSpent: Int {
         tasks?.reduce(0) { $0 + $1.totalTimeSpent } ?? 0
     }
@@ -136,11 +145,12 @@ final class Project {
             return .critical
         }
 
-        // Warning: Nearing budget OR Tasks over budget by 10%+ OR slightly behind OR has blocked tasks
+        // Warning: Nearing budget OR Tasks over budget by 10%+ OR slightly behind OR has blocked tasks OR missing estimates
         if actualProgress > 0.85 ||
            planProgress > 1.1 ||
            (actualProgress > 0.7 && taskCompletion < 0.4) ||
-           blockedTasks > 0 {
+           blockedTasks > 0 ||
+           tasksWithMissingEstimates > 0 {
             return .warning
         }
 
