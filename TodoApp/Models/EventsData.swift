@@ -102,8 +102,12 @@ struct ProjectAttentionNeeded {
             // Check for blocked tasks
             blockedCount = incompleteTasks.filter { $0.status == .blocked }.count
 
-            // Check for missing estimates
-            missingEstimates = incompleteTasks.filter { $0.effectiveEstimate == nil }.count
+            // Check for missing estimates (only for non-planning projects and medium/high priority tasks)
+            if project.status != .planning {
+                missingEstimates = incompleteTasks.filter { task in
+                    task.effectiveEstimate == nil && task.priority < 3 // Exclude low priority tasks
+                }.count
+            }
 
             // Check if actual time is nearing budget
             if let progress = project.timeProgress, progress >= 0.85 {
