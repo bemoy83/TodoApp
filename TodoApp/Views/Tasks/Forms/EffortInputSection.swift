@@ -11,6 +11,8 @@ struct EffortInputSection: View {
     // Deadline (for personnel recommendations)
     let hasDueDate: Bool
     let dueDate: Date
+    let hasStartDate: Bool
+    let startDate: Date
 
     @State private var showEffortPicker = false
     @State private var effortInput: String = ""
@@ -110,8 +112,11 @@ struct EffortInputSection: View {
 
                 PersonnelRecommendationView(
                     effortHours: effectiveEffort,
+                    startDate: hasStartDate ? startDate : nil,
                     deadline: dueDate,
-                    currentSelection: expectedPersonnelCount
+                    currentSelection: expectedPersonnelCount,
+                    taskType: nil,
+                    allTasks: nil
                 ) { selectedCount in
                     hasPersonnel = true
                     expectedPersonnelCount = selectedCount

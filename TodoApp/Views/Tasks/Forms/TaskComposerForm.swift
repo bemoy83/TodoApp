@@ -11,6 +11,10 @@ struct TaskComposerForm: View {
     @Binding var selectedProject: Project?
     @Binding var hasDueDate: Bool
     @Binding var dueDate: Date
+    @Binding var hasStartDate: Bool
+    @Binding var startDate: Date
+    @Binding var hasEndDate: Bool
+    @Binding var endDate: Date
     @Binding var priority: Int
 
     // Time estimate bindings
@@ -170,6 +174,10 @@ struct TaskComposerForm: View {
         TaskComposerDueDateSection(
             hasDueDate: $hasDueDate,
             dueDate: $dueDate,
+            hasStartDate: $hasStartDate,
+            startDate: $startDate,
+            hasEndDate: $hasEndDate,
+            endDate: $endDate,
             showingValidationAlert: $showingDateValidationAlert,
             isSubtask: isSubtask,
             parentDueDate: parentDueDate,
@@ -197,6 +205,10 @@ struct TaskComposerForm: View {
             taskSubtaskEstimateTotal: taskSubtaskEstimateTotal,
             hasDueDate: hasDueDate,
             dueDate: dueDate,
+            hasStartDate: hasStartDate,
+            startDate: startDate,
+            hasEndDate: hasEndDate,
+            endDate: endDate,
             onEstimateValidation: validateEstimate,
             onEffortUpdate: updateDurationFromEffort,
             onQuantityUpdate: updateFromQuantityCalculation

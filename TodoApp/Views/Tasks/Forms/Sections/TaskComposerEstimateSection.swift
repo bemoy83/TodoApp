@@ -33,6 +33,10 @@ struct TaskComposerEstimateSection: View {
     // Deadline (for personnel recommendations)
     let hasDueDate: Bool
     let dueDate: Date
+    let hasStartDate: Bool
+    let startDate: Date
+    let hasEndDate: Bool
+    let endDate: Date
 
     // Callbacks
     let onEstimateValidation: () -> Void
@@ -155,7 +159,9 @@ struct TaskComposerEstimateSection: View {
                 estimateHours: $estimateHours,
                 estimateMinutes: $estimateMinutes,
                 hasDueDate: hasDueDate,
-                dueDate: dueDate
+                dueDate: dueDate,
+                hasStartDate: hasStartDate,
+                startDate: startDate
             )
             .onChange(of: effortHours) { _, _ in
                 onEffortUpdate()
@@ -181,6 +187,8 @@ struct TaskComposerEstimateSection: View {
                 expectedPersonnelCount: $expectedPersonnelCount,
                 hasDueDate: hasDueDate,
                 dueDate: dueDate,
+                hasStartDate: hasStartDate,
+                startDate: startDate,
                 onCalculationUpdate: onQuantityUpdate
             )
         }
