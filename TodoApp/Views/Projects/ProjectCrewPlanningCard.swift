@@ -8,9 +8,17 @@ struct ProjectCrewPlanningCard: View {
 
     // MARK: - Computed Properties
 
-    /// Total effort from all task estimates (person-hours)
+    /// Total effort from all ACTIVE task estimates (person-hours)
+    /// Only counts tasks that still need to be done (not completed or archived)
     private var totalEffortHours: Double {
-        project.taskPlannedHours ?? 0
+        guard let tasks = project.tasks else { return 0 }
+
+        let activeTasks = tasks.filter { !$0.isCompleted && !$0.isArchived }
+        let totalSeconds = activeTasks.reduce(0) { sum, task in
+            sum + (task.effectiveEstimate ?? 0)
+        }
+
+        return totalSeconds > 0 ? Double(totalSeconds) / 3600.0 : 0
     }
 
     /// Available work hours from now until project deadline
