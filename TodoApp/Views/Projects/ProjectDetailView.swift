@@ -101,6 +101,15 @@ struct ProjectDetailView: View {
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
 
+            // Crew planning card
+            if ProjectCrewPlanningCard(project: project, allTasks: allTasks).shouldShow {
+                Section {
+                    ProjectCrewPlanningCard(project: project, allTasks: allTasks)
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            }
+
             // Subtasks hint
             if hasSubtasks {
                 Section {

@@ -30,6 +30,10 @@ struct TaskComposerEstimateSection: View {
     let parentSubtaskEstimateTotal: Int?
     let taskSubtaskEstimateTotal: Int?
 
+    // Deadline (for personnel recommendations)
+    let hasDueDate: Bool
+    let dueDate: Date
+
     // Callbacks
     let onEstimateValidation: () -> Void
     let onEffortUpdate: () -> Void
@@ -149,7 +153,9 @@ struct TaskComposerEstimateSection: View {
                 hasPersonnel: $hasPersonnel,
                 expectedPersonnelCount: $expectedPersonnelCount,
                 estimateHours: $estimateHours,
-                estimateMinutes: $estimateMinutes
+                estimateMinutes: $estimateMinutes,
+                hasDueDate: hasDueDate,
+                dueDate: dueDate
             )
             .onChange(of: effortHours) { _, _ in
                 onEffortUpdate()
@@ -173,6 +179,8 @@ struct TaskComposerEstimateSection: View {
                 estimateMinutes: $estimateMinutes,
                 hasPersonnel: $hasPersonnel,
                 expectedPersonnelCount: $expectedPersonnelCount,
+                hasDueDate: hasDueDate,
+                dueDate: dueDate,
                 onCalculationUpdate: onQuantityUpdate
             )
         }

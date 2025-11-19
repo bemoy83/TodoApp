@@ -195,6 +195,8 @@ struct TaskComposerForm: View {
             isSubtask: isSubtask,
             parentSubtaskEstimateTotal: parentSubtaskEstimateTotal,
             taskSubtaskEstimateTotal: taskSubtaskEstimateTotal,
+            hasDueDate: hasDueDate,
+            dueDate: dueDate,
             onEstimateValidation: validateEstimate,
             onEffortUpdate: updateDurationFromEffort,
             onQuantityUpdate: updateFromQuantityCalculation

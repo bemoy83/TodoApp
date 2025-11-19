@@ -23,6 +23,10 @@ struct TaskComposerQuantitySection: View {
     @Binding var hasPersonnel: Bool
     @Binding var expectedPersonnelCount: Int?
 
+    // Deadline (for personnel recommendations)
+    let hasDueDate: Bool
+    let dueDate: Date
+
     @Query(sort: \TaskTemplate.order) private var templates: [TaskTemplate]
     @Query(filter: #Predicate<Task> { task in !task.isArchived }, sort: \Task.order) private var allTasks: [Task]
 
@@ -39,6 +43,26 @@ struct TaskComposerQuantitySection: View {
     @FocusState private var isCustomProductivityFocused: Bool
 
     let onCalculationUpdate: () -> Void
+
+    // MARK: - Computed Properties
+
+    /// Calculate effort hours from quantity and productivity (only when in Calculate Duration or Personnel mode)
+    private var calculatedEffort: Double {
+        let quantityValue = Double(quantity) ?? 0
+        let rate = productivityRate ?? historicalProductivity ?? 0
+        guard quantityValue > 0, rate > 0 else { return 0 }
+
+        // Effort = Quantity ÷ Productivity Rate (gives us person-hours)
+        return quantityValue / rate
+    }
+
+    /// Whether to show personnel recommendations
+    private var shouldShowPersonnelRecommendation: Bool {
+        guard hasDueDate, dueDate > Date(), calculatedEffort > 0 else { return false }
+
+        // Only show when we're calculating duration (user needs personnel recommendation)
+        return quantityCalculationMode == .calculateDuration
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -101,6 +125,25 @@ struct TaskComposerQuantitySection: View {
                         .padding(.vertical, DesignSystem.Spacing.xs)
                     calculationSummary
                 }
+
+                // Personnel recommendation
+                if shouldShowPersonnelRecommendation {
+                    Divider()
+                        .padding(.vertical, DesignSystem.Spacing.sm)
+
+                    PersonnelRecommendationView(
+                        effortHours: calculatedEffort,
+                        deadline: dueDate,
+                        currentSelection: expectedPersonnelCount,
+                        taskType: taskType,
+                        allTasks: allTasks
+                    ) { selectedCount in
+                        hasPersonnel = true
+                        expectedPersonnelCount = selectedCount
+                        // Trigger recalculation when personnel is set via recommendation
+                        onCalculationUpdate()
+                    }
+                }
             } else if taskType != nil {
                 TaskInlineInfoRow(
                     icon: "exclamationmark.triangle.fill",
@@ -123,6 +166,13 @@ struct TaskComposerQuantitySection: View {
                 hasEstimate = true
             case .manualEntry:
                 break
+            }
+        }
+        .onChange(of: expectedPersonnelCount) { _, _ in
+            // Trigger recalculation when personnel count changes
+            // (relevant when in Calculate Duration mode)
+            if quantityCalculationMode == .calculateDuration {
+                onCalculationUpdate()
             }
         }
     }

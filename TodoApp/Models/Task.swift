@@ -112,6 +112,8 @@ final class Task {
     var title: String
     var priority: Int
     var dueDate: Date?
+    var startDate: Date?  // When work is scheduled to start
+    var endDate: Date?    // When work is scheduled to end
     var completedDate: Date?
     var createdDate: Date
     var order: Int?
@@ -163,6 +165,8 @@ final class Task {
         title: String,
         priority: Int = 2,
         dueDate: Date? = nil,
+        startDate: Date? = nil,
+        endDate: Date? = nil,
         completedDate: Date? = nil,
         createdDate: Date = Date(),
         parentTask: Task? = nil,
@@ -181,6 +185,8 @@ final class Task {
         self.title = title
         self.priority = priority
         self.dueDate = dueDate
+        self.startDate = startDate
+        self.endDate = endDate
         self.completedDate = completedDate
         self.createdDate = createdDate
         self.parentTask = parentTask
@@ -217,7 +223,39 @@ final class Task {
         guard let entries = timeEntries else { return false }
         return entries.contains { $0.endTime == nil }
     }
-    
+
+    // MARK: - Working Window (Start/End Dates)
+
+    /// The working window for crew planning: when work actually happens
+    /// Falls back intelligently: endDate/dueDate for end, startDate/NOW for start
+    @Transient
+    var workingWindow: (start: Date, end: Date)? {
+        // Need an end date (either endDate or dueDate)
+        guard let end = endDate ?? dueDate else { return nil }
+
+        // Start date defaults to NOW if not explicitly set
+        let start = startDate ?? Date()
+
+        // Validate: start must be before end
+        guard start < end else { return nil }
+
+        return (start, end)
+    }
+
+    /// Effective deadline for crew planning (uses endDate if available, falls back to dueDate)
+    @Transient
+    var effectiveDeadline: Date? {
+        endDate ?? dueDate
+    }
+
+    /// Available work hours for this task (considering working window)
+    /// Returns nil if no deadline/endDate set
+    @Transient
+    var availableWorkHours: Double? {
+        guard let window = workingWindow else { return nil }
+        return WorkHoursCalculator.calculateAvailableHours(from: window.start, to: window.end)
+    }
+
     @Transient
     var directTimeSpent: Int {
         guard let entries = timeEntries else { return 0 }
@@ -417,6 +455,17 @@ final class Task {
         } else {
             return .onTrack
         }
+    }
+
+    /// Estimate accuracy: ratio of estimated to actual time (1.0 = perfect, 0.8 = took 25% longer)
+    /// Only available for completed tasks with estimates
+    @Transient
+    var estimateAccuracy: Double? {
+        guard isCompleted else { return nil }
+        guard let estimate = effectiveEstimate, estimate > 0 else { return nil }
+        guard totalTimeSpent > 0 else { return nil }
+
+        return Double(estimate) / Double(totalTimeSpent)
     }
 
     // MARK: - Productivity Metrics

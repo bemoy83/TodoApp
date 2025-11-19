@@ -1,12 +1,37 @@
 import SwiftUI
 
 /// Displays resource planning recommendations based on effort and deadline.
-/// Shows available work hours, minimum crew size, and scenario options (Tight/Safe/Buffer).
+/// Shows available work hours, minimum crew size, and scenario options (Recommended/Safe/Buffer).
+/// Optionally uses historical analytics to adjust recommendations.
 struct PersonnelRecommendationView: View {
     let effortHours: Double
     let deadline: Date
     let currentSelection: Int?
     let onSelect: (Int) -> Void
+
+    // Optional: Historical learning parameters
+    let taskType: String?
+    let allTasks: [Task]?
+
+    // Initialize without historical learning (backward compatible)
+    init(effortHours: Double, deadline: Date, currentSelection: Int?, onSelect: @escaping (Int) -> Void) {
+        self.effortHours = effortHours
+        self.deadline = deadline
+        self.currentSelection = currentSelection
+        self.onSelect = onSelect
+        self.taskType = nil
+        self.allTasks = nil
+    }
+
+    // Initialize with historical learning
+    init(effortHours: Double, deadline: Date, currentSelection: Int?, taskType: String?, allTasks: [Task]?, onSelect: @escaping (Int) -> Void) {
+        self.effortHours = effortHours
+        self.deadline = deadline
+        self.currentSelection = currentSelection
+        self.onSelect = onSelect
+        self.taskType = taskType
+        self.allTasks = allTasks
+    }
 
     // MARK: - Computed Properties
 
@@ -14,18 +39,37 @@ struct PersonnelRecommendationView: View {
         WorkHoursCalculator.calculateAvailableHours(from: Date(), to: deadline)
     }
 
-    private var minimumPersonnel: Int {
-        WorkHoursCalculator.calculateMinimumPersonnel(
-            effortHours: effortHours,
-            availableHours: availableHours
-        )
+    private var analytics: TaskTypeAnalytics? {
+        guard let taskType = taskType, let allTasks = allTasks else { return nil }
+        return TaskTypeAnalytics.calculate(for: taskType, from: allTasks)
     }
 
-    private var scenarios: [(people: Int, hoursPerPerson: Double, status: String, icon: String)] {
-        WorkHoursCalculator.generateScenarios(
-            effortHours: effortHours,
-            minimumPersonnel: minimumPersonnel
-        )
+    private var usesAnalytics: Bool {
+        analytics?.isSignificant ?? false
+    }
+
+    private var scenarios: [(people: Int, hoursPerPerson: Double, status: String, icon: String, contextMessage: String?)] {
+        if usesAnalytics {
+            return WorkHoursCalculator.generateScenariosWithAnalytics(
+                effortHours: effortHours,
+                availableHours: availableHours,
+                analytics: analytics
+            )
+        } else {
+            // Convert old format to new format
+            let oldScenarios = WorkHoursCalculator.generateScenarios(
+                effortHours: effortHours,
+                minimumPersonnel: WorkHoursCalculator.calculateMinimumPersonnel(
+                    effortHours: effortHours,
+                    availableHours: availableHours
+                )
+            )
+            return oldScenarios.map { (people: $0.people, hoursPerPerson: $0.hoursPerPerson, status: $0.status, icon: $0.icon, contextMessage: nil) }
+        }
+    }
+
+    private var minimumPersonnel: Int {
+        scenarios.first?.people ?? 1
     }
 
     // MARK: - Body
@@ -59,14 +103,27 @@ struct PersonnelRecommendationView: View {
 
             // Minimum crew
             HStack {
-                Text("Minimum crew:")
+                Text(usesAnalytics ? "Recommended crew:" : "Minimum crew:")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(minimumPersonnel) \(minimumPersonnel == 1 ? "person" : "people")")
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(usesAnalytics ? .green : .orange)
+            }
+
+            // Analytics context
+            if usesAnalytics, let analytics = analytics {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "brain.head.profile")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+
+                    Text("Based on \(analytics.sampleSize) completed \(analytics.taskType) \(analytics.sampleSize == 1 ? "task" : "tasks")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Divider()
@@ -91,37 +148,54 @@ struct PersonnelRecommendationView: View {
     // MARK: - View Builders
 
     @ViewBuilder
-    private func scenarioButton(for scenario: (people: Int, hoursPerPerson: Double, status: String, icon: String)) -> some View {
+    private func scenarioButton(for scenario: (people: Int, hoursPerPerson: Double, status: String, icon: String, contextMessage: String?)) -> some View {
         Button {
             onSelect(scenario.people)
             HapticManager.selection()
         } label: {
-            HStack(spacing: 10) {
-                Image(systemName: scenario.icon)
-                    .font(.body)
-                    .foregroundStyle(scenario.people == minimumPersonnel ? .orange : .green)
-                    .frame(width: 18)
+            VStack(spacing: 8) {
+                HStack(spacing: 10) {
+                    Image(systemName: scenario.icon)
+                        .font(.body)
+                        .foregroundStyle(scenario.people == minimumPersonnel ? (usesAnalytics ? .green : .orange) : .green)
+                        .frame(width: 18)
 
-                Text("\(scenario.people) \(scenario.people == 1 ? "person" : "people")")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    Text("\(scenario.people) \(scenario.people == 1 ? "person" : "people")")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
 
-                Spacer()
+                    Spacer()
 
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(String(format: "%.1f hrs/person", scenario.hoursPerPerson))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(scenario.status)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(scenario.people == minimumPersonnel ? .orange : .green)
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(String(format: "%.1f hrs/person", scenario.hoursPerPerson))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(scenario.status)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(scenario.people == minimumPersonnel ? (usesAnalytics ? .green : .orange) : .green)
+                    }
+
+                    if currentSelection == scenario.people {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(.blue)
+                    }
                 }
 
-                if currentSelection == scenario.people {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.body)
-                        .foregroundStyle(.blue)
+                // Context message (e.g., "Installation tasks are typically 18% over estimate")
+                if let contextMessage = scenario.contextMessage {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+
+                        Text(contextMessage)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+                    }
                 }
             }
             .padding(10)

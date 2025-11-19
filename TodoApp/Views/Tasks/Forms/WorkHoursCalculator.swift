@@ -82,6 +82,49 @@ struct WorkHoursCalculator {
         ]
     }
 
+    /// Generate resource planning scenarios with historical accuracy adjustment
+    /// - Parameters:
+    ///   - effortHours: Total work effort in person-hours
+    ///   - availableHours: Available calendar hours until deadline
+    ///   - analytics: Optional historical analytics for this task type
+    /// - Returns: Array of scenarios with adjusted effort and context message
+    static func generateScenariosWithAnalytics(
+        effortHours: Double,
+        availableHours: Double,
+        analytics: TaskTypeAnalytics?
+    ) -> [(people: Int, hoursPerPerson: Double, status: String, icon: String, contextMessage: String?)] {
+        // Adjust effort based on historical accuracy
+        let adjustedEffort: Double
+        let contextMessage: String?
+
+        if let analytics = analytics, analytics.isSignificant {
+            adjustedEffort = analytics.adjustedEffort(from: effortHours)
+            let overrun = analytics.typicalOverrunPercentage
+            if abs(overrun) >= 5 {
+                contextMessage = "\(analytics.taskType) tasks are \(analytics.varianceDescription)"
+            } else {
+                contextMessage = nil
+            }
+        } else {
+            adjustedEffort = effortHours
+            contextMessage = nil
+        }
+
+        // Calculate minimum personnel with adjusted effort
+        let minimumPersonnel = calculateMinimumPersonnel(
+            effortHours: adjustedEffort,
+            availableHours: availableHours
+        )
+
+        guard minimumPersonnel > 0 else { return [] }
+
+        return [
+            (minimumPersonnel, adjustedEffort / Double(minimumPersonnel), "Recommended", "checkmark.circle.fill", contextMessage),
+            (minimumPersonnel + 1, adjustedEffort / Double(minimumPersonnel + 1), "Safe", "checkmark.circle.fill", nil),
+            (minimumPersonnel + 2, adjustedEffort / Double(minimumPersonnel + 2), "Buffer", "checkmark.circle.fill", nil)
+        ]
+    }
+
     // MARK: - Private Helpers
 
     private static func calculateHoursForToday(
