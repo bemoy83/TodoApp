@@ -8,6 +8,8 @@ enum ReportTemplate: String, CaseIterable, Identifiable {
     case projectPerformance = "Project Performance"
     case personnelUtilization = "Personnel Utilization"
     case taskEfficiency = "Task Efficiency"
+    case budgetAnalysis = "Budget Analysis"
+    case taskTypeEfficiency = "Task Type Efficiency"
 
     var id: String { rawValue }
 
@@ -18,6 +20,8 @@ enum ReportTemplate: String, CaseIterable, Identifiable {
         case .projectPerformance: return "chart.bar.fill"
         case .personnelUtilization: return "person.2.fill"
         case .taskEfficiency: return "gauge.with.dots.needle.bottom.50percent"
+        case .budgetAnalysis: return "dollarsign.circle.fill"
+        case .taskTypeEfficiency: return "chart.xyaxis.line"
         }
     }
 
@@ -33,6 +37,10 @@ enum ReportTemplate: String, CaseIterable, Identifiable {
             return "Person-hours breakdown across projects and tasks"
         case .taskEfficiency:
             return "Tasks completed vs estimated time, highlighting overruns"
+        case .budgetAnalysis:
+            return "3-tier budget tracking: Budget vs Planned vs Actual with variance analysis"
+        case .taskTypeEfficiency:
+            return "Average time per task type with efficiency metrics"
         }
     }
 

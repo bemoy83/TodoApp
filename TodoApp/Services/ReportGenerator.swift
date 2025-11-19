@@ -18,6 +18,10 @@ struct ReportGenerator {
             return generatePersonnelUtilization(data: data)
         case .taskEfficiency:
             return generateTaskEfficiency(data: data)
+        case .budgetAnalysis:
+            return generateBudgetAnalysis(data: data)
+        case .taskTypeEfficiency:
+            return generateTaskTypeEfficiency(data: data)
         }
     }
 
@@ -561,5 +565,236 @@ struct ReportGenerator {
         }
 
         return totalPersonSeconds / 3600  // Convert to hours
+    }
+
+    // MARK: - Budget Analysis Report
+
+    private static func generateBudgetAnalysis(data: ReportData) -> String {
+        // Filter projects with budgets
+        let projectsWithBudgets = data.projects.filter { $0.estimatedHours != nil && $0.estimatedHours! > 0 }
+
+        switch data.format {
+        case .markdown:
+            var md = "# Budget Analysis Report\n\n"
+            md += "*Generated: \(formatDate(Date()))*\n\n"
+
+            if projectsWithBudgets.isEmpty {
+                md += "*No projects with budgets found.*\n"
+                return md
+            }
+
+            md += "## Overview\n\n"
+            let totalBudget = projectsWithBudgets.reduce(0.0) { $0 + ($1.estimatedHours ?? 0) }
+            let totalPlanned = projectsWithBudgets.reduce(0.0) { $0 + ($1.taskPlannedHours ?? 0) }
+            let totalActual = projectsWithBudgets.reduce(0.0) { $0 + $1.totalTimeSpentHours }
+            let overPlannedCount = projectsWithBudgets.filter { $0.isOverPlanned }.count
+
+            md += "- **Total Projects**: \(projectsWithBudgets.count)\n"
+            md += "- **Over-Planned Projects**: \(overPlannedCount)\n"
+            md += "- **Total Budget**: \(String(format: "%.1f", totalBudget))h\n"
+            md += "- **Total Planned**: \(String(format: "%.1f", totalPlanned))h\n"
+            md += "- **Total Actual**: \(String(format: "%.1f", totalActual))h\n"
+            md += "- **Budget Utilization**: \(Int((totalActual / totalBudget) * 100))%\n\n"
+
+            md += "## Project Budget Breakdown\n\n"
+            md += "| Project | Budget | Planned | Actual | Plan Var | Budget Used | Status |\n"
+            md += "|---------|--------|---------|--------|----------|-------------|--------|\n"
+
+            for project in projectsWithBudgets.sorted(by: { $0.title < $1.title }) {
+                let budget = project.estimatedHours ?? 0
+                let planned = project.taskPlannedHours ?? 0
+                let actual = project.totalTimeSpentHours
+                let planVar = project.planningVariance ?? 0
+                let budgetUsed = budget > 0 ? Int((actual / budget) * 100) : 0
+
+                let status: String
+                if project.isOverPlanned {
+                    status = "⚠️ Over-Planned"
+                } else if budgetUsed > 100 {
+                    status = "🔴 Over Budget"
+                } else if budgetUsed > 85 {
+                    status = "⚠️ Nearing"
+                } else {
+                    status = "✅ On Track"
+                }
+
+                md += "| \(project.title) | \(String(format: "%.1f", budget))h | \(String(format: "%.1f", planned))h | \(String(format: "%.1f", actual))h | "
+                md += planVar > 0 ? "+\(String(format: "%.1f", planVar))h" : "\(String(format: "%.1f", planVar))h"
+                md += " | \(budgetUsed)% | \(status) |\n"
+            }
+
+            // Add section for projects needing attention
+            let needsAttention = projectsWithBudgets.filter { $0.isOverPlanned || ($0.timeProgress ?? 0) > 0.85 }
+            if !needsAttention.isEmpty {
+                md += "\n## Projects Needing Attention\n\n"
+                for project in needsAttention {
+                    md += "### \(project.title)\n\n"
+                    if project.isOverPlanned, let variance = project.planningVariance {
+                        md += "- **Over-Planned**: Task estimates exceed budget by \(String(format: "%.1f", variance))h\n"
+                        md += "- **Suggestion**: Reduce scope, add resources, or negotiate budget increase\n"
+                    }
+                    if let progress = project.timeProgress, progress > 0.85 {
+                        let budget = project.estimatedHours ?? 0
+                        let actual = project.totalTimeSpentHours
+                        md += "- **Budget Alert**: \(String(format: "%.1f", actual))h of \(String(format: "%.1f", budget))h used (\(Int(progress * 100))%)\n"
+                        md += "- **Suggestion**: Monitor remaining tasks and adjust timeline\n"
+                    }
+                    md += "\n"
+                }
+            }
+
+            return md
+
+        case .plainText:
+            var text = "BUDGET ANALYSIS REPORT\n"
+            text += "=====================\n"
+            text += "Generated: \(formatDate(Date()))\n\n"
+
+            if projectsWithBudgets.isEmpty {
+                text += "No projects with budgets found.\n"
+                return text
+            }
+
+            let totalBudget = projectsWithBudgets.reduce(0.0) { $0 + ($1.estimatedHours ?? 0) }
+            let totalPlanned = projectsWithBudgets.reduce(0.0) { $0 + ($1.taskPlannedHours ?? 0) }
+            let totalActual = projectsWithBudgets.reduce(0.0) { $0 + $1.totalTimeSpentHours }
+
+            text += "OVERVIEW\n"
+            text += "--------\n"
+            text += "Total Projects: \(projectsWithBudgets.count)\n"
+            text += "Total Budget: \(String(format: "%.1f", totalBudget))h\n"
+            text += "Total Planned: \(String(format: "%.1f", totalPlanned))h\n"
+            text += "Total Actual: \(String(format: "%.1f", totalActual))h\n\n"
+
+            text += "PROJECTS\n"
+            text += "--------\n"
+            for project in projectsWithBudgets.sorted(by: { $0.title < $1.title }) {
+                let budget = project.estimatedHours ?? 0
+                let planned = project.taskPlannedHours ?? 0
+                let actual = project.totalTimeSpentHours
+                text += "\(project.title):\n"
+                text += "  Budget: \(String(format: "%.1f", budget))h | Planned: \(String(format: "%.1f", planned))h | Actual: \(String(format: "%.1f", actual))h\n"
+            }
+
+            return text
+
+        case .csv:
+            var csv = "Report Type,Budget Analysis\n"
+            csv += "Generated,\(formatDate(Date()))\n\n"
+            csv += "Project,Budget Hours,Planned Hours,Actual Hours,Planning Variance,Budget Used %,Status\n"
+
+            for project in projectsWithBudgets.sorted(by: { $0.title < $1.title }) {
+                let budget = project.estimatedHours ?? 0
+                let planned = project.taskPlannedHours ?? 0
+                let actual = project.totalTimeSpentHours
+                let planVar = project.planningVariance ?? 0
+                let budgetUsed = budget > 0 ? Int((actual / budget) * 100) : 0
+
+                let status: String
+                if project.isOverPlanned {
+                    status = "Over-Planned"
+                } else if budgetUsed > 100 {
+                    status = "Over Budget"
+                } else if budgetUsed > 85 {
+                    status = "Nearing"
+                } else {
+                    status = "On Track"
+                }
+
+                csv += "\"\(project.title)\",\(String(format: "%.2f", budget)),\(String(format: "%.2f", planned)),\(String(format: "%.2f", actual)),\(String(format: "%.2f", planVar)),\(budgetUsed),\(status)\n"
+            }
+
+            return csv
+        }
+    }
+
+    // MARK: - Task Type Efficiency Report
+
+    private static func generateTaskTypeEfficiency(data: ReportData) -> String {
+        let tasks = data.filteredTasks
+
+        // Group by task type
+        let tasksByType = Dictionary(grouping: tasks, by: { $0.taskType })
+
+        switch data.format {
+        case .markdown:
+            var md = "# Task Type Efficiency Report\n\n"
+            md += "*Generated: \(formatDate(Date()))*\n"
+            md += "*Period: \(formatDateRange(data.effectiveDateRange))*\n\n"
+
+            if tasks.isEmpty {
+                md += "*No tasks found in this period.*\n"
+                return md
+            }
+
+            md += "## Overview\n\n"
+            let totalHours = tasks.reduce(0.0) { $0 + (Double($1.totalTimeSpent) / 3600.0) }
+            md += "- **Total Tasks**: \(tasks.count)\n"
+            md += "- **Total Hours**: \(String(format: "%.1f", totalHours))h\n"
+            md += "- **Task Types**: \(tasksByType.count)\n\n"
+
+            md += "## Efficiency by Task Type\n\n"
+            md += "| Task Type | Count | Avg Hours | Total Hours | Avg Person-Hours |\n"
+            md += "|-----------|-------|-----------|-------------|------------------|\n"
+
+            for (taskType, typeTasks) in tasksByType.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+                let count = typeTasks.count
+                let totalHours = typeTasks.reduce(0.0) { $0 + (Double($1.totalTimeSpent) / 3600.0) }
+                let avgHours = totalHours / Double(count)
+                let totalPersonHours = typeTasks.reduce(0.0) { total, task in
+                    total + computePersonHours(for: task, allTasks: data.tasks)
+                }
+                let avgPersonHours = totalPersonHours / Double(count)
+
+                md += "| \(taskType.rawValue) | \(count) | \(String(format: "%.1f", avgHours))h | \(String(format: "%.1f", totalHours))h | \(String(format: "%.1f", avgPersonHours))h |\n"
+            }
+
+            md += "\n## Task Type Distribution\n\n"
+            for (taskType, typeTasks) in tasksByType.sorted(by: { $1.count < $0.count }) {
+                let percentage = Int(Double(typeTasks.count) / Double(tasks.count) * 100)
+                md += "- **\(taskType.rawValue)**: \(typeTasks.count) tasks (\(percentage)%)\n"
+            }
+
+            return md
+
+        case .plainText:
+            var text = "TASK TYPE EFFICIENCY REPORT\n"
+            text += "===========================\n"
+            text += "Generated: \(formatDate(Date()))\n"
+            text += "Period: \(formatDateRange(data.effectiveDateRange))\n\n"
+
+            if tasks.isEmpty {
+                text += "No tasks found in this period.\n"
+                return text
+            }
+
+            for (taskType, typeTasks) in tasksByType.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+                let totalHours = typeTasks.reduce(0.0) { $0 + (Double($1.totalTimeSpent) / 3600.0) }
+                let avgHours = totalHours / Double(typeTasks.count)
+                text += "\(taskType.rawValue): \(typeTasks.count) tasks, avg \(String(format: "%.1f", avgHours))h per task\n"
+            }
+
+            return text
+
+        case .csv:
+            var csv = "Report Type,Task Type Efficiency\n"
+            csv += "Generated,\(formatDate(Date()))\n"
+            csv += "Period,\(formatDateRange(data.effectiveDateRange))\n\n"
+            csv += "Task Type,Count,Average Hours,Total Hours,Average Person-Hours\n"
+
+            for (taskType, typeTasks) in tasksByType.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+                let count = typeTasks.count
+                let totalHours = typeTasks.reduce(0.0) { $0 + (Double($1.totalTimeSpent) / 3600.0) }
+                let avgHours = totalHours / Double(count)
+                let totalPersonHours = typeTasks.reduce(0.0) { total, task in
+                    total + computePersonHours(for: task, allTasks: data.tasks)
+                }
+                let avgPersonHours = totalPersonHours / Double(count)
+
+                csv += "\(taskType.rawValue),\(count),\(String(format: "%.2f", avgHours)),\(String(format: "%.2f", totalHours)),\(String(format: "%.2f", avgPersonHours))\n"
+            }
+
+            return csv
+        }
     }
 }
