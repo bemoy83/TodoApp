@@ -138,6 +138,8 @@ struct TaskComposerQuantitySection: View {
                     ) { selectedCount in
                         hasPersonnel = true
                         expectedPersonnelCount = selectedCount
+                        // Trigger recalculation when personnel is set via recommendation
+                        onCalculationUpdate()
                     }
                 }
             } else if taskType != nil {
@@ -162,6 +164,13 @@ struct TaskComposerQuantitySection: View {
                 hasEstimate = true
             case .manualEntry:
                 break
+            }
+        }
+        .onChange(of: expectedPersonnelCount) { _, _ in
+            // Trigger recalculation when personnel count changes
+            // (relevant when in Calculate Duration mode)
+            if quantityCalculationMode == .calculateDuration {
+                onCalculationUpdate()
             }
         }
     }
