@@ -30,7 +30,7 @@ struct ProjectCrewPlanningCard: View {
             guard let taskType = taskType else { return nil }
 
             let hours = typeTasks.reduce(0.0) { sum, task in
-                sum + (Double(task.effectiveEstimate ?? 0) / 60.0)
+                sum + (Double(task.effectiveEstimate ?? 0) / 3600.0) // effectiveEstimate is in SECONDS
             }
 
             let analytics = TaskTypeAnalytics.calculate(for: taskType, from: allTasks)
