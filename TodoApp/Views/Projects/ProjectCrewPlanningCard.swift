@@ -51,13 +51,20 @@ struct ProjectCrewPlanningCard: View {
     private var adjustedEffortHours: Double {
         guard !taskTypeBreakdown.isEmpty else { return totalEffortHours }
 
-        return taskTypeBreakdown.reduce(0.0) { total, breakdown in
+        // Sum adjusted effort for tasks WITH task types
+        let adjustedFromBreakdown = taskTypeBreakdown.reduce(0.0) { total, breakdown in
             if let analytics = breakdown.analytics, analytics.isSignificant {
                 return total + analytics.adjustedEffort(from: breakdown.hours)
             } else {
                 return total + breakdown.hours
             }
         }
+
+        // Add effort from tasks WITHOUT task types (can't adjust without type data)
+        let breakdownTotal = taskTypeBreakdown.reduce(0.0) { $0 + $1.hours }
+        let untypedTasksEffort = totalEffortHours - breakdownTotal
+
+        return adjustedFromBreakdown + untypedTasksEffort
     }
 
     /// Whether historical adjustment was applied
