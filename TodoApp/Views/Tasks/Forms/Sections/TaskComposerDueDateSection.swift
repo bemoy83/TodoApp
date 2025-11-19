@@ -18,38 +18,34 @@ struct TaskComposerDueDateSection: View {
 
     var body: some View {
         Section("Schedule") {
-            // Parent deadline info for subtasks
-            if isSubtask {
-                parentDueDateView
-                Divider()
-                    .padding(.vertical, 4)
-            }
+            VStack(spacing: 16) {
+                // Working window summary at top (when both dates set)
+                if hasStartDate && hasEndDate {
+                    workingWindowSummary
+                }
 
-            // Working window summary at top (when both dates set)
-            if hasStartDate && hasEndDate {
-                workingWindowSummary
-                Divider()
-                    .padding(.vertical, 4)
-            }
+                // Parent deadline info for subtasks
+                if isSubtask {
+                    parentDueDateView
+                }
 
-            // Deadline (always visible or with set option)
-            if hasEndDate {
-                deadlineRow
-            } else {
-                setDeadlineButton
-            }
-
-            // Start date (add/remove pattern)
-            if hasEndDate {
-                Divider()
-                    .padding(.vertical, 4)
-
-                if hasStartDate {
-                    startDateRow
+                // Deadline (always visible or with set option)
+                if hasEndDate {
+                    deadlineRow
                 } else {
-                    addStartDateButton
+                    setDeadlineButton
+                }
+
+                // Start date (add/remove pattern)
+                if hasEndDate {
+                    if hasStartDate {
+                        startDateRow
+                    } else {
+                        addStartDateButton
+                    }
                 }
             }
+            .padding(.vertical, 4)
         }
     }
 
@@ -97,7 +93,7 @@ struct TaskComposerDueDateSection: View {
     }
 
     private var deadlineRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 DatePicker(
                     "Deadline",
@@ -160,28 +156,26 @@ struct TaskComposerDueDateSection: View {
     }
 
     private var startDateRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                DatePicker(
-                    "Start Date",
-                    selection: $startDate,
-                    in: ...endDate,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .onChange(of: startDate) { _, newValue in
-                    if newValue >= endDate {
-                        startDate = endDate.addingTimeInterval(-3600)
-                    }
+        HStack {
+            DatePicker(
+                "Start Date",
+                selection: $startDate,
+                in: ...endDate,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+            .onChange(of: startDate) { _, newValue in
+                if newValue >= endDate {
+                    startDate = endDate.addingTimeInterval(-3600)
                 }
+            }
 
-                Button {
-                    hasStartDate = false
-                    HapticManager.light()
-                } label: {
-                    Text("Remove")
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                }
+            Button {
+                hasStartDate = false
+                HapticManager.light()
+            } label: {
+                Text("Remove")
+                    .font(.subheadline)
+                    .foregroundStyle(.red)
             }
         }
     }
@@ -191,31 +185,29 @@ struct TaskComposerDueDateSection: View {
         let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
         let days = Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? 0
 
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: "clock.arrow.2.circlepath")
-                    .font(.title3)
+        HStack(spacing: 10) {
+            Image(systemName: "clock.arrow.2.circlepath")
+                .font(.title3)
+                .foregroundStyle(.green)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Working Window")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
                     .foregroundStyle(.green)
-                    .frame(width: 24)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Working Window")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.green)
-
-                    Text("\(days) \(days == 1 ? "day" : "days") • \(String(format: "%.1f", hours)) work hours available")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
+                Text("\(days) \(days == 1 ? "day" : "days") • \(String(format: "%.1f", hours)) work hours available")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.green.opacity(0.08))
-            )
+
+            Spacer()
         }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.green.opacity(0.08))
+        )
     }
 }
