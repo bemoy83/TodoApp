@@ -737,7 +737,7 @@ struct ReportGenerator {
             md += "| Task Type | Count | Avg Hours | Total Hours | Avg Person-Hours |\n"
             md += "|-----------|-------|-----------|-------------|------------------|\n"
 
-            for (taskType, typeTasks) in tasksByType.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+            for (taskType, typeTasks) in tasksByType.sorted(by: { $0.key ?? "" < $1.key ?? "" }) {
                 let count = typeTasks.count
                 let totalHours = typeTasks.reduce(0.0) { $0 + (Double($1.totalTimeSpent) / 3600.0) }
                 let avgHours = totalHours / Double(count)
@@ -746,13 +746,13 @@ struct ReportGenerator {
                 }
                 let avgPersonHours = totalPersonHours / Double(count)
 
-                md += "| \(taskType.rawValue) | \(count) | \(String(format: "%.1f", avgHours))h | \(String(format: "%.1f", totalHours))h | \(String(format: "%.1f", avgPersonHours))h |\n"
+                md += "| \(taskType ?? "No Type") | \(count) | \(String(format: "%.1f", avgHours))h | \(String(format: "%.1f", totalHours))h | \(String(format: "%.1f", avgPersonHours))h |\n"
             }
 
             md += "\n## Task Type Distribution\n\n"
-            for (taskType, typeTasks) in tasksByType.sorted(by: { $1.count < $0.count }) {
+            for (taskType, typeTasks) in tasksByType.sorted(by: { $1.value.count < $0.value.count }) {
                 let percentage = Int(Double(typeTasks.count) / Double(tasks.count) * 100)
-                md += "- **\(taskType.rawValue)**: \(typeTasks.count) tasks (\(percentage)%)\n"
+                md += "- **\(taskType ?? "No Type")**: \(typeTasks.count) tasks (\(percentage)%)\n"
             }
 
             return md
@@ -768,10 +768,10 @@ struct ReportGenerator {
                 return text
             }
 
-            for (taskType, typeTasks) in tasksByType.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+            for (taskType, typeTasks) in tasksByType.sorted(by: { $0.key ?? "" < $1.key ?? "" }) {
                 let totalHours = typeTasks.reduce(0.0) { $0 + (Double($1.totalTimeSpent) / 3600.0) }
                 let avgHours = totalHours / Double(typeTasks.count)
-                text += "\(taskType.rawValue): \(typeTasks.count) tasks, avg \(String(format: "%.1f", avgHours))h per task\n"
+                text += "\(taskType ?? "No Type"): \(typeTasks.count) tasks, avg \(String(format: "%.1f", avgHours))h per task\n"
             }
 
             return text
@@ -782,7 +782,7 @@ struct ReportGenerator {
             csv += "Period,\(formatDateRange(data.effectiveDateRange))\n\n"
             csv += "Task Type,Count,Average Hours,Total Hours,Average Person-Hours\n"
 
-            for (taskType, typeTasks) in tasksByType.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+            for (taskType, typeTasks) in tasksByType.sorted(by: { $0.key ?? "" < $1.key ?? "" }) {
                 let count = typeTasks.count
                 let totalHours = typeTasks.reduce(0.0) { $0 + (Double($1.totalTimeSpent) / 3600.0) }
                 let avgHours = totalHours / Double(count)
@@ -791,7 +791,7 @@ struct ReportGenerator {
                 }
                 let avgPersonHours = totalPersonHours / Double(count)
 
-                csv += "\(taskType.rawValue),\(count),\(String(format: "%.2f", avgHours)),\(String(format: "%.2f", totalHours)),\(String(format: "%.2f", avgPersonHours))\n"
+                csv += "\"\(taskType ?? "No Type")\",\(count),\(String(format: "%.2f", avgHours)),\(String(format: "%.2f", totalHours)),\(String(format: "%.2f", avgPersonHours))\n"
             }
 
             return csv
