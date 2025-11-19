@@ -177,7 +177,7 @@ struct ProjectCrewPlanningCard: View {
         .padding(DesignSystem.Spacing.sm)
         .background(
             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                .fill(DesignSystem.Colors.tertiaryGroupedBackground)
+                .fill(DesignSystem.Colors.tertiaryBackground)
         )
     }
 }
