@@ -183,7 +183,12 @@ struct TaskComposerDueDateSection: View {
     @ViewBuilder
     private var workingWindowSummary: some View {
         let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
-        let days = Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? 0
+
+        // Calculate days: if same calendar day with work hours, count as 1 day
+        let calendar = Calendar.current
+        let daysDifference = calendar.dateComponents([.day], from: startDate, to: endDate).day ?? 0
+        let isSameDay = calendar.isDate(startDate, inSameDayAs: endDate)
+        let days = (isSameDay && hours > 0) ? 1 : max(1, daysDifference)
 
         HStack(spacing: 10) {
             Image(systemName: "clock.arrow.2.circlepath")
