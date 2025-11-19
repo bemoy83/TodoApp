@@ -102,9 +102,9 @@ struct ProjectDetailView: View {
             .listRowInsets(EdgeInsets())
 
             // Crew planning card
-            if ProjectCrewPlanningCard(project: project).shouldShow {
+            if ProjectCrewPlanningCard(project: project, allTasks: allTasks).shouldShow {
                 Section {
-                    ProjectCrewPlanningCard(project: project)
+                    ProjectCrewPlanningCard(project: project, allTasks: allTasks)
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))

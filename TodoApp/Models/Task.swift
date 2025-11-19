@@ -419,6 +419,17 @@ final class Task {
         }
     }
 
+    /// Estimate accuracy: ratio of estimated to actual time (1.0 = perfect, 0.8 = took 25% longer)
+    /// Only available for completed tasks with estimates
+    @Transient
+    var estimateAccuracy: Double? {
+        guard isCompleted else { return nil }
+        guard let estimate = effectiveEstimate, estimate > 0 else { return nil }
+        guard totalTimeSpent > 0 else { return nil }
+
+        return Double(estimate) / Double(totalTimeSpent)
+    }
+
     // MARK: - Productivity Metrics
 
     /// Total tracked time in hours (includes time from all time entries)

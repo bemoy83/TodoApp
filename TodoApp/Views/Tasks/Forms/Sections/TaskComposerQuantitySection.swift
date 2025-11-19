@@ -134,7 +134,9 @@ struct TaskComposerQuantitySection: View {
                     PersonnelRecommendationView(
                         effortHours: calculatedEffort,
                         deadline: dueDate,
-                        currentSelection: expectedPersonnelCount
+                        currentSelection: expectedPersonnelCount,
+                        taskType: taskType,
+                        allTasks: allTasks
                     ) { selectedCount in
                         hasPersonnel = true
                         expectedPersonnelCount = selectedCount

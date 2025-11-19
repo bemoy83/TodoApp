@@ -1,9 +1,10 @@
 import SwiftUI
 
 /// Displays project-level crew planning recommendations based on total effort and deadline.
-/// Shows strategic resource planning for entire project scope.
+/// Shows strategic resource planning for entire project scope with historical learning.
 struct ProjectCrewPlanningCard: View {
     let project: Project
+    let allTasks: [Task] // For historical analytics
 
     // MARK: - Computed Properties
 
@@ -18,22 +19,62 @@ struct ProjectCrewPlanningCard: View {
         return WorkHoursCalculator.calculateAvailableHours(from: Date(), to: deadline)
     }
 
-    /// Minimum crew size needed to complete project
+    /// Task type breakdown for this project
+    private var taskTypeBreakdown: [(taskType: String, hours: Double, analytics: TaskTypeAnalytics?)] {
+        guard let tasks = project.tasks else { return [] }
+
+        let activeTasks = tasks.filter { !$0.isCompleted && !$0.isArchived }
+        let tasksByType = Dictionary(grouping: activeTasks, by: { $0.taskType })
+
+        return tasksByType.compactMap { (taskType, typeTasks) -> (String, Double, TaskTypeAnalytics?)? in
+            guard let taskType = taskType else { return nil }
+
+            let hours = typeTasks.reduce(0.0) { sum, task in
+                sum + (Double(task.effectiveEstimate ?? 0) / 60.0)
+            }
+
+            let analytics = TaskTypeAnalytics.calculate(for: taskType, from: allTasks)
+
+            return (taskType, hours, analytics)
+        }.sorted(by: { $0.hours > $1.hours })
+    }
+
+    /// Adjusted effort accounting for historical variance
+    private var adjustedEffortHours: Double {
+        guard !taskTypeBreakdown.isEmpty else { return totalEffortHours }
+
+        return taskTypeBreakdown.reduce(0.0) { total, breakdown in
+            if let analytics = breakdown.analytics, analytics.isSignificant {
+                return total + analytics.adjustedEffort(from: breakdown.hours)
+            } else {
+                return total + breakdown.hours
+            }
+        }
+    }
+
+    /// Whether historical adjustment was applied
+    private var usesHistoricalAdjustment: Bool {
+        taskTypeBreakdown.contains { $0.analytics?.isSignificant ?? false }
+    }
+
+    /// Minimum crew size needed (using adjusted effort if available)
     private var minimumPersonnel: Int {
         WorkHoursCalculator.calculateMinimumPersonnel(
-            effortHours: totalEffortHours,
+            effortHours: usesHistoricalAdjustment ? adjustedEffortHours : totalEffortHours,
             availableHours: availableHours
         )
     }
 
-    /// Crew size scenarios (Minimum, Recommended, Safe)
+    /// Crew size scenarios
     private var scenarios: [(people: Int, hoursPerPerson: Double, status: String, icon: String)] {
         guard totalEffortHours > 0, minimumPersonnel > 0 else { return [] }
 
+        let effort = usesHistoricalAdjustment ? adjustedEffortHours : totalEffortHours
+
         return [
-            (minimumPersonnel, totalEffortHours / Double(minimumPersonnel), "Minimum", "exclamationmark.triangle.fill"),
-            (minimumPersonnel + 1, totalEffortHours / Double(minimumPersonnel + 1), "Recommended", "checkmark.circle.fill"),
-            (minimumPersonnel + 2, totalEffortHours / Double(minimumPersonnel + 2), "Safe", "checkmark.circle.fill")
+            (minimumPersonnel, effort / Double(minimumPersonnel), "Recommended", "checkmark.circle.fill"),
+            (minimumPersonnel + 1, effort / Double(minimumPersonnel + 1), "Safe", "checkmark.circle.fill"),
+            (minimumPersonnel + 2, effort / Double(minimumPersonnel + 2), "Buffer", "checkmark.circle.fill")
         ]
     }
 
@@ -72,6 +113,14 @@ struct ProjectCrewPlanningCard: View {
                     value: "\(String(format: "%.0f", totalEffortHours)) person-hours"
                 )
 
+                if usesHistoricalAdjustment {
+                    summaryRow(
+                        icon: "brain.head.profile",
+                        label: "Adjusted Estimate",
+                        value: "\(String(format: "%.0f", adjustedEffortHours)) person-hours"
+                    )
+                }
+
                 summaryRow(
                     icon: "calendar",
                     label: "Available Time",
@@ -88,15 +137,47 @@ struct ProjectCrewPlanningCard: View {
                 }
             }
 
+            // Task type breakdown (if historical data available)
+            if usesHistoricalAdjustment, !taskTypeBreakdown.isEmpty {
+                Divider()
+
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                    Text("Task Mix Analysis")
+                        .font(DesignSystem.Typography.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(DesignSystem.Colors.secondary)
+                        .textCase(.uppercase)
+
+                    ForEach(taskTypeBreakdown, id: \.taskType) { breakdown in
+                        if let analytics = breakdown.analytics, analytics.isSignificant {
+                            HStack(spacing: 6) {
+                                Image(systemName: abs(analytics.typicalOverrunPercentage) >= 10 ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(abs(analytics.typicalOverrunPercentage) >= 10 ? DesignSystem.Colors.warning : DesignSystem.Colors.success)
+
+                                Text("\(breakdown.taskType)")
+                                    .font(DesignSystem.Typography.caption)
+
+                                Spacer()
+
+                                Text(analytics.varianceDescription)
+                                    .font(DesignSystem.Typography.caption2)
+                                    .foregroundStyle(DesignSystem.Colors.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+
             Divider()
 
-            // Minimum crew callout
+            // Recommended crew callout
             HStack(spacing: 8) {
-                Image(systemName: "exclamationmark.circle.fill")
+                Image(systemName: usesHistoricalAdjustment ? "brain.head.profile" : "exclamationmark.circle.fill")
                     .font(.caption)
-                    .foregroundStyle(DesignSystem.Colors.warning)
+                    .foregroundStyle(usesHistoricalAdjustment ? DesignSystem.Colors.success : DesignSystem.Colors.warning)
 
-                Text("Minimum crew size:")
+                Text(usesHistoricalAdjustment ? "Recommended crew:" : "Minimum crew size:")
                     .font(DesignSystem.Typography.subheadline)
                     .foregroundStyle(DesignSystem.Colors.secondary)
 
@@ -105,10 +186,10 @@ struct ProjectCrewPlanningCard: View {
                 Text("\(minimumPersonnel) \(minimumPersonnel == 1 ? "person" : "people")")
                     .font(DesignSystem.Typography.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(DesignSystem.Colors.warning)
+                    .foregroundStyle(usesHistoricalAdjustment ? DesignSystem.Colors.success : DesignSystem.Colors.warning)
             }
             .padding(DesignSystem.Spacing.sm)
-            .background(DesignSystem.Colors.warning.opacity(0.1))
+            .background((usesHistoricalAdjustment ? DesignSystem.Colors.success : DesignSystem.Colors.warning).opacity(0.1))
             .cornerRadius(DesignSystem.CornerRadius.md)
 
             // Scenarios
