@@ -133,6 +133,8 @@ struct AddTaskView: View {
             title: title,
             priority: priority,
             dueDate: hasDueDate ? dueDate : nil,
+            startDate: hasStartDate ? startDate : nil,
+            endDate: hasEndDate ? endDate : nil,
             createdDate: .now,
             parentTask: parentTask,
             project: parentTask?.project ?? selectedProject,
@@ -144,9 +146,7 @@ struct AddTaskView: View {
             effortHours: estimate.effortHours,
             quantity: parsedQuantity,
             unit: hasQuantity ? unit : UnitType.none,
-            taskType: hasQuantity ? taskType : nil,
-            startDate: hasStartDate ? startDate : nil,
-            endDate: hasEndDate ? endDate : nil
+            taskType: hasQuantity ? taskType : nil
         )
         modelContext.insert(task)
         onAdded?(task)
