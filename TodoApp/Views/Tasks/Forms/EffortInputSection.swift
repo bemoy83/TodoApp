@@ -8,6 +8,10 @@ struct EffortInputSection: View {
     @Binding var estimateHours: Int
     @Binding var estimateMinutes: Int
 
+    // Deadline (for personnel recommendations)
+    let hasDueDate: Bool
+    let dueDate: Date
+
     @State private var showEffortPicker = false
     @State private var effortInput: String = ""
     @State private var manuallySetEffort: Double? = nil
@@ -66,6 +70,11 @@ struct EffortInputSection: View {
         }
     }
 
+    /// Whether to show personnel recommendations
+    private var shouldShowPersonnelRecommendation: Bool {
+        hasDueDate && effectiveEffort > 0 && dueDate > Date()
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Explanation of person-hours
@@ -91,6 +100,21 @@ struct EffortInputSection: View {
                     calculationBreakdown
                 } else {
                     personnelPrompt
+                }
+            }
+
+            // Personnel recommendation
+            if shouldShowPersonnelRecommendation {
+                Divider()
+                    .padding(.top, DesignSystem.Spacing.sm)
+
+                PersonnelRecommendationView(
+                    effortHours: effectiveEffort,
+                    deadline: dueDate,
+                    currentSelection: expectedPersonnelCount
+                ) { selectedCount in
+                    hasPersonnel = true
+                    expectedPersonnelCount = selectedCount
                 }
             }
         }
