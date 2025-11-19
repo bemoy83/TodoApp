@@ -51,12 +51,16 @@ struct TaskEditView: View {
         self.onSave = onSave
         self.onCancel = onCancel
 
-        _hasDueDate = State(initialValue: task.dueDate != nil)
-        _dueDate = State(initialValue: task.dueDate ?? .now)
+        // Backward compatibility: use endDate if available, otherwise fall back to dueDate
+        let effectiveEndDate = task.endDate ?? task.dueDate
+        let hasDeadline = effectiveEndDate != nil
+
+        _hasDueDate = State(initialValue: hasDeadline)
+        _dueDate = State(initialValue: effectiveEndDate ?? .now)
         _hasStartDate = State(initialValue: task.startDate != nil)
         _startDate = State(initialValue: task.startDate ?? .now)
-        _hasEndDate = State(initialValue: task.endDate != nil)
-        _endDate = State(initialValue: task.endDate ?? .now)
+        _hasEndDate = State(initialValue: hasDeadline)
+        _endDate = State(initialValue: effectiveEndDate ?? .now)
         _selectedProject = State(initialValue: task.project)
         _notesText = State(initialValue: task.notes ?? "")
         _hasNotes = State(initialValue: !(task.notes ?? "").isEmpty)

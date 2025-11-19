@@ -25,26 +25,109 @@ struct TaskComposerDueDateSection: View {
                 }
             }
 
-            // Due Date toggle and picker
-            Toggle(isSubtask ? "Set Custom Due Date" : "Set Due Date", isOn: $hasDueDate)
+            // Info about scheduling
+            TaskInlineInfoRow(
+                icon: "info.circle",
+                message: "Set deadline and optionally schedule when work will be performed",
+                style: .info
+            )
 
-            if hasDueDate {
-                dueDatePickerView
-                dueDateHintView
+            Divider()
+                .padding(.vertical, 4)
+
+            // End Date (primary deadline)
+            Toggle(isSubtask ? "Set Custom Deadline" : "Set Deadline", isOn: $hasEndDate)
+                .onChange(of: hasEndDate) { _, isEnabled in
+                    // Sync with hasDueDate for backward compatibility
+                    hasDueDate = isEnabled
+                    if isEnabled {
+                        // Default to current dueDate or reasonable default
+                        if dueDate < Date() {
+                            endDate = Date().addingTimeInterval(86400) // Tomorrow
+                            dueDate = endDate
+                        } else {
+                            endDate = dueDate
+                        }
+                    }
+                }
+
+            if hasEndDate {
+                DatePicker(
+                    "Deadline",
+                    selection: Binding(
+                        get: { endDate },
+                        set: { newValue in
+                            endDate = newValue
+                            dueDate = newValue // Keep in sync for backward compatibility
+                            onDateChange(newValue)
+
+                            // Auto-adjust start date if it's after deadline
+                            if hasStartDate && startDate > newValue {
+                                startDate = newValue.addingTimeInterval(-86400) // 1 day before
+                            }
+                        }
+                    ),
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+
+                if isSubtask, parentDueDate != nil {
+                    TaskInlineInfoRow(
+                        icon: "exclamationmark.triangle",
+                        message: "Must be on or before parent's deadline",
+                        style: .warning
+                    )
+                    .padding(.top, 4)
+                }
             } else if isSubtask, parentDueDate != nil {
                 TaskInlineInfoRow(
                     icon: "checkmark.circle",
-                    message: "Will inherit parent's due date",
+                    message: "Will inherit parent's deadline",
                     style: .success
                 )
             }
 
-            // Working window section (only show when not a subtask or has custom due date)
-            if !isSubtask || hasDueDate {
+            // Start Date (optional - for scheduled work)
+            if hasEndDate {
                 Divider()
                     .padding(.vertical, 4)
 
-                workingWindowSection
+                Toggle("Schedule Start Date", isOn: $hasStartDate)
+                    .onChange(of: hasStartDate) { _, isEnabled in
+                        if isEnabled {
+                            // Default to 1 day before deadline or now
+                            startDate = min(Date(), endDate.addingTimeInterval(-86400))
+                        }
+                    }
+
+                if hasStartDate {
+                    DatePicker(
+                        "Start Date",
+                        selection: $startDate,
+                        in: ...endDate,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .onChange(of: startDate) { _, newValue in
+                        // Ensure start is before end
+                        if newValue >= endDate {
+                            startDate = endDate.addingTimeInterval(-3600) // 1 hour before
+                        }
+                    }
+
+                    TaskInlineInfoRow(
+                        icon: "info.circle",
+                        message: "For scheduled work periods with accurate crew planning",
+                        style: .info
+                    )
+                    .padding(.top, 4)
+                }
+
+                // Show working window summary if both dates set
+                if hasStartDate && hasEndDate {
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    workingWindowSummary
+                }
             }
         }
     }
@@ -56,114 +139,16 @@ struct TaskComposerDueDateSection: View {
         if let parentDue = parentDueDate {
             TaskRowIconValueLabel(
                 icon: "calendar.badge.clock",
-                label: "Parent Due Date",
+                label: "Parent Deadline",
                 value: parentDue.formatted(date: .abbreviated, time: .shortened),
                 tint: .blue
             )
         } else {
             TaskInlineInfoRow(
                 icon: "info.circle",
-                message: "Parent has no due date set",
+                message: "Parent has no deadline set",
                 style: .info
             )
-        }
-    }
-
-    private var dueDatePickerView: some View {
-        DatePicker(
-            "Due Date",
-            selection: $dueDate,
-            displayedComponents: [.date, .hourAndMinute]
-        )
-        .onChange(of: dueDate) { _, newValue in
-            onDateChange(newValue)
-        }
-    }
-
-    @ViewBuilder
-    private var dueDateHintView: some View {
-        if isSubtask, parentDueDate != nil {
-            TaskInlineInfoRow(
-                icon: "exclamationmark.triangle",
-                message: "Must be on or before parent's due date",
-                style: .warning
-            )
-            .padding(.top, 4)
-        }
-    }
-
-    // MARK: - Working Window
-
-    private var workingWindowSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Info about working windows
-            TaskInlineInfoRow(
-                icon: "info.circle",
-                message: "Schedule when work will be performed for accurate crew planning",
-                style: .info
-            )
-
-            // Start Date
-            Toggle("Set Start Date", isOn: $hasStartDate)
-
-            if hasStartDate {
-                DatePicker(
-                    "Start Date",
-                    selection: $startDate,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .onChange(of: startDate) { oldValue, newValue in
-                    // Auto-adjust end date if it's before start date
-                    if hasEndDate && endDate < newValue {
-                        endDate = newValue.addingTimeInterval(3600) // 1 hour later
-                    }
-                }
-            }
-
-            // End Date
-            Toggle("Set End Date", isOn: $hasEndDate)
-                .onChange(of: hasEndDate) { _, isEnabled in
-                    if isEnabled {
-                        // Default end date to due date if available, otherwise 1 day from start
-                        if hasDueDate {
-                            endDate = dueDate
-                        } else if hasStartDate {
-                            endDate = startDate.addingTimeInterval(86400) // 24 hours
-                        } else {
-                            endDate = Date().addingTimeInterval(86400)
-                        }
-                    }
-                }
-
-            if hasEndDate {
-                DatePicker(
-                    "End Date",
-                    selection: $endDate,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .onChange(of: endDate) { oldValue, newValue in
-                    // Validate end > start
-                    if hasStartDate && newValue < startDate {
-                        endDate = startDate.addingTimeInterval(3600) // Reset to 1 hour after start
-                    }
-                }
-            }
-
-            // Show working window summary if both dates set
-            if hasStartDate && hasEndDate {
-                workingWindowSummary
-            }
-
-            // Validation hints
-            if hasStartDate || hasEndDate {
-                TaskInlineInfoRow(
-                    icon: hasStartDate && hasEndDate ? "checkmark.circle" : "exclamationmark.triangle",
-                    message: hasStartDate && hasEndDate
-                        ? "Working window defined for crew planning"
-                        : "Set both dates to use working window for calculations",
-                    style: hasStartDate && hasEndDate ? .success : .warning
-                )
-            }
         }
     }
 
@@ -172,28 +157,24 @@ struct TaskComposerDueDateSection: View {
         let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
         let days = Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? 0
 
-        VStack(alignment: .leading, spacing: 6) {
-            Divider()
-                .padding(.vertical, 4)
+        HStack(spacing: 8) {
+            Image(systemName: "clock.arrow.2.circlepath")
+                .foregroundStyle(.green)
+                .frame(width: 20)
 
-            HStack(spacing: 8) {
-                Image(systemName: "clock.arrow.2.circlepath")
-                    .foregroundStyle(.blue)
-                    .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Working Window")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.green)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Working Window")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-
-                    Text("\(days) \(days == 1 ? "day" : "days") • \(String(format: "%.1f", hours)) work hours")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
+                Text("\(days) \(days == 1 ? "day" : "days") • \(String(format: "%.1f", hours)) work hours")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            .padding(.vertical, 4)
+
+            Spacer()
         }
+        .padding(.vertical, 4)
     }
 }
