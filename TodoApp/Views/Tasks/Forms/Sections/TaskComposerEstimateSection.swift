@@ -32,7 +32,13 @@ struct TaskComposerEstimateSection: View {
             Toggle("Set Estimate", isOn: $estimation.hasEstimate)
 
             if estimation.hasEstimate {
+                // Summary at top for immediate visibility
                 persistentEstimateSummary
+
+                Divider()
+                    .padding(.vertical, 4)
+
+                // Configuration below
                 estimationModePickerView
                 parentEstimateView
                 estimationContentView
@@ -76,6 +82,11 @@ struct TaskComposerEstimateSection: View {
                 label: estimateSourceLabel,
                 value: estimation.formattedEstimate,
                 tint: .green
+            )
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.green.opacity(0.08))
             )
         } else {
             TaskInlineInfoRow(
