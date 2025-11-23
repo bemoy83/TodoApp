@@ -4,33 +4,15 @@ import SwiftData
 /// Main estimation section with three modes: Duration, Effort, and Quantity
 /// Orchestrates the different estimation methods and calculator
 struct TaskComposerEstimateSection: View {
-    // Estimation mode
-    @Binding var unifiedEstimationMode: TaskEstimator.UnifiedEstimationMode
-
-    // Duration mode bindings
-    @Binding var hasEstimate: Bool
-    @Binding var estimateHours: Int
-    @Binding var estimateMinutes: Int
-    @Binding var hasCustomEstimate: Bool
-
-    // Effort mode bindings
-    @Binding var effortHours: Double
-    @Binding var hasPersonnel: Bool
-    @Binding var expectedPersonnelCount: Int?
-
-    // Quantity mode bindings
-    @Binding var taskType: String?
-    @Binding var unit: UnitType
-    @Binding var quantity: String
-    @Binding var quantityCalculationMode: TaskEstimator.QuantityCalculationMode
-    @Binding var productivityRate: Double?
+    // Grouped estimation state (replaces 13 individual bindings)
+    @Binding var estimation: TaskEstimator.EstimationState
 
     // Context
     let isSubtask: Bool
     let parentSubtaskEstimateTotal: Int?
     let taskSubtaskEstimateTotal: Int?
 
-    // Deadline (for personnel recommendations)
+    // Schedule context (for personnel recommendations)
     let hasDueDate: Bool
     let dueDate: Date
     let hasStartDate: Bool
@@ -39,17 +21,17 @@ struct TaskComposerEstimateSection: View {
     let endDate: Date
 
     // Callbacks
-    let onEstimateValidation: () -> Void
-    let onEffortUpdate: () -> Void
-    let onQuantityUpdate: () -> Void
+    let onEstimateChange: () -> Void
+    let onEffortChange: () -> Void
+    let onQuantityChange: () -> Void
 
     @Query(filter: #Predicate<Task> { task in !task.isArchived }, sort: \Task.order) private var allTasks: [Task]
 
     var body: some View {
         Section("Estimate") {
-            Toggle("Set Estimate", isOn: $hasEstimate)
+            Toggle("Set Estimate", isOn: $estimation.hasEstimate)
 
-            if hasEstimate {
+            if estimation.hasEstimate {
                 persistentEstimateSummary
                 estimationModePickerView
                 parentEstimateView
@@ -67,17 +49,17 @@ struct TaskComposerEstimateSection: View {
     // MARK: - Subviews
 
     private var estimateSourceLabel: String {
-        switch unifiedEstimationMode {
+        switch estimation.mode {
         case .duration:
-            if hasCustomEstimate {
+            if estimation.hasCustomEstimate {
                 return "Custom Duration (overriding subtasks)"
             } else if (taskSubtaskEstimateTotal ?? 0) > 0 {
                 return "Auto-calculated from Subtasks"
             }
             return "Estimated Duration"
         case .effort:
-            if hasPersonnel {
-                let personnel = expectedPersonnelCount ?? 1
+            if estimation.hasPersonnel {
+                let personnel = estimation.expectedPersonnelCount ?? 1
                 return "Duration from Effort (\(personnel) \(personnel == 1 ? "person" : "people"))"
             }
             return "Duration from Effort"
@@ -86,20 +68,13 @@ struct TaskComposerEstimateSection: View {
         }
     }
 
-    private var formattedEstimate: String {
-        let totalSeconds = (estimateHours * 3600) + (estimateMinutes * 60)
-        return totalSeconds.formattedTime()
-    }
-
     @ViewBuilder
     private var persistentEstimateSummary: some View {
-        let totalMinutes = (estimateHours * 60) + estimateMinutes
-
-        if totalMinutes > 0 {
+        if estimation.totalEstimateMinutes > 0 {
             TaskRowIconValueLabel(
                 icon: "clock.badge.checkmark",
                 label: estimateSourceLabel,
-                value: formattedEstimate,
+                value: estimation.formattedEstimate,
                 tint: .green
             )
         } else {
@@ -112,7 +87,7 @@ struct TaskComposerEstimateSection: View {
     }
 
     private var estimationModePickerView: some View {
-        Picker("Estimation Method", selection: $unifiedEstimationMode) {
+        Picker("Estimation Method", selection: $estimation.mode) {
             ForEach(TaskEstimator.UnifiedEstimationMode.allCases) { mode in
                 Label(mode.rawValue, systemImage: mode.icon).tag(mode)
             }
@@ -123,7 +98,7 @@ struct TaskComposerEstimateSection: View {
 
     @ViewBuilder
     private var parentEstimateView: some View {
-        if unifiedEstimationMode == .duration,
+        if estimation.mode == .duration,
            isSubtask,
            let parentTotal = parentSubtaskEstimateTotal,
            parentTotal > 0 {
@@ -139,57 +114,57 @@ struct TaskComposerEstimateSection: View {
 
     @ViewBuilder
     private var estimationContentView: some View {
-        switch unifiedEstimationMode {
+        switch estimation.mode {
         case .duration:
             TaskComposerDurationMode(
-                hasEstimate: $hasEstimate,
-                estimateHours: $estimateHours,
-                estimateMinutes: $estimateMinutes,
-                hasCustomEstimate: $hasCustomEstimate,
+                hasEstimate: $estimation.hasEstimate,
+                estimateHours: $estimation.estimateHours,
+                estimateMinutes: $estimation.estimateMinutes,
+                hasCustomEstimate: $estimation.hasCustomEstimate,
                 isSubtask: isSubtask,
                 taskSubtaskEstimateTotal: taskSubtaskEstimateTotal,
-                onValidation: onEstimateValidation
+                onValidation: onEstimateChange
             )
 
         case .effort:
             EffortInputSection(
-                effortHours: $effortHours,
-                hasPersonnel: $hasPersonnel,
-                expectedPersonnelCount: $expectedPersonnelCount,
-                estimateHours: $estimateHours,
-                estimateMinutes: $estimateMinutes,
+                effortHours: $estimation.effortHours,
+                hasPersonnel: $estimation.hasPersonnel,
+                expectedPersonnelCount: $estimation.expectedPersonnelCount,
+                estimateHours: $estimation.estimateHours,
+                estimateMinutes: $estimation.estimateMinutes,
                 hasDueDate: hasDueDate,
                 dueDate: dueDate,
                 hasStartDate: hasStartDate,
                 startDate: startDate
             )
-            .onChange(of: effortHours) { _, _ in
-                onEffortUpdate()
+            .onChange(of: estimation.effortHours) { _, _ in
+                onEffortChange()
             }
-            .onChange(of: hasPersonnel) { _, _ in
-                onEffortUpdate()
+            .onChange(of: estimation.hasPersonnel) { _, _ in
+                onEffortChange()
             }
-            .onChange(of: expectedPersonnelCount) { _, _ in
-                onEffortUpdate()
+            .onChange(of: estimation.expectedPersonnelCount) { _, _ in
+                onEffortChange()
             }
 
         case .quantity:
             TaskComposerQuantitySection(
-                taskType: $taskType,
-                unit: $unit,
-                quantity: $quantity,
-                quantityCalculationMode: $quantityCalculationMode,
-                productivityRate: $productivityRate,
-                hasEstimate: $hasEstimate,
-                estimateHours: $estimateHours,
-                estimateMinutes: $estimateMinutes,
-                hasPersonnel: $hasPersonnel,
-                expectedPersonnelCount: $expectedPersonnelCount,
+                taskType: $estimation.taskType,
+                unit: $estimation.unit,
+                quantity: $estimation.quantity,
+                quantityCalculationMode: $estimation.quantityCalculationMode,
+                productivityRate: $estimation.productivityRate,
+                hasEstimate: $estimation.hasEstimate,
+                estimateHours: $estimation.estimateHours,
+                estimateMinutes: $estimation.estimateMinutes,
+                hasPersonnel: $estimation.hasPersonnel,
+                expectedPersonnelCount: $estimation.expectedPersonnelCount,
                 hasDueDate: hasDueDate,
                 dueDate: dueDate,
                 hasStartDate: hasStartDate,
                 startDate: startDate,
-                onCalculationUpdate: onQuantityUpdate
+                onCalculationUpdate: onQuantityChange
             )
         }
     }

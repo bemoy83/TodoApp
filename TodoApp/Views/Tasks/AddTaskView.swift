@@ -25,24 +25,8 @@ struct AddTaskView: View {
     @State private var endDate: Date = .now
     @State private var priority: Int = 2  // Medium
 
-    // NEW: Time estimate state
-    @State private var hasEstimate: Bool = false
-    @State private var estimateHours: Int = 0
-    @State private var estimateMinutes: Int = 0
-    @State private var hasCustomEstimate: Bool = false
-
-    // Personnel state
-    @State private var hasPersonnel: Bool = false
-    @State private var expectedPersonnelCount: Int? = nil
-
-    // Unified calculator state
-    @State private var unifiedEstimationMode: TaskEstimator.UnifiedEstimationMode = .duration
-    @State private var effortHours: Double = 0
-    @State private var quantity: String = ""
-    @State private var unit: UnitType = UnitType.none
-    @State private var taskType: String? = nil
-    @State private var quantityCalculationMode: TaskEstimator.QuantityCalculationMode = .calculateDuration
-    @State private var productivityRate: Double? = nil
+    // Grouped estimation state (replaces 13 individual state properties)
+    @State private var estimation = TaskEstimator.EstimationState()
 
     // For list creation, compute next order to keep ordering stable
     @Query(filter: #Predicate<Task> { task in
@@ -78,19 +62,7 @@ struct AddTaskView: View {
                 hasEndDate: $hasEndDate,
                 endDate: $endDate,
                 priority: $priority,
-                hasEstimate: $hasEstimate,
-                estimateHours: $estimateHours,
-                estimateMinutes: $estimateMinutes,
-                hasCustomEstimate: $hasCustomEstimate,
-                hasPersonnel: $hasPersonnel,
-                expectedPersonnelCount: $expectedPersonnelCount,
-                unifiedEstimationMode: $unifiedEstimationMode,
-                effortHours: $effortHours,
-                quantity: $quantity,
-                unit: $unit,
-                taskType: $taskType,
-                quantityCalculationMode: $quantityCalculationMode,
-                productivityRate: $productivityRate,
+                estimation: $estimation,
                 isSubtask: parentTask != nil,
                 parentTask: parentTask,
                 editingTask: nil  // Not editing existing, so nil
@@ -115,19 +87,19 @@ struct AddTaskView: View {
 
         // Calculate estimate (unified calculator already auto-populates all fields)
         let estimate = TaskEstimator.calculateEstimate(
-            estimateByEffort: unifiedEstimationMode == .effort,
-            effortHours: effortHours,
-            hasEstimate: hasEstimate,
-            estimateHours: estimateHours,
-            estimateMinutes: estimateMinutes,
-            hasCustomEstimate: hasCustomEstimate,
-            hasPersonnel: hasPersonnel,
-            expectedPersonnelCount: expectedPersonnelCount
+            estimateByEffort: estimation.mode == .effort,
+            effortHours: estimation.effortHours,
+            hasEstimate: estimation.hasEstimate,
+            estimateHours: estimation.estimateHours,
+            estimateMinutes: estimation.estimateMinutes,
+            hasCustomEstimate: estimation.hasCustomEstimate,
+            hasPersonnel: estimation.hasPersonnel,
+            expectedPersonnelCount: estimation.expectedPersonnelCount
         )
 
         // Parse quantity (only when in quantity mode)
-        let hasQuantity = unifiedEstimationMode == .quantity
-        let parsedQuantity: Double? = hasQuantity && !quantity.isEmpty ? Double(quantity) : nil
+        let hasQuantity = estimation.mode == .quantity
+        let parsedQuantity: Double? = hasQuantity && !estimation.quantity.isEmpty ? Double(estimation.quantity) : nil
 
         let task = Task(
             title: title,
@@ -145,8 +117,8 @@ struct AddTaskView: View {
             expectedPersonnelCount: estimate.expectedPersonnelCount,
             effortHours: estimate.effortHours,
             quantity: parsedQuantity,
-            unit: hasQuantity ? unit : UnitType.none,
-            taskType: hasQuantity ? taskType : nil
+            unit: hasQuantity ? estimation.unit : UnitType.none,
+            taskType: hasQuantity ? estimation.taskType : nil
         )
         modelContext.insert(task)
         onAdded?(task)
