@@ -18,28 +18,47 @@ struct TaskComposerDueDateSection: View {
 
     var body: some View {
         Section("Schedule") {
-            VStack(spacing: 16) {
-                // Parent deadline info for subtasks
-                if isSubtask {
-                    parentDueDateView
-                }
-
-                // Deadline (always visible or with set option)
-                if hasEndDate {
-                    deadlineRow
-                } else {
-                    setDeadlineButton
-                }
-
-                // Start date (only shown when deadline is set)
-                startDateSection
-
-                // Working window summary at bottom (result of inputs above)
-                if hasStartDate && hasEndDate {
-                    workingWindowSummary
-                }
+            // Parent deadline info for subtasks
+            if isSubtask {
+                parentDueDateView
             }
-            .padding(.vertical, 4)
+
+            // Deadline (always visible or with set option)
+            if hasEndDate {
+                deadlineRow
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            hasEndDate = false
+                            hasDueDate = false
+                            hasStartDate = false
+                            HapticManager.light()
+                        } label: {
+                            Label("Clear", systemImage: "trash")
+                        }
+                    }
+            } else {
+                setDeadlineButton
+            }
+
+            // Start date (only shown when deadline is set)
+            if hasEndDate && hasStartDate {
+                startDateRow
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            hasStartDate = false
+                            HapticManager.light()
+                        } label: {
+                            Label("Remove", systemImage: "trash")
+                        }
+                    }
+            } else if hasEndDate {
+                addStartDateButton
+            }
+
+            // Working window summary at bottom (result of inputs above)
+            if hasStartDate && hasEndDate {
+                workingWindowSummary
+            }
         }
     }
 
@@ -88,36 +107,23 @@ struct TaskComposerDueDateSection: View {
 
     private var deadlineRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                DatePicker(
-                    "Deadline",
-                    selection: Binding(
-                        get: { endDate },
-                        set: { newValue in
-                            endDate = newValue
-                            dueDate = newValue
-                            onDateChange(newValue)
+            DatePicker(
+                "Deadline",
+                selection: Binding(
+                    get: { endDate },
+                    set: { newValue in
+                        endDate = newValue
+                        dueDate = newValue
+                        onDateChange(newValue)
 
-                            // Auto-adjust start date if it's after deadline
-                            if hasStartDate && startDate > newValue {
-                                startDate = newValue.addingTimeInterval(-86400)
-                            }
+                        // Auto-adjust start date if it's after deadline
+                        if hasStartDate && startDate > newValue {
+                            startDate = newValue.addingTimeInterval(-86400)
                         }
-                    ),
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-
-                Button {
-                    hasEndDate = false
-                    hasDueDate = false
-                    hasStartDate = false
-                    HapticManager.light()
-                } label: {
-                    Text("Clear")
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                }
-            }
+                    }
+                ),
+                displayedComponents: [.date, .hourAndMinute]
+            )
 
             if isSubtask, parentDueDate != nil {
                 TaskInlineInfoRow(
@@ -126,15 +132,6 @@ struct TaskComposerDueDateSection: View {
                     style: .warning
                 )
             }
-        }
-    }
-
-    @ViewBuilder
-    private var startDateSection: some View {
-        if hasEndDate && hasStartDate {
-            startDateRow
-        } else if hasEndDate {
-            addStartDateButton
         }
     }
 
@@ -159,26 +156,15 @@ struct TaskComposerDueDateSection: View {
     }
 
     private var startDateRow: some View {
-        HStack {
-            DatePicker(
-                "Start Date",
-                selection: $startDate,
-                in: ...endDate,
-                displayedComponents: [.date, .hourAndMinute]
-            )
-            .onChange(of: startDate) { _, newValue in
-                if newValue >= endDate {
-                    startDate = endDate.addingTimeInterval(-3600)
-                }
-            }
-
-            Button {
-                hasStartDate = false
-                HapticManager.light()
-            } label: {
-                Text("Remove")
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
+        DatePicker(
+            "Start Date",
+            selection: $startDate,
+            in: ...endDate,
+            displayedComponents: [.date, .hourAndMinute]
+        )
+        .onChange(of: startDate) { _, newValue in
+            if newValue >= endDate {
+                startDate = endDate.addingTimeInterval(-3600)
             }
         }
     }
