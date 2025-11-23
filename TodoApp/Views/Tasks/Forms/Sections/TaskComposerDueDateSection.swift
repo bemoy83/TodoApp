@@ -179,25 +179,12 @@ struct TaskComposerDueDateSection: View {
         let isSameDay = calendar.isDate(startDate, inSameDayAs: endDate)
         let days = (isSameDay && hours > 0) ? 1 : max(1, daysDifference)
 
-        HStack(spacing: 10) {
-            Image(systemName: "clock.arrow.2.circlepath")
-                .font(.title3)
-                .foregroundStyle(.green)
-                .frame(width: 24)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Working Window")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.green)
-
-                Text("\(days) \(days == 1 ? "day" : "days") • \(String(format: "%.1f", hours)) work hours available")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
+        TaskRowIconValueLabel(
+            icon: "clock.arrow.2.circlepath",
+            label: "\(days) \(days == 1 ? "day" : "days") • \(String(format: "%.1f", hours)) work hours available",
+            value: "Working Window",
+            tint: .green
+        )
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 8)
