@@ -26,7 +26,7 @@ struct TaskEstimator {
 
         // Quantity mode
         var taskType: String? = nil
-        var unit: UnitType = .items
+        var unit: UnitType = .none
         var quantity: String = ""
         var quantityCalculationMode: QuantityCalculationMode = .calculateDuration
         var productivityRate: Double? = nil
@@ -70,9 +70,9 @@ struct TaskEstimator {
             self.hasPersonnel = task.expectedPersonnelCount != nil
             self.expectedPersonnelCount = task.expectedPersonnelCount
             self.taskType = task.taskType
-            self.unit = task.unit ?? .items
+            self.unit = task.unit
             self.quantity = task.quantity.map { String($0) } ?? ""
-            self.productivityRate = task.productivityRate
+            self.productivityRate = task.unitsPerHour
         }
     }
 
