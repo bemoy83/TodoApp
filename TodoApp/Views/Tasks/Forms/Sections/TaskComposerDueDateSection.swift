@@ -31,14 +31,8 @@ struct TaskComposerDueDateSection: View {
                     setDeadlineButton
                 }
 
-                // Start date (add/remove pattern)
-                if hasEndDate {
-                    if hasStartDate {
-                        startDateRow
-                    } else {
-                        addStartDateButton
-                    }
-                }
+                // Start date (only shown when deadline is set)
+                startDateSection
 
                 // Working window summary at bottom (result of inputs above)
                 if hasStartDate && hasEndDate {
@@ -132,6 +126,15 @@ struct TaskComposerDueDateSection: View {
                     style: .warning
                 )
             }
+        }
+    }
+
+    @ViewBuilder
+    private var startDateSection: some View {
+        if hasEndDate && hasStartDate {
+            startDateRow
+        } else if hasEndDate {
+            addStartDateButton
         }
     }
 
