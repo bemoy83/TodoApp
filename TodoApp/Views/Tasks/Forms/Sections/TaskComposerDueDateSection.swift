@@ -16,6 +16,18 @@ struct TaskComposerDueDateSection: View {
     let parentDueDate: Date?
     let onDateChange: (Date) -> Void
 
+    // MARK: - Calendar Helpers
+
+    private var calendar: Calendar { Calendar.current }
+
+    private func tomorrow() -> Date {
+        calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+    }
+
+    private func oneDayBefore(_ date: Date) -> Date {
+        calendar.date(byAdding: .day, value: -1, to: date) ?? date
+    }
+
     var body: some View {
         Section("Schedule") {
             // Parent deadline info for subtasks
@@ -87,7 +99,7 @@ struct TaskComposerDueDateSection: View {
             hasEndDate = true
             hasDueDate = true
             if dueDate < Date() {
-                endDate = Date().addingTimeInterval(86400) // Tomorrow
+                endDate = tomorrow()
                 dueDate = endDate
             } else {
                 endDate = dueDate
@@ -118,7 +130,7 @@ struct TaskComposerDueDateSection: View {
 
                         // Auto-adjust start date if it's after deadline
                         if hasStartDate && startDate > newValue {
-                            startDate = newValue.addingTimeInterval(-86400)
+                            startDate = oneDayBefore(newValue)
                         }
                     }
                 ),
@@ -138,7 +150,7 @@ struct TaskComposerDueDateSection: View {
     private var addStartDateButton: some View {
         Button {
             hasStartDate = true
-            startDate = min(Date(), endDate.addingTimeInterval(-86400))
+            startDate = min(Date(), oneDayBefore(endDate))
             HapticManager.light()
         } label: {
             HStack(spacing: 6) {
