@@ -103,6 +103,11 @@ struct TaskDetailHeaderView: View {
                     )
                 }
 
+                // Schedule Section (conditional - only if has start/end dates)
+                if hasScheduleInfo {
+                    ScheduleSection(task: task)
+                }
+
                 // Organization Section (always shown - priority is always relevant)
                 OrganizationSection(task: task)
 
@@ -119,6 +124,10 @@ struct TaskDetailHeaderView: View {
     // Conditional logic
     private var hasDateInfo: Bool {
         effectiveDueDate != nil || task.completedDate != nil
+    }
+
+    private var hasScheduleInfo: Bool {
+        task.startDate != nil || task.endDate != nil
     }
 }
 
@@ -290,6 +299,71 @@ private struct DatesSection: View {
     }
 }
 
+// MARK: - Schedule Section
+
+private struct ScheduleSection: View {
+    let task: Task
+
+    private var calendar: Calendar { Calendar.current }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            Text("Schedule")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            VStack(spacing: DesignSystem.Spacing.xs) {
+                // Start date
+                if let startDate = task.startDate {
+                    DateRow(
+                        icon: "play.circle.fill",
+                        label: "Start",
+                        date: startDate,
+                        color: .blue,
+                        showTime: true
+                    )
+                }
+
+                // End date / Deadline
+                if let endDate = task.endDate {
+                    DateRow(
+                        icon: "flag.fill",
+                        label: "Deadline",
+                        date: endDate,
+                        color: endDate < Date() && !task.isCompleted ? .red : .orange,
+                        showTime: true
+                    )
+                }
+
+                // Working window summary (when both dates exist)
+                if let startDate = task.startDate, let endDate = task.endDate {
+                    workingWindowSummary(startDate: startDate, endDate: endDate)
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private func workingWindowSummary(startDate: Date, endDate: Date) -> some View {
+        let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
+
+        // Calculate days using Calendar
+        let daysDifference = calendar.dateComponents([.day], from: startDate, to: endDate).day ?? 0
+        let isSameDay = calendar.isDate(startDate, inSameDayAs: endDate)
+        let days = (isSameDay && hours > 0) ? 1 : max(1, daysDifference)
+
+        TaskRowIconValueLabel(
+            icon: "clock.arrow.2.circlepath",
+            label: "\(days) \(days == 1 ? "day" : "days") • \(String(format: "%.1f", hours)) work hours available",
+            value: "Working Window",
+            tint: .green
+        )
+        .padding(.top, DesignSystem.Spacing.xs)
+    }
+}
+
 // MARK: - Date Row Component
 
 private struct DateRow: View {
@@ -298,23 +372,30 @@ private struct DateRow: View {
     let date: Date
     let color: Color
     var isActionable: Bool = false
-    
+    var showTime: Bool = false
+
     var body: some View {
         HStack {
             Image(systemName: icon)
                 .font(.body)
                 .foregroundStyle(color)
                 .frame(width: 28)
-            
+
             Text(label)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            
+
             Spacer()
-            
-            Text(date.formatted(date: .abbreviated, time: .omitted))
-                .font(.subheadline)
-                .foregroundStyle(.primary)
+
+            if showTime {
+                Text(date.formatted(date: .abbreviated, time: .shortened))
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+            } else {
+                Text(date.formatted(date: .abbreviated, time: .omitted))
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+            }
         }
         .padding(.vertical, 2)
     }
