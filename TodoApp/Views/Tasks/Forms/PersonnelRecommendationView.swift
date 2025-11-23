@@ -3,8 +3,10 @@ import SwiftUI
 /// Displays resource planning recommendations based on effort and deadline.
 /// Shows available work hours, minimum crew size, and scenario options (Recommended/Safe/Buffer).
 /// Optionally uses historical analytics to adjust recommendations.
+/// Supports working windows (start date to end date) for scheduled work.
 struct PersonnelRecommendationView: View {
     let effortHours: Double
+    let startDate: Date?  // Optional: when work is scheduled to start (defaults to NOW)
     let deadline: Date
     let currentSelection: Int?
     let onSelect: (Int) -> Void
@@ -13,9 +15,10 @@ struct PersonnelRecommendationView: View {
     let taskType: String?
     let allTasks: [Task]?
 
-    // Initialize without historical learning (backward compatible)
+    // Initialize without historical learning or start date (backward compatible)
     init(effortHours: Double, deadline: Date, currentSelection: Int?, onSelect: @escaping (Int) -> Void) {
         self.effortHours = effortHours
+        self.startDate = nil
         self.deadline = deadline
         self.currentSelection = currentSelection
         self.onSelect = onSelect
@@ -23,9 +26,21 @@ struct PersonnelRecommendationView: View {
         self.allTasks = nil
     }
 
-    // Initialize with historical learning
+    // Initialize with historical learning (backward compatible - no start date)
     init(effortHours: Double, deadline: Date, currentSelection: Int?, taskType: String?, allTasks: [Task]?, onSelect: @escaping (Int) -> Void) {
         self.effortHours = effortHours
+        self.startDate = nil
+        self.deadline = deadline
+        self.currentSelection = currentSelection
+        self.onSelect = onSelect
+        self.taskType = taskType
+        self.allTasks = allTasks
+    }
+
+    // Initialize with full support (working window + historical learning)
+    init(effortHours: Double, startDate: Date?, deadline: Date, currentSelection: Int?, taskType: String?, allTasks: [Task]?, onSelect: @escaping (Int) -> Void) {
+        self.effortHours = effortHours
+        self.startDate = startDate
         self.deadline = deadline
         self.currentSelection = currentSelection
         self.onSelect = onSelect
@@ -36,7 +51,8 @@ struct PersonnelRecommendationView: View {
     // MARK: - Computed Properties
 
     private var availableHours: Double {
-        WorkHoursCalculator.calculateAvailableHours(from: Date(), to: deadline)
+        // Use start date if provided, otherwise default to NOW (backward compatible)
+        WorkHoursCalculator.calculateAvailableHours(from: startDate ?? Date(), to: deadline)
     }
 
     private var analytics: TaskTypeAnalytics? {

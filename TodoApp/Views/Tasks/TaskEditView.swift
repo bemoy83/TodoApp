@@ -13,6 +13,10 @@ struct TaskEditView: View {
     // Draft mirrors task props to drive the shared form
     @State private var hasDueDate: Bool
     @State private var dueDate: Date
+    @State private var hasStartDate: Bool
+    @State private var startDate: Date
+    @State private var hasEndDate: Bool
+    @State private var endDate: Date
     @State private var selectedProject: Project?
     @State private var notesText: String
     @State private var hasNotes: Bool
@@ -47,8 +51,16 @@ struct TaskEditView: View {
         self.onSave = onSave
         self.onCancel = onCancel
 
-        _hasDueDate = State(initialValue: task.dueDate != nil)
-        _dueDate = State(initialValue: task.dueDate ?? .now)
+        // Backward compatibility: use endDate if available, otherwise fall back to dueDate
+        let effectiveEndDate = task.endDate ?? task.dueDate
+        let hasDeadline = effectiveEndDate != nil
+
+        _hasDueDate = State(initialValue: hasDeadline)
+        _dueDate = State(initialValue: effectiveEndDate ?? .now)
+        _hasStartDate = State(initialValue: task.startDate != nil)
+        _startDate = State(initialValue: task.startDate ?? .now)
+        _hasEndDate = State(initialValue: hasDeadline)
+        _endDate = State(initialValue: effectiveEndDate ?? .now)
         _selectedProject = State(initialValue: task.project)
         _notesText = State(initialValue: task.notes ?? "")
         _hasNotes = State(initialValue: !(task.notes ?? "").isEmpty)
@@ -97,6 +109,10 @@ struct TaskEditView: View {
                 ),
                 hasDueDate: $hasDueDate,
                 dueDate: $dueDate,
+                hasStartDate: $hasStartDate,
+                startDate: $startDate,
+                hasEndDate: $hasEndDate,
+                endDate: $endDate,
                 priority: $task.priority,
                 hasEstimate: $hasEstimate,
                 estimateHours: $estimateHours,
@@ -132,6 +148,8 @@ struct TaskEditView: View {
     
     private func handleSave() {
         task.dueDate = hasDueDate ? dueDate : nil
+        task.startDate = hasStartDate ? startDate : nil
+        task.endDate = hasEndDate ? endDate : nil
 
         // Process notes
         task.notes = TaskEstimator.processNotes(notesText)

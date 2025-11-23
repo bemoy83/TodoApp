@@ -19,6 +19,10 @@ struct AddTaskView: View {
     @State private var selectedProject: Project?
     @State private var hasDueDate: Bool = false
     @State private var dueDate: Date = .now
+    @State private var hasStartDate: Bool = false
+    @State private var startDate: Date = .now
+    @State private var hasEndDate: Bool = false
+    @State private var endDate: Date = .now
     @State private var priority: Int = 2  // Medium
 
     // NEW: Time estimate state
@@ -69,6 +73,10 @@ struct AddTaskView: View {
                 selectedProject: $selectedProject,
                 hasDueDate: $hasDueDate,
                 dueDate: $dueDate,
+                hasStartDate: $hasStartDate,
+                startDate: $startDate,
+                hasEndDate: $hasEndDate,
+                endDate: $endDate,
                 priority: $priority,
                 hasEstimate: $hasEstimate,
                 estimateHours: $estimateHours,
@@ -125,6 +133,8 @@ struct AddTaskView: View {
             title: title,
             priority: priority,
             dueDate: hasDueDate ? dueDate : nil,
+            startDate: hasStartDate ? startDate : nil,
+            endDate: hasEndDate ? endDate : nil,
             createdDate: .now,
             parentTask: parentTask,
             project: parentTask?.project ?? selectedProject,

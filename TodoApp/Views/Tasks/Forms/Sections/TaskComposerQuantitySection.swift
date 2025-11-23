@@ -26,6 +26,8 @@ struct TaskComposerQuantitySection: View {
     // Deadline (for personnel recommendations)
     let hasDueDate: Bool
     let dueDate: Date
+    let hasStartDate: Bool
+    let startDate: Date
 
     @Query(sort: \TaskTemplate.order) private var templates: [TaskTemplate]
     @Query(filter: #Predicate<Task> { task in !task.isArchived }, sort: \Task.order) private var allTasks: [Task]
@@ -133,6 +135,7 @@ struct TaskComposerQuantitySection: View {
 
                     PersonnelRecommendationView(
                         effortHours: calculatedEffort,
+                        startDate: hasStartDate ? startDate : nil,
                         deadline: dueDate,
                         currentSelection: expectedPersonnelCount,
                         taskType: taskType,
