@@ -35,8 +35,11 @@ struct TaskComposerEstimateSection: View {
                 // Summary at top for immediate visibility
                 persistentEstimateSummary
 
-                Divider()
-                    .padding(.vertical, 4)
+                // Only show divider when there's a valid estimate (not for warning state)
+                if estimation.totalEstimateMinutes > 0 {
+                    Divider()
+                        .padding(.vertical, 4)
+                }
 
                 // Configuration below
                 estimationModePickerView
