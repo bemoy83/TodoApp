@@ -19,11 +19,6 @@ struct TaskComposerDueDateSection: View {
     var body: some View {
         Section("Schedule") {
             VStack(spacing: 16) {
-                // Working window summary at top (when both dates set)
-                if hasStartDate && hasEndDate {
-                    workingWindowSummary
-                }
-
                 // Parent deadline info for subtasks
                 if isSubtask {
                     parentDueDateView
@@ -43,6 +38,11 @@ struct TaskComposerDueDateSection: View {
                     } else {
                         addStartDateButton
                     }
+                }
+
+                // Working window summary at bottom (result of inputs above)
+                if hasStartDate && hasEndDate {
+                    workingWindowSummary
                 }
             }
             .padding(.vertical, 4)
@@ -142,10 +142,10 @@ struct TaskComposerDueDateSection: View {
             HapticManager.light()
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "plus.circle")
-                    .foregroundStyle(.secondary)
+                Image(systemName: "plus.circle.fill")
+                    .foregroundStyle(.blue)
                 Text("Add Start Date")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.blue)
                 Text("(for scheduled work)")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
