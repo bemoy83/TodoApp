@@ -150,7 +150,6 @@ struct ProjectHeaderView: View {
                         .background(statusColor.opacity(0.15))
                         .cornerRadius(DesignSystem.CornerRadius.sm)
                     }
-                    .buttonStyle(.plain)
 
                     // Date Range (if exists)
                     if let startDate = project.startDate, let dueDate = project.dueDate {

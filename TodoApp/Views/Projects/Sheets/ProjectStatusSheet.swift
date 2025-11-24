@@ -54,7 +54,8 @@ struct ProjectStatusSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.height(380)])
+        .presentationDragIndicator(.visible)
     }
 
     private func getIcon(for status: ProjectStatus) -> String {
