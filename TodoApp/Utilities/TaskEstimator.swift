@@ -5,6 +5,77 @@ import Foundation
 /// Separated from views for consistency, testability, and maintainability.
 struct TaskEstimator {
 
+    // MARK: - State Container
+
+    /// Groups all estimation-related state for cleaner binding management
+    /// Used by TaskComposerForm and TaskComposerEstimateSection
+    struct EstimationState {
+        // Mode selection
+        var mode: UnifiedEstimationMode = .duration
+
+        // Duration mode
+        var hasEstimate: Bool = false
+        var estimateHours: Int = 0
+        var estimateMinutes: Int = 0
+        var hasCustomEstimate: Bool = false
+
+        // Effort mode
+        var effortHours: Double = 0.0
+        var hasPersonnel: Bool = false
+        var expectedPersonnelCount: Int? = nil
+
+        // Quantity mode
+        var taskType: String? = nil
+        var unit: UnitType = .none
+        var quantity: String = ""
+        var quantityCalculationMode: QuantityCalculationMode = .calculateDuration
+        var productivityRate: Double? = nil
+
+        // MARK: - Computed Properties
+
+        /// Total estimate in seconds
+        var totalEstimateSeconds: Int {
+            (estimateHours * 3600) + (estimateMinutes * 60)
+        }
+
+        /// Total estimate in minutes
+        var totalEstimateMinutes: Int {
+            (estimateHours * 60) + estimateMinutes
+        }
+
+        /// Formatted estimate string (e.g., "2h 30m")
+        var formattedEstimate: String {
+            totalEstimateSeconds.formattedTime()
+        }
+
+        /// Whether a valid estimate exists
+        var hasValidEstimate: Bool {
+            hasEstimate && totalEstimateMinutes > 0
+        }
+
+        // MARK: - Initialization
+
+        /// Create default state
+        init() {}
+
+        /// Create state from existing task
+        init(from task: Task) {
+            self.hasEstimate = task.estimatedSeconds != nil
+            if let seconds = task.estimatedSeconds {
+                self.estimateHours = seconds / 3600
+                self.estimateMinutes = (seconds % 3600) / 60
+            }
+            self.hasCustomEstimate = task.hasCustomEstimate
+            self.effortHours = task.effortHours ?? 0.0
+            self.hasPersonnel = task.expectedPersonnelCount != nil
+            self.expectedPersonnelCount = task.expectedPersonnelCount
+            self.taskType = task.taskType
+            self.unit = task.unit
+            self.quantity = task.quantity.map { String($0) } ?? ""
+            self.productivityRate = task.unitsPerHour
+        }
+    }
+
     // MARK: - Result Types
 
     /// Result of estimate calculation containing all computed values

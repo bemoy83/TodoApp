@@ -17,24 +17,8 @@ struct TaskComposerForm: View {
     @Binding var endDate: Date
     @Binding var priority: Int
 
-    // Time estimate bindings
-    @Binding var hasEstimate: Bool
-    @Binding var estimateHours: Int
-    @Binding var estimateMinutes: Int
-    @Binding var hasCustomEstimate: Bool
-
-    // Personnel bindings
-    @Binding var hasPersonnel: Bool
-    @Binding var expectedPersonnelCount: Int?
-
-    // Unified calculator bindings
-    @Binding var unifiedEstimationMode: TaskEstimator.UnifiedEstimationMode
-    @Binding var effortHours: Double
-    @Binding var quantity: String
-    @Binding var unit: UnitType
-    @Binding var taskType: String?
-    @Binding var quantityCalculationMode: TaskEstimator.QuantityCalculationMode
-    @Binding var productivityRate: Double?
+    // Grouped estimation state (replaces 13 individual bindings)
+    @Binding var estimation: TaskEstimator.EstimationState
 
     // Context
     let isSubtask: Bool
@@ -58,13 +42,13 @@ struct TaskComposerForm: View {
 
     /// Personnel is auto-calculated (read-only) when in certain modes
     private var personnelIsAutoCalculated: Bool {
-        switch unifiedEstimationMode {
+        switch estimation.mode {
         case .duration:
             return false
         case .effort:
             return false
         case .quantity:
-            return quantityCalculationMode == .calculatePersonnel
+            return estimation.quantityCalculationMode == .calculatePersonnel
         }
     }
 
@@ -187,19 +171,7 @@ struct TaskComposerForm: View {
 
     private var estimateSection: some View {
         TaskComposerEstimateSection(
-            unifiedEstimationMode: $unifiedEstimationMode,
-            hasEstimate: $hasEstimate,
-            estimateHours: $estimateHours,
-            estimateMinutes: $estimateMinutes,
-            hasCustomEstimate: $hasCustomEstimate,
-            effortHours: $effortHours,
-            hasPersonnel: $hasPersonnel,
-            expectedPersonnelCount: $expectedPersonnelCount,
-            taskType: $taskType,
-            unit: $unit,
-            quantity: $quantity,
-            quantityCalculationMode: $quantityCalculationMode,
-            productivityRate: $productivityRate,
+            estimation: $estimation,
             isSubtask: isSubtask,
             parentSubtaskEstimateTotal: parentSubtaskEstimateTotal,
             taskSubtaskEstimateTotal: taskSubtaskEstimateTotal,
@@ -209,9 +181,9 @@ struct TaskComposerForm: View {
             startDate: startDate,
             hasEndDate: hasEndDate,
             endDate: endDate,
-            onEstimateValidation: validateEstimate,
-            onEffortUpdate: updateDurationFromEffort,
-            onQuantityUpdate: updateFromQuantityCalculation
+            onEstimateChange: validateEstimate,
+            onEffortChange: updateDurationFromEffort,
+            onQuantityChange: updateFromQuantityCalculation
         )
     }
 
@@ -234,11 +206,11 @@ struct TaskComposerForm: View {
 
     private var personnelSection: some View {
         TaskComposerPersonnelSection(
-            hasPersonnel: $hasPersonnel,
-            expectedPersonnelCount: $expectedPersonnelCount,
-            unifiedEstimationMode: $unifiedEstimationMode,
+            hasPersonnel: $estimation.hasPersonnel,
+            expectedPersonnelCount: $estimation.expectedPersonnelCount,
+            unifiedEstimationMode: $estimation.mode,
             personnelIsAutoCalculated: personnelIsAutoCalculated,
-            quantityCalculationMode: quantityCalculationMode
+            quantityCalculationMode: estimation.quantityCalculationMode
         )
     }
 
@@ -246,49 +218,49 @@ struct TaskComposerForm: View {
 
     /// Update duration fields from effort calculation
     private func updateDurationFromEffort() {
-        guard unifiedEstimationMode == .effort,
-              effortHours > 0,
-              let personnel = expectedPersonnelCount, personnel > 0 else {
+        guard estimation.mode == .effort,
+              estimation.effortHours > 0,
+              let personnel = estimation.expectedPersonnelCount, personnel > 0 else {
             return
         }
 
         // Calculate duration: effort / personnel
-        let durationHours = effortHours / Double(personnel)
+        let durationHours = estimation.effortHours / Double(personnel)
         let totalSeconds = Int(durationHours * 3600)
 
         // Update duration fields
-        estimateHours = totalSeconds / 3600
-        estimateMinutes = (totalSeconds % 3600) / 60
-        hasEstimate = true
+        estimation.estimateHours = totalSeconds / 3600
+        estimation.estimateMinutes = (totalSeconds % 3600) / 60
+        estimation.hasEstimate = true
     }
 
     /// Update fields from quantity calculation
     private func updateFromQuantityCalculation() {
-        guard unifiedEstimationMode == .quantity,
-              let qty = Double(quantity), qty > 0,
-              let rate = productivityRate, rate > 0 else {
+        guard estimation.mode == .quantity,
+              let qty = Double(estimation.quantity), qty > 0,
+              let rate = estimation.productivityRate, rate > 0 else {
             return
         }
 
-        switch quantityCalculationMode {
+        switch estimation.quantityCalculationMode {
         case .calculateDuration:
-            guard let personnel = expectedPersonnelCount, personnel > 0 else { return }
+            guard let personnel = estimation.expectedPersonnelCount, personnel > 0 else { return }
             let durationHours = (qty / rate) / Double(personnel)
             let totalSeconds = Int(durationHours * 3600)
 
-            estimateHours = totalSeconds / 3600
-            estimateMinutes = (totalSeconds % 3600) / 60
-            hasEstimate = true
-            hasPersonnel = true
+            estimation.estimateHours = totalSeconds / 3600
+            estimation.estimateMinutes = (totalSeconds % 3600) / 60
+            estimation.hasEstimate = true
+            estimation.hasPersonnel = true
 
         case .calculatePersonnel:
-            let totalDurationHours = Double(estimateHours) + (Double(estimateMinutes) / 60.0)
+            let totalDurationHours = Double(estimation.estimateHours) + (Double(estimation.estimateMinutes) / 60.0)
             guard totalDurationHours > 0 else { return }
 
             let personnel = Int(ceil((qty / rate) / totalDurationHours))
-            expectedPersonnelCount = max(1, personnel)
-            hasPersonnel = true
-            hasEstimate = true
+            estimation.expectedPersonnelCount = max(1, personnel)
+            estimation.hasPersonnel = true
+            estimation.hasEstimate = true
 
         case .manualEntry:
             break
@@ -309,10 +281,10 @@ struct TaskComposerForm: View {
 
     private func validateEstimate() {
         let result = TaskFormValidator.validateCustomEstimate(
-            estimateHours: estimateHours,
-            estimateMinutes: estimateMinutes,
+            estimateHours: estimation.estimateHours,
+            estimateMinutes: estimation.estimateMinutes,
             subtaskTotalMinutes: taskSubtaskEstimateTotal,
-            hasCustomEstimate: hasCustomEstimate,
+            hasCustomEstimate: estimation.hasCustomEstimate,
             isSubtask: isSubtask
         )
 
@@ -324,15 +296,15 @@ struct TaskComposerForm: View {
 
     private func resetToSubtaskTotal() {
         guard let total = taskSubtaskEstimateTotal else { return }
-        estimateHours = total / 60
-        estimateMinutes = (total % 60)
+        estimation.estimateHours = total / 60
+        estimation.estimateMinutes = (total % 60)
 
         // Round minutes to nearest 15
-        let roundedMinutes = ((estimateMinutes + 7) / 15) * 15
-        estimateMinutes = roundedMinutes
+        let roundedMinutes = ((estimation.estimateMinutes + 7) / 15) * 15
+        estimation.estimateMinutes = roundedMinutes
         if roundedMinutes >= 60 {
-            estimateHours += 1
-            estimateMinutes = 0
+            estimation.estimateHours += 1
+            estimation.estimateMinutes = 0
         }
     }
 }
