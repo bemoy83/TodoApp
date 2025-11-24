@@ -207,6 +207,7 @@ struct ProjectHeaderView: View {
                         .padding(.horizontal, DesignSystem.Spacing.xxxl)
                     }
                 }
+                .detailCardStyle()
             }
             .padding(.horizontal, DesignSystem.Spacing.xl)
 
