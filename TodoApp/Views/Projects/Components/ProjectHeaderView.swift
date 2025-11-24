@@ -17,6 +17,7 @@ struct ProjectHeaderView: View {
 
     @State private var isEditingTitle = false
     @State private var editedTitle: String
+    @State private var showingStatusSheet = false
 
     init(project: Project, totalTasks: Int, completedTasks: Int, totalTimeSpent: Int, totalPersonHours: Double) {
         self._project = Bindable(wrappedValue: project)
@@ -131,15 +132,8 @@ struct ProjectHeaderView: View {
                     }
 
                     // Status Badge
-                    Menu {
-                        ForEach(ProjectStatus.allCases, id: \.self) { status in
-                            Button {
-                                project.status = status
-                                HapticManager.selection()
-                            } label: {
-                                Label(status.rawValue, systemImage: getIcon(for: status))
-                            }
-                        }
+                    Button {
+                        showingStatusSheet = true
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: statusIcon)
@@ -245,6 +239,9 @@ struct ProjectHeaderView: View {
             .padding(.horizontal, DesignSystem.Spacing.lg)
         }
         .padding(.vertical, DesignSystem.Spacing.xl)
+        .sheet(isPresented: $showingStatusSheet) {
+            ProjectStatusSheet(project: project)
+        }
     }
 
     // Helper function for status icons
