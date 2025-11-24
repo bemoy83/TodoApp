@@ -156,9 +156,6 @@ struct PersonnelRecommendationView: View {
                 scenarioButton(for: scenario)
             }
         }
-        .padding()
-        .background(Color.secondary.opacity(0.05))
-        .cornerRadius(12)
     }
 
     // MARK: - View Builders
