@@ -32,13 +32,17 @@ struct TaskComposerEstimateSection: View {
             Toggle("Set Estimate", isOn: $estimation.hasEstimate)
 
             if estimation.hasEstimate {
-                // Summary at top for immediate visibility (green background provides separation)
-                persistentEstimateSummary
+                VStack(spacing: 16) {
+                    // Summary at top for immediate visibility (green background provides separation)
+                    persistentEstimateSummary
 
-                // Configuration below (child views have their own internal dividers)
-                estimationModePickerView
-                parentEstimateView
-                estimationContentView
+                    // Configuration below (child views have their own internal dividers)
+                    VStack(spacing: 12) {
+                        estimationModePickerView
+                        parentEstimateView
+                        estimationContentView
+                    }
+                }
             } else {
                 TaskInlineInfoRow(
                     icon: "info.circle",
