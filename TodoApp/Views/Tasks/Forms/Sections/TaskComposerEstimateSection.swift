@@ -32,16 +32,10 @@ struct TaskComposerEstimateSection: View {
             Toggle("Set Estimate", isOn: $estimation.hasEstimate)
 
             if estimation.hasEstimate {
-                // Summary at top for immediate visibility
+                // Summary at top for immediate visibility (green background provides separation)
                 persistentEstimateSummary
 
-                // Only show divider when there's a valid estimate (not for warning state)
-                if estimation.totalEstimateMinutes > 0 {
-                    Divider()
-                        .padding(.vertical, 4)
-                }
-
-                // Configuration below
+                // Configuration below (child views have their own internal dividers)
                 estimationModePickerView
                 parentEstimateView
                 estimationContentView
