@@ -24,9 +24,23 @@ struct ProjectCrewPlanningCard: View {
     }
 
     /// Available work hours from now until project deadline
+    /// Respects project start date: uses the later of project start or today
     private var availableHours: Double {
         guard let deadline = project.dueDate else { return 0 }
-        return WorkHoursCalculator.calculateAvailableHours(from: Date(), to: deadline)
+
+        // Determine effective start: project start or today, whichever is later
+        let effectiveStart: Date
+        if let startDate = project.startDate {
+            // Use the later of project start or today
+            // If project hasn't started yet (start > today), can't work before it starts
+            // If project already started (start <= today), use remaining time from today
+            effectiveStart = max(startDate, Date())
+        } else {
+            // No start date defined, assume starting immediately
+            effectiveStart = Date()
+        }
+
+        return WorkHoursCalculator.calculateAvailableHours(from: effectiveStart, to: deadline)
     }
 
     /// Task type breakdown for this project
