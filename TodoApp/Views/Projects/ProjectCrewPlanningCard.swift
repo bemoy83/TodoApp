@@ -6,6 +6,8 @@ struct ProjectCrewPlanningCard: View {
     let project: Project
     let allTasks: [Task] // For historical analytics
 
+    @State private var isExpanded: Bool = false
+
     // MARK: - Computed Properties
 
     /// Total effort from all ACTIVE task estimates (person-hours)
@@ -22,9 +24,23 @@ struct ProjectCrewPlanningCard: View {
     }
 
     /// Available work hours from now until project deadline
+    /// Respects project start date: uses the later of project start or today
     private var availableHours: Double {
         guard let deadline = project.dueDate else { return 0 }
-        return WorkHoursCalculator.calculateAvailableHours(from: Date(), to: deadline)
+
+        // Determine effective start: project start or today, whichever is later
+        let effectiveStart: Date
+        if let startDate = project.startDate {
+            // Use the later of project start or today
+            // If project hasn't started yet (start > today), can't work before it starts
+            // If project already started (start <= today), use remaining time from today
+            effectiveStart = max(startDate, Date())
+        } else {
+            // No start date defined, assume starting immediately
+            effectiveStart = Date()
+        }
+
+        return WorkHoursCalculator.calculateAvailableHours(from: effectiveStart, to: deadline)
     }
 
     /// Task type breakdown for this project
@@ -101,23 +117,133 @@ struct ProjectCrewPlanningCard: View {
         return true
     }
 
+    /// Days until deadline
+    private var daysUntilDeadline: Int {
+        guard let deadline = project.dueDate else { return 0 }
+        return Calendar.current.dateComponents([.day], from: Date(), to: deadline).day ?? 0
+    }
+
+    /// Crew size status color (green/orange/red based on utilization)
+    private var crewSizeColor: Color {
+        let ratio = (usesHistoricalAdjustment ? adjustedEffortHours : totalEffortHours) / availableHours
+        if ratio > 0.9 { return DesignSystem.Colors.error }      // Critical: >90% utilization
+        if ratio > 0.75 { return DesignSystem.Colors.warning }   // Warning: >75% utilization
+        return DesignSystem.Colors.success                       // Good: <75% utilization
+    }
+
+    /// Whether to auto-expand (critical situations)
+    private var shouldAutoExpand: Bool {
+        // Auto-expand if:
+        // 1. Large crew needed (>5 people)
+        // 2. Time crunch (>75% utilization)
+        // 3. Has historical warnings
+        let hasLargeCrew = minimumPersonnel > 5
+        let hasTimecrunch = (totalEffortHours / availableHours) > 0.75
+        let hasWarnings = usesHistoricalAdjustment && taskTypeBreakdown.contains {
+            $0.analytics?.isSignificant ?? false && abs($0.analytics?.typicalOverrunPercentage ?? 0) >= 10
+        }
+        return hasLargeCrew || hasTimecrunch || hasWarnings
+    }
+
     // MARK: - Body
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-            // Header
+            // Header (always visible, tappable)
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    isExpanded.toggle()
+                }
+                HapticManager.selection()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.3.fill")
+                        .font(.body)
+                        .foregroundStyle(DesignSystem.Colors.info)
+                        .frame(width: 20)
+
+                    Text("Crew Planning")
+                        .font(DesignSystem.Typography.headline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(DesignSystem.Colors.primary)
+
+                    Spacer()
+
+                    Image(systemName: isExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(DesignSystem.Colors.secondary)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                expandedContent
+            } else {
+                compactContent
+            }
+        }
+        .padding(DesignSystem.Spacing.md)
+        .background(DesignSystem.Colors.secondaryGroupedBackground)
+        .cornerRadius(DesignSystem.CornerRadius.lg)
+        .onAppear {
+            // Auto-expand for critical situations
+            if shouldAutoExpand {
+                isExpanded = true
+            }
+        }
+    }
+
+    // MARK: - Compact Content
+
+    private var compactContent: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // Primary metric: Recommended crew size
             HStack(spacing: 8) {
-                Image(systemName: "person.3.fill")
+                Image(systemName: usesHistoricalAdjustment ? "brain.head.profile" : "person.3.fill")
                     .font(.body)
-                    .foregroundStyle(DesignSystem.Colors.info)
+                    .foregroundStyle(crewSizeColor)
                     .frame(width: 20)
 
-                Text("Crew Planning")
-                    .font(DesignSystem.Typography.headline)
+                Text("Recommended: \(minimumPersonnel) \(minimumPersonnel == 1 ? "person" : "people")")
+                    .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(DesignSystem.Colors.primary)
+                    .foregroundStyle(crewSizeColor)
+
+                Spacer()
             }
 
+            // Context: work hours + deadline
+            HStack(spacing: 4) {
+                Text("\(String(format: "%.0f", totalEffortHours)) hrs work")
+                    .font(.caption)
+                    .foregroundStyle(DesignSystem.Colors.secondary)
+
+                Text("•")
+                    .font(.caption)
+                    .foregroundStyle(DesignSystem.Colors.tertiary)
+
+                Text("\(daysUntilDeadline) \(daysUntilDeadline == 1 ? "day" : "days") left")
+                    .font(.caption)
+                    .foregroundStyle(DesignSystem.Colors.secondary)
+
+                if usesHistoricalAdjustment {
+                    Text("•")
+                        .font(.caption)
+                        .foregroundStyle(DesignSystem.Colors.tertiary)
+
+                    Text("AI adjusted")
+                        .font(.caption)
+                        .foregroundStyle(DesignSystem.Colors.success)
+                }
+            }
+        }
+        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+    }
+
+    // MARK: - Expanded Content
+
+    private var expandedContent: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             Divider()
 
             // Project summary
@@ -220,9 +346,7 @@ struct ProjectCrewPlanningCard: View {
                 }
             }
         }
-        .padding(DesignSystem.Spacing.md)
-        .background(DesignSystem.Colors.secondaryGroupedBackground)
-        .cornerRadius(DesignSystem.CornerRadius.lg)
+        .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
     // MARK: - Subviews
