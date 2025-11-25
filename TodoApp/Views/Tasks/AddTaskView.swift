@@ -46,6 +46,21 @@ struct AddTaskView: View {
         self.parentTask = parentTask
         self.onAdded = onAdded
         _selectedProject = State(initialValue: project)
+
+        // PHASE 1: Inherit project dates as defaults
+        if let project = project {
+            // Inherit start date from project
+            if let projectStart = project.startDate {
+                _hasStartDate = State(initialValue: true)
+                _startDate = State(initialValue: projectStart)
+            }
+
+            // Inherit due date from project
+            if let projectDue = project.dueDate {
+                _hasDueDate = State(initialValue: true)
+                _dueDate = State(initialValue: projectDue)
+            }
+        }
     }
     
     var body: some View {

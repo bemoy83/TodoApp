@@ -168,6 +168,14 @@ final class Project {
         guard let dueDate = dueDate else { return nil }
         return Calendar.current.dateComponents([.day], from: Date(), to: dueDate).day
     }
+
+    // MARK: - Date Conflict Detection (Phase 3: Hybrid Date Constraints)
+
+    /// Count of tasks with date conflicts (outside project timeline)
+    @Transient
+    var tasksWithDateConflicts: Int {
+        tasks?.filter { !$0.isCompleted && !$0.isArchived && $0.hasDateConflicts }.count ?? 0
+    }
 }
 
 // MARK: - Project Status

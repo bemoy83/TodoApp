@@ -10,13 +10,25 @@ struct ProjectCrewPlanningCard: View {
 
     // MARK: - Computed Properties
 
-    /// Total effort from all ACTIVE task estimates (person-hours)
-    /// Only counts tasks that still need to be done (not completed or archived)
-    private var totalEffortHours: Double {
-        guard let tasks = project.tasks else { return 0 }
+    /// Tasks that are in scope for crew planning (Phase 4: Smart Filtering)
+    /// Only counts tasks that:
+    /// 1. Are not completed or archived
+    /// 2. Fall within the project timeline (excluding prep/cleanup work)
+    private var tasksInScope: [Task] {
+        guard let tasks = project.tasks else { return [] }
+        return tasks.filter { task in
+            // Must not be completed or archived
+            guard !task.isCompleted && !task.isArchived else { return false }
 
-        let activeTasks = tasks.filter { !$0.isCompleted && !$0.isArchived }
-        let totalSeconds = activeTasks.reduce(0) { sum, task in
+            // Must be within project timeline (this handles date conflicts)
+            return task.isWithinProjectTimeline
+        }
+    }
+
+    /// Total effort from all IN-SCOPE task estimates (person-hours)
+    /// Only counts tasks that still need to be done AND are within project timeline
+    private var totalEffortHours: Double {
+        let totalSeconds = tasksInScope.reduce(0) { sum, task in
             sum + (task.effectiveEstimate ?? 0)
         }
 
@@ -43,12 +55,9 @@ struct ProjectCrewPlanningCard: View {
         return WorkHoursCalculator.calculateAvailableHours(from: effectiveStart, to: deadline)
     }
 
-    /// Task type breakdown for this project
+    /// Task type breakdown for this project (using in-scope tasks only)
     private var taskTypeBreakdown: [(taskType: String, hours: Double, analytics: TaskTypeAnalytics?)] {
-        guard let tasks = project.tasks else { return [] }
-
-        let activeTasks = tasks.filter { !$0.isCompleted && !$0.isArchived }
-        let tasksByType = Dictionary(grouping: activeTasks, by: { $0.taskType })
+        let tasksByType = Dictionary(grouping: tasksInScope, by: { $0.taskType })
 
         return tasksByType.compactMap { (taskType, typeTasks) -> (String, Double, TaskTypeAnalytics?)? in
             guard let taskType = taskType else { return nil }

@@ -78,6 +78,10 @@ struct ProjectHeaderView: View {
         if project.tasksWithMissingEstimates > 0 {
             messages.append("\(project.tasksWithMissingEstimates) need estimates")
         }
+        // Phase 3: Date conflict warning
+        if project.tasksWithDateConflicts > 0 {
+            messages.append("\(project.tasksWithDateConflicts) date \(project.tasksWithDateConflicts == 1 ? "conflict" : "conflicts")")
+        }
 
         return messages.isEmpty ? nil : messages.joined(separator: " • ")
     }
