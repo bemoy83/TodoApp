@@ -139,7 +139,7 @@ struct ProjectHeaderView: View {
                 }
                 .detailCardStyle()
             }
-            .padding(.horizontal, DesignSystem.Spacing.xl)
+            .padding(.horizontal, DesignSystem.Spacing.lg)
 
             // 2x2 stats grid
             LazyVGrid(
