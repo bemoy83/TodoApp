@@ -269,7 +269,7 @@ struct PriorityBadge: View {
 
 struct ProjectBadge: View {
     let project: Project
-    
+
     var body: some View {
         HStack(spacing: 4) {
             Circle()
@@ -279,5 +279,19 @@ struct ProjectBadge: View {
                 .font(.caption)
         }
         .foregroundStyle(.secondary)
+    }
+}
+
+// MARK: - Date Conflict Badge (Improvement #1)
+
+struct DateConflictBadge: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption2)
+            Text("Dates")
+                .font(.caption)
+        }
+        .foregroundStyle(DesignSystem.Colors.warning)
     }
 }

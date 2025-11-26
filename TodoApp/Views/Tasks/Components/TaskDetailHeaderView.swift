@@ -108,6 +108,11 @@ struct TaskDetailHeaderView: View {
                     ScheduleSection(task: task)
                 }
 
+                // Date Conflict Warning (Phase 3: Hybrid Date Constraints)
+                if task.hasDateConflicts {
+                    DateConflictWarningSection(task: task)
+                }
+
                 // Organization Section (always shown - priority is always relevant)
                 OrganizationSection(task: task)
 
@@ -604,5 +609,155 @@ private struct BlockingDependenciesInfo: View {
             }
         }
         .padding(DesignSystem.Spacing.sm)
+    }
+}
+
+// MARK: - Date Conflict Warning Section (Phase 3: Hybrid Date Constraints)
+
+private struct DateConflictWarningSection: View {
+    let task: Task
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            Text("Timeline Warning")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            Button {
+                withAnimation {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.body)
+                        .foregroundStyle(DesignSystem.Colors.warning)
+                        .frame(width: 20)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Date Conflict Detected")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(DesignSystem.Colors.warning)
+
+                        if let message = task.dateConflictMessage {
+                            Text(message)
+                                .font(.caption)
+                                .foregroundStyle(DesignSystem.Colors.secondary)
+                                .lineLimit(isExpanded ? nil : 2)
+                        }
+                    }
+
+                    Spacer()
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(DesignSystem.Spacing.sm)
+            }
+            .buttonStyle(.plain)
+            .background(DesignSystem.Colors.warning.opacity(0.1))
+            .cornerRadius(DesignSystem.CornerRadius.md)
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                    Text("This task's dates fall outside the project timeline. This may indicate prep work (before event) or cleanup work (after event).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, DesignSystem.Spacing.xs)
+
+                    // Project dates for reference
+                    if let project = task.project {
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                            Text("Project Timeline:")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.secondary)
+
+                            if let projectStart = project.startDate {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "calendar")
+                                        .font(.caption2)
+                                    Text("Starts: \(projectStart.formatted(date: .abbreviated, time: .omitted))")
+                                        .font(.caption)
+                                }
+                                .foregroundStyle(.secondary)
+                            }
+
+                            if let projectDue = project.dueDate {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "calendar")
+                                        .font(.caption2)
+                                    Text("Ends: \(projectDue.formatted(date: .abbreviated, time: .omitted))")
+                                        .font(.caption)
+                                }
+                                .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(DesignSystem.Spacing.sm)
+                        .background(DesignSystem.Colors.tertiaryBackground)
+                        .cornerRadius(DesignSystem.CornerRadius.sm)
+                    }
+
+                    // Quick Fix Actions (Phase 5)
+                    VStack(spacing: DesignSystem.Spacing.xs) {
+                        Text("Quick Fixes:")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, DesignSystem.Spacing.xs)
+
+                        HStack(spacing: DesignSystem.Spacing.sm) {
+                            // Adjust task to project dates
+                            Button {
+                                withAnimation {
+                                    task.adjustToProjectDates()
+                                    HapticManager.success()
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.down.to.line")
+                                        .font(.caption)
+                                    Text("Fit to Project")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, DesignSystem.Spacing.sm)
+                                .padding(.vertical, DesignSystem.Spacing.xs)
+                                .background(DesignSystem.Colors.info)
+                                .cornerRadius(DesignSystem.CornerRadius.sm)
+                            }
+
+                            // Expand project to include task
+                            Button {
+                                withAnimation {
+                                    task.expandProjectToIncludeTask()
+                                    HapticManager.success()
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                        .font(.caption)
+                                    Text("Expand Project")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, DesignSystem.Spacing.sm)
+                                .padding(.vertical, DesignSystem.Spacing.xs)
+                                .background(DesignSystem.Colors.warning)
+                                .cornerRadius(DesignSystem.CornerRadius.sm)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal)
     }
 }

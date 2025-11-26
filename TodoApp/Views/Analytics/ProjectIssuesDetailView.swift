@@ -37,6 +37,12 @@ struct ProjectIssuesDetailView: View {
         }
     }
 
+    private var dateConflictTasks: [Task] {
+        return (projectIssue.project.tasks ?? []).filter { task in
+            !task.isCompleted && !task.isArchived && task.hasDateConflicts
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -146,6 +152,33 @@ struct ProjectIssuesDetailView: View {
                                 .fontWeight(.semibold)
 
                             Text("(\(tasksWithMissingEstimates.count))")
+                                .font(DesignSystem.Typography.subheadline)
+                                .foregroundStyle(DesignSystem.Colors.secondary)
+                        }
+                    }
+                }
+
+                // Date conflicts section
+                if !dateConflictTasks.isEmpty {
+                    Section {
+                        ForEach(dateConflictTasks) { task in
+                            Button {
+                                selectedTask = task
+                            } label: {
+                                DateConflictTaskRow(task: task)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } header: {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(DesignSystem.Colors.warning)
+
+                            Text("Date Conflicts")
+                                .font(DesignSystem.Typography.headline)
+                                .fontWeight(.semibold)
+
+                            Text("(\(dateConflictTasks.count))")
                                 .font(DesignSystem.Typography.subheadline)
                                 .foregroundStyle(DesignSystem.Colors.secondary)
                         }
@@ -289,6 +322,69 @@ struct IssueTaskRow: View {
     }
 }
 
+// MARK: - Date Conflict Task Row
+
+struct DateConflictTaskRow: View {
+    let task: Task
+
+    private var statusColor: Color {
+        switch task.status {
+        case .blocked: return DesignSystem.Colors.error
+        case .ready: return DesignSystem.Colors.secondary
+        case .inProgress: return DesignSystem.Colors.info
+        case .completed: return DesignSystem.Colors.success
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            // Status icon
+            Image(systemName: task.status.icon)
+                .font(.body)
+                .foregroundStyle(statusColor)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(task.title)
+                    .font(DesignSystem.Typography.body)
+                    .foregroundStyle(DesignSystem.Colors.primary)
+                    .lineLimit(1)
+
+                HStack(spacing: 8) {
+                    // Priority
+                    if task.priority < 2 {
+                        HStack(spacing: 2) {
+                            Image(systemName: Priority(rawValue: task.priority)?.icon ?? "minus")
+                                .font(.caption2)
+                            Text(Priority(rawValue: task.priority)?.label ?? "")
+                                .font(DesignSystem.Typography.caption2)
+                        }
+                        .foregroundStyle(Priority(rawValue: task.priority)?.color ?? Color.gray)
+                    }
+
+                    // Date conflict info
+                    if let message = task.dateConflictMessage {
+                        HStack(spacing: 2) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption2)
+                            Text(message)
+                                .font(DesignSystem.Typography.caption2)
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(DesignSystem.Colors.warning)
+                    }
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(DesignSystem.Colors.tertiary)
+        }
+    }
+}
+
 // MARK: - Budget Warning Card
 
 struct BudgetWarningCard: View {
@@ -343,6 +439,7 @@ struct BudgetWarningCard: View {
         overdueCount: 2,
         blockedCount: 1,
         missingEstimatesCount: 0,
+        dateConflictsCount: 0,
         nearingBudget: false,
         overPlanned: false
     )

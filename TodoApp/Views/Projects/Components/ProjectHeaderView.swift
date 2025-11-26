@@ -18,6 +18,7 @@ struct ProjectHeaderView: View {
     @State private var isEditingTitle = false
     @State private var editedTitle: String
     @State private var showingStatusSheet = false
+    @State private var showingIssuesDetail = false
 
     init(project: Project, totalTasks: Int, completedTasks: Int, totalTimeSpent: Int, totalPersonHours: Double) {
         self._project = Bindable(wrappedValue: project)
@@ -78,6 +79,10 @@ struct ProjectHeaderView: View {
         if project.tasksWithMissingEstimates > 0 {
             messages.append("\(project.tasksWithMissingEstimates) need estimates")
         }
+        // Phase 3: Date conflict warning
+        if project.tasksWithDateConflicts > 0 {
+            messages.append("\(project.tasksWithDateConflicts) date \(project.tasksWithDateConflicts == 1 ? "conflict" : "conflicts")")
+        }
 
         return messages.isEmpty ? nil : messages.joined(separator: " • ")
     }
@@ -119,12 +124,17 @@ struct ProjectHeaderView: View {
                         TimelineSection(project: project)
                     }
 
-                    // Health Section (conditional)
+                    // Health Section (conditional) - tappable to show issues detail
                     if project.healthStatus != .onTrack, let message = healthMessage {
-                        HealthSection(
-                            healthStatus: project.healthStatus,
-                            message: message
-                        )
+                        Button {
+                            showingIssuesDetail = true
+                        } label: {
+                            HealthSection(
+                                healthStatus: project.healthStatus,
+                                message: message
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     // Progress Section (conditional)
@@ -172,6 +182,46 @@ struct ProjectHeaderView: View {
         .sheet(isPresented: $showingStatusSheet) {
             ProjectStatusSheet(project: project)
         }
+        .sheet(isPresented: $showingIssuesDetail) {
+            ProjectIssuesDetailView(projectIssue: createProjectIssue())
+        }
+    }
+
+    // Helper to create ProjectIssue for navigation
+    private func createProjectIssue() -> ProjectIssue {
+        let tasks = project.tasks ?? []
+        let incompleteTasks = tasks.filter { !$0.isCompleted && !$0.isArchived }
+
+        let now = Date()
+        let overdueCount = incompleteTasks.filter { task in
+            guard let dueDate = task.dueDate else { return false }
+            return dueDate < now
+        }.count
+
+        let blockedCount = incompleteTasks.filter { $0.status == .blocked }.count
+
+        let missingEstimates = project.status != .planning
+            ? incompleteTasks.filter { $0.effectiveEstimate == nil && $0.priority < 3 }.count
+            : 0
+
+        let dateConflictsCount = incompleteTasks.filter { $0.hasDateConflicts }.count
+
+        var issues: [String] = []
+        if overdueCount > 0 { issues.append("\(overdueCount) overdue") }
+        if blockedCount > 0 { issues.append("\(blockedCount) blocked") }
+        if missingEstimates > 0 { issues.append("\(missingEstimates) missing estimates") }
+        if dateConflictsCount > 0 { issues.append("\(dateConflictsCount) date \(dateConflictsCount == 1 ? "conflict" : "conflicts")") }
+
+        return ProjectIssue(
+            project: project,
+            issueDescriptions: issues,
+            overdueCount: overdueCount,
+            blockedCount: blockedCount,
+            missingEstimatesCount: missingEstimates,
+            dateConflictsCount: dateConflictsCount,
+            nearingBudget: (project.timeProgress ?? 0) >= 0.85,
+            overPlanned: project.isOverPlanned
+        )
     }
 
     // Helper function for status icons
@@ -412,6 +462,12 @@ private struct HealthSection: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(healthColor)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(.horizontal)

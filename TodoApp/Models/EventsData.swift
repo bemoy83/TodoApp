@@ -89,6 +89,7 @@ struct ProjectAttentionNeeded {
             var overdueCount = 0
             var blockedCount = 0
             var missingEstimates = 0
+            var dateConflictsCount = 0
             var nearingBudget = 0
             var overPlanned = false
 
@@ -108,6 +109,9 @@ struct ProjectAttentionNeeded {
                     task.effectiveEstimate == nil && task.priority < 3 // Exclude low priority tasks
                 }.count
             }
+
+            // Check for date conflicts (tasks outside project timeline)
+            dateConflictsCount = incompleteTasks.filter { $0.hasDateConflicts }.count
 
             // Check if actual time is nearing budget
             if let progress = project.timeProgress, progress >= 0.85 {
@@ -129,6 +133,9 @@ struct ProjectAttentionNeeded {
             if missingEstimates > 0 {
                 projectIssues.append("\(missingEstimates) missing estimates")
             }
+            if dateConflictsCount > 0 {
+                projectIssues.append("\(dateConflictsCount) date \(dateConflictsCount == 1 ? "conflict" : "conflicts")")
+            }
             if overPlanned {
                 if let variance = project.planningVariance {
                     projectIssues.append("over-planned by \(String(format: "%.0f", variance))h")
@@ -148,6 +155,7 @@ struct ProjectAttentionNeeded {
                     overdueCount: overdueCount,
                     blockedCount: blockedCount,
                     missingEstimatesCount: missingEstimates,
+                    dateConflictsCount: dateConflictsCount,
                     nearingBudget: nearingBudget > 0,
                     overPlanned: overPlanned
                 ))
@@ -174,13 +182,14 @@ struct ProjectIssue: Identifiable {
     let overdueCount: Int
     let blockedCount: Int
     let missingEstimatesCount: Int
+    let dateConflictsCount: Int // Date constraint conflicts
     let nearingBudget: Bool
     let overPlanned: Bool
 
     var id: UUID { project.id }
 
     var totalIssues: Int {
-        overdueCount + blockedCount + missingEstimatesCount + (nearingBudget ? 1 : 0) + (overPlanned ? 1 : 0)
+        overdueCount + blockedCount + missingEstimatesCount + dateConflictsCount + (nearingBudget ? 1 : 0) + (overPlanned ? 1 : 0)
     }
 
     var summaryText: String {

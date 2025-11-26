@@ -165,6 +165,7 @@ struct TaskComposerForm: View {
             showingValidationAlert: $showingDateValidationAlert,
             isSubtask: isSubtask,
             parentDueDate: parentDueDate,
+            selectedProject: selectedProject, // Real-time project conflict detection
             onDateChange: validateSubtaskDueDate
         )
     }
