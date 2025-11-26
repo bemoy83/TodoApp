@@ -162,7 +162,12 @@ struct ProjectIssuesDetailView: View {
                 if !dateConflictTasks.isEmpty {
                     Section {
                         ForEach(dateConflictTasks) { task in
-                            DateConflictTaskRow(task: task)
+                            Button {
+                                selectedTask = task
+                            } label: {
+                                DateConflictTaskRow(task: task)
+                            }
+                            .buttonStyle(.plain)
                         }
                     } header: {
                         HStack {
@@ -321,7 +326,6 @@ struct IssueTaskRow: View {
 
 struct DateConflictTaskRow: View {
     let task: Task
-    @State private var showingDetail = false
 
     private var statusColor: Color {
         switch task.status {
@@ -333,112 +337,50 @@ struct DateConflictTaskRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            // Task header (tappable to expand)
-            Button {
-                withAnimation {
-                    showingDetail.toggle()
-                }
-            } label: {
-                HStack(spacing: DesignSystem.Spacing.sm) {
-                    // Status icon
-                    Image(systemName: task.status.icon)
-                        .font(.body)
-                        .foregroundStyle(statusColor)
-                        .frame(width: 24)
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            // Status icon
+            Image(systemName: task.status.icon)
+                .font(.body)
+                .foregroundStyle(statusColor)
+                .frame(width: 24)
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(task.title)
-                            .font(DesignSystem.Typography.body)
-                            .foregroundStyle(DesignSystem.Colors.primary)
-                            .lineLimit(1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(task.title)
+                    .font(DesignSystem.Typography.body)
+                    .foregroundStyle(DesignSystem.Colors.primary)
+                    .lineLimit(1)
 
-                        HStack(spacing: 8) {
-                            // Priority
-                            if task.priority < 2 {
-                                HStack(spacing: 2) {
-                                    Image(systemName: Priority(rawValue: task.priority)?.icon ?? "minus")
-                                        .font(.caption2)
-                                    Text(Priority(rawValue: task.priority)?.label ?? "")
-                                        .font(DesignSystem.Typography.caption2)
-                                }
-                                .foregroundStyle(Priority(rawValue: task.priority)?.color ?? Color.gray)
-                            }
-
-                            // Date conflict badge
-                            HStack(spacing: 2) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.caption2)
-                                Text("Dates")
-                                    .font(DesignSystem.Typography.caption2)
-                            }
-                            .foregroundStyle(DesignSystem.Colors.warning)
+                HStack(spacing: 8) {
+                    // Priority
+                    if task.priority < 2 {
+                        HStack(spacing: 2) {
+                            Image(systemName: Priority(rawValue: task.priority)?.icon ?? "minus")
+                                .font(.caption2)
+                            Text(Priority(rawValue: task.priority)?.label ?? "")
+                                .font(DesignSystem.Typography.caption2)
                         }
+                        .foregroundStyle(Priority(rawValue: task.priority)?.color ?? Color.gray)
                     }
 
-                    Spacer()
-
-                    Image(systemName: showingDetail ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(DesignSystem.Colors.tertiary)
-                }
-            }
-            .buttonStyle(.plain)
-
-            // Expanded details and quick fixes
-            if showingDetail {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                    // Conflict description
+                    // Date conflict info
                     if let message = task.dateConflictMessage {
-                        HStack(alignment: .top, spacing: 6) {
-                            Image(systemName: "info.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(DesignSystem.Colors.warning)
-
+                        HStack(spacing: 2) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption2)
                             Text(message)
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundStyle(DesignSystem.Colors.secondary)
+                                .font(DesignSystem.Typography.caption2)
+                                .lineLimit(1)
                         }
-                        .padding(DesignSystem.Spacing.sm)
-                        .background(DesignSystem.Colors.warning.opacity(0.1))
-                        .cornerRadius(DesignSystem.CornerRadius.sm)
-                    }
-
-                    // Quick fix buttons
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        Button {
-                            task.adjustToProjectDates()
-                            HapticManager.success()
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.down.to.line")
-                                    .font(.caption)
-                                Text("Fit to Project")
-                                    .font(DesignSystem.Typography.caption)
-                                    .fontWeight(.medium)
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(DesignSystem.Colors.info)
-
-                        Button {
-                            task.expandProjectToIncludeTask()
-                            HapticManager.success()
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                    .font(.caption)
-                                Text("Expand Project")
-                                    .font(DesignSystem.Typography.caption)
-                                    .fontWeight(.medium)
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(DesignSystem.Colors.warning)
+                        .foregroundStyle(DesignSystem.Colors.warning)
                     }
                 }
-                .padding(.top, DesignSystem.Spacing.xs)
             }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(DesignSystem.Colors.tertiary)
         }
     }
 }
