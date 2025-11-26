@@ -37,6 +37,12 @@ struct ProjectIssuesDetailView: View {
         }
     }
 
+    private var dateConflictTasks: [Task] {
+        return (projectIssue.project.tasks ?? []).filter { task in
+            !task.isCompleted && !task.isArchived && task.hasDateConflicts
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -146,6 +152,28 @@ struct ProjectIssuesDetailView: View {
                                 .fontWeight(.semibold)
 
                             Text("(\(tasksWithMissingEstimates.count))")
+                                .font(DesignSystem.Typography.subheadline)
+                                .foregroundStyle(DesignSystem.Colors.secondary)
+                        }
+                    }
+                }
+
+                // Date conflicts section
+                if !dateConflictTasks.isEmpty {
+                    Section {
+                        ForEach(dateConflictTasks) { task in
+                            DateConflictTaskRow(task: task)
+                        }
+                    } header: {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(DesignSystem.Colors.warning)
+
+                            Text("Date Conflicts")
+                                .font(DesignSystem.Typography.headline)
+                                .fontWeight(.semibold)
+
+                            Text("(\(dateConflictTasks.count))")
                                 .font(DesignSystem.Typography.subheadline)
                                 .foregroundStyle(DesignSystem.Colors.secondary)
                         }
@@ -289,6 +317,132 @@ struct IssueTaskRow: View {
     }
 }
 
+// MARK: - Date Conflict Task Row
+
+struct DateConflictTaskRow: View {
+    let task: Task
+    @State private var showingDetail = false
+
+    private var statusColor: Color {
+        switch task.status {
+        case .blocked: return DesignSystem.Colors.error
+        case .ready: return DesignSystem.Colors.secondary
+        case .inProgress: return DesignSystem.Colors.info
+        case .completed: return DesignSystem.Colors.success
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // Task header (tappable to expand)
+            Button {
+                withAnimation {
+                    showingDetail.toggle()
+                }
+            } label: {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    // Status icon
+                    Image(systemName: task.status.icon)
+                        .font(.body)
+                        .foregroundStyle(statusColor)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(task.title)
+                            .font(DesignSystem.Typography.body)
+                            .foregroundStyle(DesignSystem.Colors.primary)
+                            .lineLimit(1)
+
+                        HStack(spacing: 8) {
+                            // Priority
+                            if task.priority < 2 {
+                                HStack(spacing: 2) {
+                                    Image(systemName: Priority(rawValue: task.priority)?.icon ?? "minus")
+                                        .font(.caption2)
+                                    Text(Priority(rawValue: task.priority)?.label ?? "")
+                                        .font(DesignSystem.Typography.caption2)
+                                }
+                                .foregroundStyle(Priority(rawValue: task.priority)?.color ?? Color.gray)
+                            }
+
+                            // Date conflict badge
+                            HStack(spacing: 2) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.caption2)
+                                Text("Dates")
+                                    .font(DesignSystem.Typography.caption2)
+                            }
+                            .foregroundStyle(DesignSystem.Colors.warning)
+                        }
+                    }
+
+                    Spacer()
+
+                    Image(systemName: showingDetail ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(DesignSystem.Colors.tertiary)
+                }
+            }
+            .buttonStyle(.plain)
+
+            // Expanded details and quick fixes
+            if showingDetail {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                    // Conflict description
+                    if let message = task.dateConflictMessage {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(DesignSystem.Colors.warning)
+
+                            Text(message)
+                                .font(DesignSystem.Typography.caption)
+                                .foregroundStyle(DesignSystem.Colors.secondary)
+                        }
+                        .padding(DesignSystem.Spacing.sm)
+                        .background(DesignSystem.Colors.warning.opacity(0.1))
+                        .cornerRadius(DesignSystem.CornerRadius.sm)
+                    }
+
+                    // Quick fix buttons
+                    HStack(spacing: DesignSystem.Spacing.sm) {
+                        Button {
+                            task.adjustToProjectDates()
+                            HapticManager.success()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.down.to.line")
+                                    .font(.caption)
+                                Text("Fit to Project")
+                                    .font(DesignSystem.Typography.caption)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(DesignSystem.Colors.info)
+
+                        Button {
+                            task.expandProjectToIncludeTask()
+                            HapticManager.success()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                    .font(.caption)
+                                Text("Expand Project")
+                                    .font(DesignSystem.Typography.caption)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(DesignSystem.Colors.warning)
+                    }
+                }
+                .padding(.top, DesignSystem.Spacing.xs)
+            }
+        }
+    }
+}
+
 // MARK: - Budget Warning Card
 
 struct BudgetWarningCard: View {
@@ -343,6 +497,7 @@ struct BudgetWarningCard: View {
         overdueCount: 2,
         blockedCount: 1,
         missingEstimatesCount: 0,
+        dateConflictsCount: 0,
         nearingBudget: false,
         overPlanned: false
     )
