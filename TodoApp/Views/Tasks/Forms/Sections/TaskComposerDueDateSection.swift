@@ -40,6 +40,23 @@ struct TaskComposerDueDateSection: View {
         return startDate < projectStart
     }
 
+    /// Check if start date is after project due date (starts after event ends!)
+    private var startsAfterProject: Bool {
+        guard let project = selectedProject,
+              let projectDue = project.dueDate,
+              hasStartDate else { return false }
+        return startDate > projectDue
+    }
+
+    /// Check if due date is before project start date (completes before event begins!)
+    private var endsBeforeProject: Bool {
+        guard let project = selectedProject,
+              let projectStart = project.startDate,
+              hasDueDate || hasEndDate else { return false }
+        let taskEnd = hasEndDate ? endDate : dueDate
+        return taskEnd < projectStart
+    }
+
     /// Check if due date conflicts with project due date
     private var endsAfterProject: Bool {
         guard let project = selectedProject,
@@ -51,7 +68,7 @@ struct TaskComposerDueDateSection: View {
 
     /// Has any project date conflicts
     private var hasProjectConflicts: Bool {
-        startsBeforeProject || endsAfterProject
+        startsBeforeProject || startsAfterProject || endsBeforeProject || endsAfterProject
     }
 
     var body: some View {
@@ -172,6 +189,15 @@ struct TaskComposerDueDateSection: View {
                 )
             }
 
+            // Real-time warning: due date before project start
+            if endsBeforeProject, let projectStart = selectedProject?.startDate {
+                TaskInlineInfoRow(
+                    icon: "exclamationmark.triangle",
+                    message: "Completes before project begins (\(projectStart.formatted(date: .abbreviated, time: .omitted)))",
+                    style: .warning
+                )
+            }
+
             // Real-time warning: due date after project end
             if endsAfterProject, let projectDue = selectedProject?.dueDate {
                 TaskInlineInfoRow(
@@ -222,6 +248,15 @@ struct TaskComposerDueDateSection: View {
                 TaskInlineInfoRow(
                     icon: "exclamationmark.triangle",
                     message: "Starts before project begins (\(projectStart.formatted(date: .abbreviated, time: .omitted)))",
+                    style: .warning
+                )
+            }
+
+            // Real-time warning: start date after project end
+            if startsAfterProject, let projectDue = selectedProject?.dueDate {
+                TaskInlineInfoRow(
+                    icon: "exclamationmark.triangle",
+                    message: "Starts after project ends (\(projectDue.formatted(date: .abbreviated, time: .omitted)))",
                     style: .warning
                 )
             }
