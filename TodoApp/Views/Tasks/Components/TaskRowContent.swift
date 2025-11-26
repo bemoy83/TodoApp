@@ -33,9 +33,9 @@ struct TaskRowMetadataSection: View {
     
     // Check if there's any content to show
     var hasContent: Bool {
-        (shouldShowDueDate && effectiveDueDate != nil) || task.effectiveEstimate != nil
+        (shouldShowDueDate && effectiveDueDate != nil) || task.effectiveEstimate != nil || task.hasDateConflicts
     }
-    
+
     var body: some View {
         if hasContent {
             HStack(alignment: .top, spacing: 0) {
@@ -59,6 +59,11 @@ struct TaskRowMetadataSection: View {
                             isCalculated: task.isUsingCalculatedEstimate,
                             hasActiveTimer: calculations.hasAnyTimerRunning
                         )
+                    }
+
+                    // Date conflict badge (Improvement #1)
+                    if task.hasDateConflicts {
+                        DateConflictBadge()
                     }
                 }
             }

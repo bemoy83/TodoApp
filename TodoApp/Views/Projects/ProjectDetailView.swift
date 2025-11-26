@@ -360,6 +360,17 @@ private struct LightweightTaskRow: View {
                         }
                         .foregroundStyle(DesignSystem.Colors.success)
                     }
+
+                    // Date conflict indicator (Improvement #1)
+                    if task.hasDateConflicts {
+                        HStack(spacing: 2) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption2)
+                            Text("Dates")
+                                .font(DesignSystem.Typography.caption2)
+                        }
+                        .foregroundStyle(DesignSystem.Colors.warning)
+                    }
                 }
                 .foregroundStyle(DesignSystem.Colors.secondary)
             }

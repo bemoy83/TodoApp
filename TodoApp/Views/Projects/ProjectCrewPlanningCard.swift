@@ -140,6 +140,15 @@ struct ProjectCrewPlanningCard: View {
         return DesignSystem.Colors.success                       // Good: <75% utilization
     }
 
+    /// Count of tasks excluded from crew planning (Improvement #2: Transparency)
+    /// These are tasks outside the project timeline (prep/cleanup work)
+    private var excludedTaskCount: Int {
+        guard let tasks = project.tasks else { return 0 }
+        return tasks.filter { task in
+            !task.isCompleted && !task.isArchived && !task.isWithinProjectTimeline
+        }.count
+    }
+
     /// Whether to auto-expand (critical situations)
     private var shouldAutoExpand: Bool {
         // Auto-expand if:
@@ -317,6 +326,26 @@ struct ProjectCrewPlanningCard: View {
                         }
                     }
                 }
+            }
+
+            // Excluded tasks transparency (Improvement #2)
+            if excludedTaskCount > 0 {
+                Divider()
+
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(DesignSystem.Colors.info)
+
+                    Text("\(excludedTaskCount) \(excludedTaskCount == 1 ? "task" : "tasks") excluded (outside timeline)")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundStyle(DesignSystem.Colors.secondary)
+
+                    Spacer()
+                }
+                .padding(DesignSystem.Spacing.sm)
+                .background(DesignSystem.Colors.info.opacity(0.1))
+                .cornerRadius(DesignSystem.CornerRadius.sm)
             }
 
             Divider()
