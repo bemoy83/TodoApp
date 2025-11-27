@@ -16,14 +16,20 @@ struct TimeEntryManager {
 
     // MARK: - Duration Calculations
 
-    /// Calculate duration between start and end times
+    /// Calculate duration between start and end times based on work hours (not 24-hour clock)
+    /// Uses WorkHoursCalculator to only count hours within the workday window (07:00-15:00)
     /// - Parameters:
     ///   - start: Start time
     ///   - end: Optional end time (nil means ongoing, uses current time)
-    /// - Returns: Duration in seconds
+    /// - Returns: Duration in seconds (work hours only)
     static func calculateDuration(start: Date, end: Date?) -> TimeInterval {
         let endTime = end ?? Date()
-        return endTime.timeIntervalSince(start)
+
+        // Use WorkHoursCalculator to get work hours only (not 24-hour difference)
+        let workHours = WorkHoursCalculator.calculateAvailableHours(from: start, to: endTime)
+
+        // Convert hours to seconds
+        return workHours * 3600.0
     }
 
     /// Calculate duration for a time entry
