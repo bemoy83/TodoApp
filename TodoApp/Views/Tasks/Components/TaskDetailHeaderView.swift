@@ -338,42 +338,46 @@ private struct ScheduleSection: View {
         .padding(.top, DesignSystem.Spacing.xs)
     }
 
-    @ViewBuilder
     private func scheduleEstimateComparison(availableHours: Double, estimateSeconds: Int) -> some View {
         let estimateHours = Double(estimateSeconds) / 3600.0
         let ratio = estimateHours / availableHours
 
         // Determine status based on ratio
-        let status: ScheduleEstimateStatus
-        if estimateHours > availableHours {
-            status = .insufficient  // Need more time than available
-        } else if ratio >= 0.75 {
-            status = .tight  // 75-100% utilized, tight schedule
-        } else {
-            status = .comfortable  // < 75% utilized, good margin
-        }
+        let status: ScheduleEstimateStatus = {
+            if estimateHours > availableHours {
+                return .insufficient  // Need more time than available
+            } else if ratio >= 0.75 {
+                return .tight  // 75-100% utilized, tight schedule
+            } else {
+                return .comfortable  // < 75% utilized, good margin
+            }
+        }()
 
-        let icon: String
-        let color: Color
-        let message: String
+        let (icon, color, message): (String, Color, String) = {
+            switch status {
+            case .insufficient:
+                return (
+                    "exclamationmark.triangle.fill",
+                    .red,
+                    "Insufficient time: Need \(String(format: "%.1f", estimateHours)) hrs, only \(String(format: "%.1f", availableHours)) hrs available"
+                )
+            case .tight:
+                return (
+                    "exclamationmark.triangle.fill",
+                    .orange,
+                    "Tight schedule: Need \(String(format: "%.1f", estimateHours)) hrs, have \(String(format: "%.1f", availableHours)) hrs available"
+                )
+            case .comfortable:
+                let margin = availableHours - estimateHours
+                return (
+                    "checkmark.circle.fill",
+                    .green,
+                    "Comfortable margin: Need \(String(format: "%.1f", estimateHours)) hrs, \(String(format: "%.1f", margin)) hrs buffer"
+                )
+            }
+        }()
 
-        switch status {
-        case .insufficient:
-            icon = "exclamationmark.triangle.fill"
-            color = .red
-            message = "Insufficient time: Need \(String(format: "%.1f", estimateHours)) hrs, only \(String(format: "%.1f", availableHours)) hrs available"
-        case .tight:
-            icon = "exclamationmark.triangle.fill"
-            color = .orange
-            message = "Tight schedule: Need \(String(format: "%.1f", estimateHours)) hrs, have \(String(format: "%.1f", availableHours)) hrs available"
-        case .comfortable:
-            icon = "checkmark.circle.fill"
-            color = .green
-            let margin = availableHours - estimateHours
-            message = "Comfortable margin: Need \(String(format: "%.1f", estimateHours)) hrs, \(String(format: "%.1f", margin)) hrs buffer"
-        }
-
-        TaskRowIconValueLabel(
+        return TaskRowIconValueLabel(
             icon: icon,
             label: message,
             value: "Time Planning",
