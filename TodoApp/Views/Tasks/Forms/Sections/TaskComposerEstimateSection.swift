@@ -135,6 +135,10 @@ struct TaskComposerEstimateSection: View {
                 hasCustomEstimate: $estimation.hasCustomEstimate,
                 isSubtask: isSubtask,
                 taskSubtaskEstimateTotal: taskSubtaskEstimateTotal,
+                hasStartDate: hasStartDate,
+                startDate: startDate,
+                hasEndDate: hasEndDate,
+                endDate: endDate,
                 onValidation: onEstimateChange
             )
 
