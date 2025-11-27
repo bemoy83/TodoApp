@@ -169,8 +169,8 @@ struct TaskQuantityView: View {
                 }
                 .buttonStyle(.plain)
 
-                // Productivity metrics (only show if has data)
-                if let productivity = task.unitsPerHour {
+                // Productivity metrics (only show if task completed and has data)
+                if let productivity = task.unitsPerHour, task.isCompleted {
                     Divider()
                         .padding(.horizontal)
 
