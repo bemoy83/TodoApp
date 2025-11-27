@@ -146,6 +146,7 @@ struct TaskComposerQuantitySection: View {
                         // Trigger recalculation when personnel is set via recommendation
                         onCalculationUpdate()
                     }
+                    .id("\(hasStartDate ? startDate.timeIntervalSince1970 : 0)-\(dueDate.timeIntervalSince1970)")
                 }
             } else if taskType != nil {
                 TaskInlineInfoRow(

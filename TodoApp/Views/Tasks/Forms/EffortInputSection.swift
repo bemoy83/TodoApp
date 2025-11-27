@@ -121,6 +121,7 @@ struct EffortInputSection: View {
                     hasPersonnel = true
                     expectedPersonnelCount = selectedCount
                 }
+                .id("\(hasStartDate ? startDate.timeIntervalSince1970 : 0)-\(dueDate.timeIntervalSince1970)")
             }
         }
         .onChange(of: effectiveEffort) { _, newValue in
