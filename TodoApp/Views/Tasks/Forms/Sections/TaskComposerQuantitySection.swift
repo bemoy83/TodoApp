@@ -170,7 +170,7 @@ struct TaskComposerQuantitySection: View {
                 if let customRate = existingCustomRate, customRate > 0 {
                     // Check if the existing rate differs from template/historical defaults
                     // If so, it's a custom value that should be preserved
-                    let defaultRate = expectedProductivity ?? historicalProductivity ?? unit.defaultProductivityRate
+                    let defaultRate = expectedProductivity ?? historicalProductivity ?? unit.defaultProductivityRate ?? 0.0
 
                     if abs(customRate - defaultRate) > 0.01 {
                         // User had set a custom rate - restore it
