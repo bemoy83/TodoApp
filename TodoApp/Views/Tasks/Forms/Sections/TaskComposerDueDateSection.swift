@@ -267,15 +267,20 @@ struct TaskComposerDueDateSection: View {
     private var workingWindowSummary: some View {
         let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
 
-        // Calculate days: if same calendar day with work hours, count as 1 day
-        let calendar = Calendar.current
-        let daysDifference = calendar.dateComponents([.day], from: startDate, to: endDate).day ?? 0
-        let isSameDay = calendar.isDate(startDate, inSameDayAs: endDate)
-        let days = (isSameDay && hours > 0) ? 1 : max(1, daysDifference)
+        // Calculate work days based on actual work hours (not calendar days)
+        let workDays = hours / WorkHoursCalculator.workdayHours
+
+        // Format work days nicely (show 1 decimal place if not a whole number)
+        let daysText: String
+        if workDays.truncatingRemainder(dividingBy: 1) == 0 {
+            daysText = "\(Int(workDays)) \(Int(workDays) == 1 ? "work day" : "work days")"
+        } else {
+            daysText = String(format: "%.1f work days", workDays)
+        }
 
         TaskRowIconValueLabel(
             icon: "clock.arrow.2.circlepath",
-            label: "\(days) \(days == 1 ? "day" : "days") • \(String(format: "%.1f", hours)) work hours available",
+            label: "\(daysText) • \(String(format: "%.1f", hours)) work hours available",
             value: "Working Window",
             tint: .green
         )
