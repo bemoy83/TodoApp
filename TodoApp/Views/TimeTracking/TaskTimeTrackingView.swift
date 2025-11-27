@@ -199,17 +199,16 @@ struct TaskTimeTrackingView: View {
     private var displayedDirectPersonHours: Double {
         guard let entries = task.timeEntries else { return 0.0 }
 
-        var totalPersonSeconds = 0.0
-
-        for entry in entries {
+        return entries.reduce(0.0) { total, entry in
             let endTime = entry.endTime ?? (entry.endTime == nil && task.hasActiveTimer ? currentTime : nil)
-            guard let end = endTime else { continue }
+            guard let end = endTime else { return total }
 
-            let duration = end.timeIntervalSince(entry.startTime)
-            totalPersonSeconds += duration * Double(entry.personnelCount)
+            // Use TimeEntryManager to calculate work hours only
+            let durationSeconds = TimeEntryManager.calculateDuration(start: entry.startTime, end: end)
+            let personHours = (durationSeconds / 3600.0) * Double(entry.personnelCount)
+
+            return total + personHours
         }
-
-        return totalPersonSeconds / 3600  // Convert to hours
     }
 
     /// Calculate total person-hours including all subtasks
@@ -228,22 +227,23 @@ struct TaskTimeTrackingView: View {
     private func computePersonHours(for task: Task) -> Double {
         guard let entries = task.timeEntries else { return 0.0 }
 
-        var totalPersonSeconds = 0.0
-
-        for entry in entries {
+        var totalPersonHours = entries.reduce(0.0) { total, entry in
             let endTime = entry.endTime ?? (entry.endTime == nil && task.hasActiveTimer ? currentTime : nil)
-            guard let end = endTime else { continue }
+            guard let end = endTime else { return total }
 
-            let duration = end.timeIntervalSince(entry.startTime)
-            totalPersonSeconds += duration * Double(entry.personnelCount)
+            // Use TimeEntryManager to calculate work hours only
+            let durationSeconds = TimeEntryManager.calculateDuration(start: entry.startTime, end: end)
+            let personHours = (durationSeconds / 3600.0) * Double(entry.personnelCount)
+
+            return total + personHours
         }
 
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         for subtask in subtasks {
-            totalPersonSeconds += computePersonHours(for: subtask) * 3600  // Convert back to seconds for addition
+            totalPersonHours += computePersonHours(for: subtask)
         }
 
-        return totalPersonSeconds / 3600  // Convert to hours
+        return totalPersonHours
     }
 
     /// Check if any entries have personnel > 1

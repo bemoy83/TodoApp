@@ -369,15 +369,9 @@ struct TaskPersonnelView: View {
     private func computeDirectPersonHours() -> Double {
         guard let entries = task.timeEntries else { return 0.0 }
 
-        var totalPersonSeconds = 0.0
-
-        for entry in entries {
-            guard let end = entry.endTime else { continue }
-            let duration = end.timeIntervalSince(entry.startTime)
-            totalPersonSeconds += duration * Double(entry.personnelCount)
+        return entries.reduce(0.0) { total, entry in
+            total + TimeEntryManager.calculatePersonHours(for: entry)
         }
-
-        return totalPersonSeconds / 3600  // Convert to hours
     }
 
     private func computeTotalPersonHours() -> Double {
@@ -394,20 +388,16 @@ struct TaskPersonnelView: View {
     private func computePersonHours(for task: Task) -> Double {
         guard let entries = task.timeEntries else { return 0.0 }
 
-        var totalPersonSeconds = 0.0
-
-        for entry in entries {
-            guard let end = entry.endTime else { continue }
-            let duration = end.timeIntervalSince(entry.startTime)
-            totalPersonSeconds += duration * Double(entry.personnelCount)
+        var totalPersonHours = entries.reduce(0.0) { total, entry in
+            total + TimeEntryManager.calculatePersonHours(for: entry)
         }
 
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         for subtask in subtasks {
-            totalPersonSeconds += computePersonHours(for: subtask) * 3600  // Convert back to seconds
+            totalPersonHours += computePersonHours(for: subtask)
         }
 
-        return totalPersonSeconds / 3600  // Convert to hours
+        return totalPersonHours
     }
 }
 
