@@ -127,10 +127,12 @@ struct TaskEditView: View {
             task.unit = estimation.unit
             task.quantity = !estimation.quantity.isEmpty ? Double(estimation.quantity) : nil
             task.taskType = estimation.taskType
+            task.customProductivityRate = estimation.productivityRate // Save custom productivity rate
         } else {
             task.unit = UnitType.none
             task.quantity = nil
             task.taskType = nil
+            task.customProductivityRate = nil
         }
 
         onSave(task)

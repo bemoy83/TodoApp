@@ -133,6 +133,7 @@ final class Task {
     var quantity: Double? // Amount of work completed (e.g., 45.5 square meters, 120 pieces)
     var unit: UnitType = UnitType.none // Unit of measurement for quantity
     var taskType: String? // Task type/category for grouping productivity (e.g., "Carpet Installation", "Painting")
+    var customProductivityRate: Double? // User's custom productivity rate (units per person-hour), overrides template/historical defaults
 
     // Archive status
     var isArchived: Bool = false // true = task is archived (hidden from main views)
