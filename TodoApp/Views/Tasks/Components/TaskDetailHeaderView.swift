@@ -24,18 +24,6 @@ struct TaskDetailHeaderView: View {
         return allTasks.first { $0.id == parentId }
     }
 
-    private var effectiveDueDate: Date? {
-        task.dueDate ?? parentTask?.dueDate
-    }
-
-    private var isDueDateInherited: Bool {
-        task.dueDate == nil && parentTask?.dueDate != nil
-    }
-
-    private var taskPriority: Priority {
-        Priority(rawValue: task.priority) ?? .medium
-    }
-
     init(task: Task, alert: Binding<TaskActionAlert?>? = nil) {
         self._task = Bindable(wrappedValue: task)
         self.externalAlert = alert
@@ -86,24 +74,15 @@ struct TaskDetailHeaderView: View {
                     isEditing: $isEditingTitle,
                     editedTitle: $editedTitle
                 )
-                
+
                 // Status Section (always shown)
                 StatusSection(
                     task: task,
                     alertBinding: alertBinding,
                     modelContext: modelContext
                 )
-                
-                // Dates Section (conditional - only if has dates)
-                if hasDateInfo {
-                    DatesSection(
-                        task: task,
-                        effectiveDueDate: effectiveDueDate,
-                        isDueDateInherited: isDueDateInherited
-                    )
-                }
 
-                // Schedule Section (conditional - only if has start/end dates)
+                // Schedule Section (conditional - shows working window with start/due)
                 if hasScheduleInfo {
                     ScheduleSection(task: task)
                 }
@@ -116,6 +95,9 @@ struct TaskDetailHeaderView: View {
                 // Organization Section (always shown - priority is always relevant)
                 OrganizationSection(task: task)
 
+                // Basic Dates Section (shows Created/Completed only)
+                BasicDatesSection(task: task)
+
                 // Notes Section (conditional - only if has notes)
                 if let notes = task.notes, !notes.isEmpty {
                     NotesSection(notes: notes, isExpanded: $notesExpanded)
@@ -125,12 +107,8 @@ struct TaskDetailHeaderView: View {
         }
         .taskActionAlert(alert: alertBinding)
     }
-    
-    // Conditional logic
-    private var hasDateInfo: Bool {
-        effectiveDueDate != nil || task.completedDate != nil
-    }
 
+    // Conditional logic
     private var hasScheduleInfo: Bool {
         task.startDate != nil || task.endDate != nil
     }
@@ -255,20 +233,18 @@ private struct StatusSection: View {
     }
 }
 
-// MARK: - Dates Section
+// MARK: - Basic Dates Section
 
-private struct DatesSection: View {
+private struct BasicDatesSection: View {
     let task: Task
-    let effectiveDueDate: Date?
-    let isDueDateInherited: Bool
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Text("Dates")
+            Text("Info")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
-            
+
             VStack(spacing: DesignSystem.Spacing.xs) {
                 // Created date (always shown)
                 DateRow(
@@ -277,18 +253,7 @@ private struct DatesSection: View {
                     date: task.createdDate,
                     color: .secondary
                 )
-                
-                // Due date (conditional)
-                if let dueDate = effectiveDueDate {
-                    DateRow(
-                        icon: isDueDateInherited ? "calendar.badge.clock" : "calendar",
-                        label: isDueDateInherited ? "Due (inherited)" : "Due",
-                        date: dueDate,
-                        color: dueDate < Date() && !task.isCompleted ? .red : .secondary,
-                        isActionable: true
-                    )
-                }
-                
+
                 // Completed date (conditional)
                 if let completedDate = task.completedDate {
                     DateRow(
@@ -309,8 +274,6 @@ private struct DatesSection: View {
 private struct ScheduleSection: View {
     let task: Task
 
-    private var calendar: Calendar { Calendar.current }
-
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Schedule")
@@ -330,11 +293,11 @@ private struct ScheduleSection: View {
                     )
                 }
 
-                // End date / Deadline
+                // End date (labeled as "Due" - no redundancy with old dueDate field)
                 if let endDate = task.endDate {
                     DateRow(
                         icon: "flag.fill",
-                        label: "Deadline",
+                        label: "Due",
                         date: endDate,
                         color: endDate < Date() && !task.isCompleted ? .red : .orange,
                         showTime: true
@@ -354,14 +317,17 @@ private struct ScheduleSection: View {
     private func workingWindowSummary(startDate: Date, endDate: Date) -> some View {
         let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
 
-        // Calculate days using Calendar
-        let daysDifference = calendar.dateComponents([.day], from: startDate, to: endDate).day ?? 0
-        let isSameDay = calendar.isDate(startDate, inSameDayAs: endDate)
-        let days = (isSameDay && hours > 0) ? 1 : max(1, daysDifference)
+        // Calculate work days based on actual work hours (not calendar days)
+        let workDays = hours / WorkHoursCalculator.workdayHours
+
+        // Format work days nicely (show 1 decimal place if not a whole number)
+        let daysText = workDays.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(workDays)) \(Int(workDays) == 1 ? "work day" : "work days")"
+            : String(format: "%.1f work days", workDays)
 
         TaskRowIconValueLabel(
             icon: "clock.arrow.2.circlepath",
-            label: "\(days) \(days == 1 ? "day" : "days") • \(String(format: "%.1f", hours)) work hours available",
+            label: "\(daysText) • \(String(format: "%.1f", hours)) work hours available",
             value: "Working Window",
             tint: .green
         )
