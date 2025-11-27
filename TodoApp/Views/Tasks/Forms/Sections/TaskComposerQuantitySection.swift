@@ -159,7 +159,26 @@ struct TaskComposerQuantitySection: View {
         .onAppear {
             // Initialize productivity rates if task type is already set
             if let currentTaskType = taskType {
+                // Store the existing custom productivity rate (if any) before initialization
+                let existingCustomRate = productivityRate
+
+                // Initialize template and historical rates
                 handleTaskTypeChange(currentTaskType)
+
+                // Restore custom productivity rate if it was already set
+                // (This preserves user's manual customization when reopening tasks)
+                if let customRate = existingCustomRate, customRate > 0 {
+                    // Check if the existing rate differs from template/historical defaults
+                    // If so, it's a custom value that should be preserved
+                    let defaultRate = expectedProductivity ?? historicalProductivity ?? unit.defaultProductivityRate
+
+                    if abs(customRate - defaultRate) > 0.01 {
+                        // User had set a custom rate - restore it
+                        productivityRate = customRate
+                        productivityMode = .custom
+                        customProductivityInput = String(format: "%.1f", customRate)
+                    }
+                }
             }
 
             // Initialize required values based on calculation mode
