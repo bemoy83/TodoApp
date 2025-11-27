@@ -157,6 +157,11 @@ struct TaskComposerQuantitySection: View {
             }
         }
         .onAppear {
+            // Initialize productivity rates if task type is already set
+            if let currentTaskType = taskType {
+                handleTaskTypeChange(currentTaskType)
+            }
+
             // Initialize required values based on calculation mode
             switch quantityCalculationMode {
             case .calculateDuration:
