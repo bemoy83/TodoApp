@@ -271,12 +271,9 @@ struct TaskComposerDueDateSection: View {
         let workDays = hours / WorkHoursCalculator.workdayHours
 
         // Format work days nicely (show 1 decimal place if not a whole number)
-        let daysText: String
-        if workDays.truncatingRemainder(dividingBy: 1) == 0 {
-            daysText = "\(Int(workDays)) \(Int(workDays) == 1 ? "work day" : "work days")"
-        } else {
-            daysText = String(format: "%.1f work days", workDays)
-        }
+        let daysText = workDays.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(workDays)) \(Int(workDays) == 1 ? "work day" : "work days")"
+            : String(format: "%.1f work days", workDays)
 
         TaskRowIconValueLabel(
             icon: "clock.arrow.2.circlepath",
