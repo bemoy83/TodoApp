@@ -75,7 +75,7 @@ struct TaskComposerDurationMode: View {
                     Divider()
                 }
             case .manual:
-                break
+                EmptyView()
             }
 
             timePickerRow
