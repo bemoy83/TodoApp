@@ -306,7 +306,13 @@ private struct ScheduleSection: View {
 
                 // Working window summary (when both dates exist)
                 if let startDate = task.startDate, let endDate = task.endDate {
-                    workingWindowSummary(startDate: startDate, endDate: endDate)
+                    let availableHours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
+                    workingWindowSummary(hours: availableHours)
+
+                    // Schedule vs Estimate comparison (when estimate exists)
+                    if let estimateSeconds = task.effectiveEstimate {
+                        scheduleEstimateComparison(availableHours: availableHours, estimateSeconds: estimateSeconds)
+                    }
                 }
             }
         }
@@ -314,9 +320,7 @@ private struct ScheduleSection: View {
     }
 
     @ViewBuilder
-    private func workingWindowSummary(startDate: Date, endDate: Date) -> some View {
-        let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
-
+    private func workingWindowSummary(hours: Double) -> some View {
         // Calculate work days based on actual work hours (not calendar days)
         let workDays = hours / WorkHoursCalculator.workdayHours
 
@@ -333,6 +337,58 @@ private struct ScheduleSection: View {
         )
         .padding(.top, DesignSystem.Spacing.xs)
     }
+
+    @ViewBuilder
+    private func scheduleEstimateComparison(availableHours: Double, estimateSeconds: Int) -> some View {
+        let estimateHours = Double(estimateSeconds) / 3600.0
+        let ratio = estimateHours / availableHours
+
+        // Determine status based on ratio
+        let status: ScheduleEstimateStatus
+        if estimateHours > availableHours {
+            status = .insufficient  // Need more time than available
+        } else if ratio >= 0.75 {
+            status = .tight  // 75-100% utilized, tight schedule
+        } else {
+            status = .comfortable  // < 75% utilized, good margin
+        }
+
+        let icon: String
+        let color: Color
+        let message: String
+
+        switch status {
+        case .insufficient:
+            icon = "exclamationmark.triangle.fill"
+            color = .red
+            message = "Insufficient time: Need \(String(format: "%.1f", estimateHours)) hrs, only \(String(format: "%.1f", availableHours)) hrs available"
+        case .tight:
+            icon = "exclamationmark.triangle.fill"
+            color = .orange
+            message = "Tight schedule: Need \(String(format: "%.1f", estimateHours)) hrs, have \(String(format: "%.1f", availableHours)) hrs available"
+        case .comfortable:
+            icon = "checkmark.circle.fill"
+            color = .green
+            let margin = availableHours - estimateHours
+            message = "Comfortable margin: Need \(String(format: "%.1f", estimateHours)) hrs, \(String(format: "%.1f", margin)) hrs buffer"
+        }
+
+        TaskRowIconValueLabel(
+            icon: icon,
+            label: message,
+            value: "Time Planning",
+            tint: color
+        )
+        .padding(.top, DesignSystem.Spacing.xs)
+    }
+}
+
+// MARK: - Schedule Estimate Status
+
+private enum ScheduleEstimateStatus {
+    case insufficient  // Estimate exceeds available time
+    case tight         // Estimate is 75-100% of available time
+    case comfortable   // Estimate is < 75% of available time
 }
 
 // MARK: - Date Row Component
