@@ -60,7 +60,7 @@ struct TaskComposerQuantitySection: View {
 
     /// Whether to show personnel recommendations
     private var shouldShowPersonnelRecommendation: Bool {
-        guard hasDueDate, dueDate > Date(), calculatedEffort > 0 else { return false }
+        guard hasDueDate, calculatedEffort > 0 else { return false }
 
         // Only show when we're calculating duration (user needs personnel recommendation)
         return quantityCalculationMode == .calculateDuration

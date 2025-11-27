@@ -74,7 +74,7 @@ struct EffortInputSection: View {
 
     /// Whether to show personnel recommendations
     private var shouldShowPersonnelRecommendation: Bool {
-        hasDueDate && effectiveEffort > 0 && dueDate > Date()
+        hasDueDate && effectiveEffort > 0
     }
 
     var body: some View {
