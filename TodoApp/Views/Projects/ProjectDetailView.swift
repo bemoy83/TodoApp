@@ -100,6 +100,7 @@ struct ProjectDetailView: View {
             }
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
 
             // Crew planning card
             if ProjectCrewPlanningCard(project: project, allTasks: allTasks).shouldShow {
@@ -108,6 +109,7 @@ struct ProjectDetailView: View {
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowSeparator(.hidden)
             }
 
             // Subtasks hint
@@ -123,6 +125,7 @@ struct ProjectDetailView: View {
                     .foregroundStyle(DesignSystem.Colors.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .listRowSeparator(.hidden)
             }
 
             // Empty state
@@ -132,6 +135,7 @@ struct ProjectDetailView: View {
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
             }
 
             // Active tasks (with expansion)
