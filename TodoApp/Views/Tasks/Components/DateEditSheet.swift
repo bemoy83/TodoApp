@@ -245,7 +245,7 @@ struct DateEditSheet: View {
 
     let task = Task(
         title: "Sample Task",
-        taskDescription: "Test task for date editing",
+        notes: "Test task for date editing",
         priority: 1
     )
     task.endDate = Date().addingTimeInterval(86400)
