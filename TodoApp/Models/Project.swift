@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class Project {
+final class Project: TitledItem {
     var id: UUID
     var title: String
     var color: String
