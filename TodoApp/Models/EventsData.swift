@@ -94,7 +94,7 @@ struct ProjectAttentionNeeded {
             // Check for overdue tasks
             let now = Date()
             overdueCount = incompleteTasks.filter { task in
-                guard let dueDate = task.dueDate else { return false }
+                guard let dueDate = task.endDate else { return false }
                 return dueDate < now
             }.count
 

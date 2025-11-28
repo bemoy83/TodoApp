@@ -77,7 +77,7 @@ struct AttentionNeeded {
 
         // Overdue tasks (have due date and it's passed)
         let overdueTasks = incompleteTasks.filter { task in
-            guard let dueDate = task.dueDate else { return false }
+            guard let dueDate = task.endDate else { return false }
             return dueDate < now
         }
 

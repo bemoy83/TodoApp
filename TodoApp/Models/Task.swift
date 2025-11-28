@@ -532,7 +532,7 @@ final class Task {
     var endsAfterProject: Bool {
         guard let project = project,
               let projectDue = project.dueDate,
-              let taskDue = dueDate else { return false }
+              let taskDue = endDate else { return false }
         return taskDue > projectDue
     }
 
@@ -558,7 +558,7 @@ final class Task {
         }
 
         if endsAfterProject {
-            if let projectDue = project?.dueDate, let taskDue = dueDate {
+            if let projectDue = project?.dueDate, let taskDue = endDate {
                 let formatter = DateFormatter()
                 formatter.dateStyle = .medium
                 messages.append("ends after event (\(formatter.string(from: taskDue)) vs \(formatter.string(from: projectDue)))")
@@ -578,7 +578,7 @@ final class Task {
 
         // Task dates (use defaults if not set)
         let taskStart = startDate ?? project.startDate ?? .distantPast
-        let taskEnd = dueDate ?? project.dueDate ?? .distantFuture
+        let taskEnd = endDate ?? project.dueDate ?? .distantFuture
 
         // Project dates (use defaults if not set)
         let projectStart = project.startDate ?? .distantPast
@@ -648,14 +648,10 @@ final class Task {
             startDate = projectStart
         }
 
-        // Adjust due date if it conflicts
+        // Adjust end date if it conflicts
         if endsAfterProject, let projectDue = project.dueDate {
-            dueDate = projectDue
-        }
-
-        // Also adjust endDate if it's set and conflicts
-        if let projectDue = project.dueDate, let taskEnd = endDate, taskEnd > projectDue {
             endDate = projectDue
+            dueDate = projectDue  // Keep dueDate synced with endDate
         }
     }
 
@@ -673,7 +669,7 @@ final class Task {
         }
 
         // Expand project due date if task ends after
-        if let taskDue = dueDate {
+        if let taskDue = endDate {
             if let projectDue = project.dueDate {
                 project.dueDate = max(projectDue, taskDue)
             } else {

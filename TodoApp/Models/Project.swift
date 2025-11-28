@@ -67,7 +67,7 @@ final class Project {
     var overdueTasks: Int {
         let now = Date()
         return tasks?.filter { task in
-            !task.isCompleted && !task.isArchived && task.dueDate != nil && task.dueDate! < now
+            !task.isCompleted && !task.isArchived && task.endDate != nil && task.endDate! < now
         }.count ?? 0
     }
 
