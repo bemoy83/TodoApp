@@ -133,6 +133,7 @@ final class Task {
     var quantity: Double? // Amount of work completed (e.g., 45.5 square meters, 120 pieces)
     var unit: UnitType = UnitType.none // Unit of measurement for quantity
     var taskType: String? // Task type/category for grouping productivity (e.g., "Carpet Installation", "Painting")
+    var customProductivityRate: Double? // User's custom productivity rate (units per person-hour), overrides template/historical defaults
 
     // Archive status
     var isArchived: Bool = false // true = task is archived (hidden from main views)
@@ -261,7 +262,7 @@ final class Task {
         guard let entries = timeEntries else { return 0 }
         return entries.reduce(0) { total, entry in
             guard let end = entry.endTime else { return total }
-            let seconds = Int(end.timeIntervalSince(entry.startTime))
+            let seconds = Int(TimeEntryManager.calculateDuration(start: entry.startTime, end: end))
             return total + seconds
         }
     }
@@ -478,9 +479,7 @@ final class Task {
         guard !completedEntries.isEmpty else { return nil }
 
         let totalSeconds = completedEntries.reduce(0.0) { sum, entry in
-            guard let end = entry.endTime else { return sum }
-            let duration = end.timeIntervalSince(entry.startTime)
-            return sum + duration
+            return sum + TimeEntryManager.calculateDuration(for: entry)
         }
 
         return totalSeconds / 3600.0 // Convert to hours
@@ -493,13 +492,9 @@ final class Task {
         let completedEntries = entries.filter { $0.endTime != nil }
         guard !completedEntries.isEmpty else { return nil }
 
-        let totalPersonSeconds = completedEntries.reduce(0.0) { sum, entry in
-            guard let end = entry.endTime else { return sum }
-            let duration = end.timeIntervalSince(entry.startTime)
-            return sum + (duration * Double(entry.personnelCount))
+        return completedEntries.reduce(0.0) { sum, entry in
+            return sum + TimeEntryManager.calculatePersonHours(for: entry)
         }
-
-        return totalPersonSeconds / 3600.0 // Convert to person-hours
     }
 
     /// Productivity metric: units completed per person-hour worked

@@ -33,13 +33,10 @@ struct ReportGenerator {
 
         let completedTasks = tasks.filter { $0.isCompleted }
         let totalHours = entries.reduce(0.0) { total, entry in
-            guard let end = entry.endTime else { return total }
-            return total + end.timeIntervalSince(entry.startTime) / 3600
+            return total + (TimeEntryManager.calculateDuration(for: entry) / 3600.0)
         }
         let totalPersonHours = entries.reduce(0.0) { total, entry in
-            guard let end = entry.endTime else { return total }
-            let hours = end.timeIntervalSince(entry.startTime) / 3600
-            return total + (hours * Double(entry.personnelCount))
+            return total + TimeEntryManager.calculatePersonHours(for: entry)
         }
 
         switch data.format {
@@ -106,13 +103,10 @@ struct ReportGenerator {
 
             for (project, projectEntries) in projectGroups.sorted(by: { $0.key < $1.key }) {
                 let hours = projectEntries.reduce(0.0) { total, entry in
-                    guard let end = entry.endTime else { return total }
-                    return total + end.timeIntervalSince(entry.startTime) / 3600
+                    return total + (TimeEntryManager.calculateDuration(for: entry) / 3600.0)
                 }
                 let personHours = projectEntries.reduce(0.0) { total, entry in
-                    guard let end = entry.endTime else { return total }
-                    let h = end.timeIntervalSince(entry.startTime) / 3600
-                    return total + (h * Double(entry.personnelCount))
+                    return total + TimeEntryManager.calculatePersonHours(for: entry)
                 }
                 md += "| \(project) | \(String(format: "%.1f", hours)) | \(String(format: "%.1f", personHours)) |\n"
             }
@@ -170,9 +164,7 @@ struct ReportGenerator {
 
             // Calculate person-hours for this task
             let personHours = task.timeEntries?.reduce(0.0) { total, entry in
-                guard let end = entry.endTime else { return total }
-                let h = end.timeIntervalSince(entry.startTime) / 3600
-                return total + (h * Double(entry.personnelCount))
+                return total + TimeEntryManager.calculatePersonHours(for: entry)
             } ?? 0.0
 
             csv += "\"\(task.title)\",\"\(projectName)\",\(status),\(completedDate),\(hours),\(String(format: "%.2f", personHours))\n"
@@ -190,14 +182,11 @@ struct ReportGenerator {
         let completedTasks = tasks.filter { $0.isCompleted }
 
         let totalHours = entries.reduce(0.0) { total, entry in
-            guard let end = entry.endTime else { return total }
-            return total + end.timeIntervalSince(entry.startTime) / 3600
+            return total + (TimeEntryManager.calculateDuration(for: entry) / 3600.0)
         }
 
         let totalPersonHours = entries.reduce(0.0) { total, entry in
-            guard let end = entry.endTime else { return total }
-            let hours = end.timeIntervalSince(entry.startTime) / 3600
-            return total + (hours * Double(entry.personnelCount))
+            return total + TimeEntryManager.calculatePersonHours(for: entry)
         }
 
         switch data.format {
@@ -369,9 +358,7 @@ struct ReportGenerator {
 
             md += "## Summary\n\n"
             let totalPersonHours = entries.reduce(0.0) { total, entry in
-                guard let end = entry.endTime else { return total }
-                let hours = end.timeIntervalSince(entry.startTime) / 3600
-                return total + (hours * Double(entry.personnelCount))
+                return total + TimeEntryManager.calculatePersonHours(for: entry)
             }
             md += "- **Total Person-Hours**: \(String(format: "%.1f", totalPersonHours)) hrs\n"
             md += "- **Time Entries**: \(entries.count)\n\n"
@@ -383,8 +370,7 @@ struct ReportGenerator {
 
             for (count, groupEntries) in personnelGroups.sorted(by: { $0.key < $1.key }) {
                 let hours = groupEntries.reduce(0.0) { total, entry in
-                    guard let end = entry.endTime else { return total }
-                    return total + end.timeIntervalSince(entry.startTime) / 3600
+                    return total + (TimeEntryManager.calculateDuration(for: entry) / 3600.0)
                 }
                 let personHours = hours * Double(count)
                 md += "| \(count) \(count == 1 ? "person" : "people") | \(groupEntries.count) | \(String(format: "%.1f", hours)) | \(String(format: "%.1f", personHours)) |\n"
@@ -398,9 +384,7 @@ struct ReportGenerator {
             text += "Period: \(formatDateRange(data.effectiveDateRange))\n\n"
 
             let totalPersonHours = entries.reduce(0.0) { total, entry in
-                guard let end = entry.endTime else { return total }
-                let hours = end.timeIntervalSince(entry.startTime) / 3600
-                return total + (hours * Double(entry.personnelCount))
+                return total + TimeEntryManager.calculatePersonHours(for: entry)
             }
             text += "Total Person-Hours: \(String(format: "%.1f", totalPersonHours)) hrs\n"
             text += "Time Entries: \(entries.count)\n"
@@ -417,8 +401,8 @@ struct ReportGenerator {
                 let taskName = entry.task?.title ?? "Unknown"
                 let projectName = entry.task?.project?.title ?? "No Project"
                 let date = formatDate(entry.startTime)
-                let hours = end.timeIntervalSince(entry.startTime) / 3600
-                let personHours = hours * Double(entry.personnelCount)
+                let hours = TimeEntryManager.calculateDuration(for: entry) / 3600.0
+                let personHours = TimeEntryManager.calculatePersonHours(for: entry)
 
                 csv += "\"\(taskName)\",\"\(projectName)\",\(date),\(entry.personnelCount),\(String(format: "%.2f", hours)),\(String(format: "%.2f", personHours))\n"
             }
@@ -549,22 +533,18 @@ struct ReportGenerator {
     private static func computePersonHours(for task: Task, allTasks: [Task]) -> Double {
         guard let entries = task.timeEntries else { return 0.0 }
 
-        var totalPersonSeconds = 0.0
-
-        // Calculate direct person-hours from time entries
-        for entry in entries {
-            guard let end = entry.endTime else { continue }
-            let duration = end.timeIntervalSince(entry.startTime)
-            totalPersonSeconds += duration * Double(entry.personnelCount)
+        // Calculate direct person-hours from time entries using work hours
+        var totalPersonHours = entries.reduce(0.0) { total, entry in
+            return total + TimeEntryManager.calculatePersonHours(for: entry)
         }
 
         // Recursively add person-hours from subtasks
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         for subtask in subtasks {
-            totalPersonSeconds += computePersonHours(for: subtask, allTasks: allTasks) * 3600  // Convert hours back to seconds
+            totalPersonHours += computePersonHours(for: subtask, allTasks: allTasks)
         }
 
-        return totalPersonSeconds / 3600  // Convert to hours
+        return totalPersonHours
     }
 
     // MARK: - Budget Analysis Report

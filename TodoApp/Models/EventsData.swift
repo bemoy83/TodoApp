@@ -50,9 +50,7 @@ struct ActiveEventsData {
         }
 
         let totalHoursThisWeek = thisWeekEntries.reduce(0.0) { total, entry in
-            guard let end = entry.endTime else { return total }
-            let duration = end.timeIntervalSince(entry.startTime)
-            return total + (duration / 3600)
+            return total + (TimeEntryManager.calculateDuration(for: entry) / 3600.0)
         }
 
         return ActiveEventsData(

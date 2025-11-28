@@ -74,7 +74,7 @@ struct EffortInputSection: View {
 
     /// Whether to show personnel recommendations
     private var shouldShowPersonnelRecommendation: Bool {
-        hasDueDate && effectiveEffort > 0 && dueDate > Date()
+        hasDueDate && effectiveEffort > 0
     }
 
     var body: some View {
@@ -121,6 +121,7 @@ struct EffortInputSection: View {
                     hasPersonnel = true
                     expectedPersonnelCount = selectedCount
                 }
+                .id("\(hasStartDate ? startDate.timeIntervalSince1970 : 0)-\(dueDate.timeIntervalSince1970)")
             }
         }
         .onChange(of: effectiveEffort) { _, newValue in

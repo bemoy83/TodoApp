@@ -30,15 +30,11 @@ struct TodaysActivity {
         }
 
         let hoursLoggedToday = todayEntries.reduce(0.0) { total, entry in
-            guard let end = entry.endTime else { return total }
-            let duration = end.timeIntervalSince(entry.startTime)
-            return total + (duration / 3600)
+            return total + (TimeEntryManager.calculateDuration(for: entry) / 3600.0)
         }
 
         let personHoursToday = todayEntries.reduce(0.0) { total, entry in
-            guard let end = entry.endTime else { return total }
-            let duration = end.timeIntervalSince(entry.startTime)
-            return total + ((duration / 3600) * Double(entry.personnelCount))
+            return total + TimeEntryManager.calculatePersonHours(for: entry)
         }
 
         // Tasks completed today

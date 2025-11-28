@@ -60,7 +60,7 @@ struct TaskComposerQuantitySection: View {
 
     /// Whether to show personnel recommendations
     private var shouldShowPersonnelRecommendation: Bool {
-        guard hasDueDate, dueDate > Date(), calculatedEffort > 0 else { return false }
+        guard hasDueDate, calculatedEffort > 0 else { return false }
 
         // Only show when we're calculating duration (user needs personnel recommendation)
         return quantityCalculationMode == .calculateDuration
@@ -146,6 +146,7 @@ struct TaskComposerQuantitySection: View {
                         // Trigger recalculation when personnel is set via recommendation
                         onCalculationUpdate()
                     }
+                    .id("\(hasStartDate ? startDate.timeIntervalSince1970 : 0)-\(dueDate.timeIntervalSince1970)")
                 }
             } else if taskType != nil {
                 TaskInlineInfoRow(
@@ -156,6 +157,30 @@ struct TaskComposerQuantitySection: View {
             }
         }
         .onAppear {
+            // Initialize productivity rates if task type is already set
+            if let currentTaskType = taskType {
+                // Store the existing productivity rate (could be custom or historical)
+                // If task.customProductivityRate was set, it's loaded via EstimationState.init(from:)
+                let existingCustomRate = productivityRate
+
+                // Initialize template and historical rates for this task type
+                handleTaskTypeChange(currentTaskType)
+
+                // Restore custom productivity rate if it differs from defaults
+                // (Now properly persisted via Task.customProductivityRate)
+                if let customRate = existingCustomRate, customRate > 0 {
+                    // Check if this differs from the newly loaded template/historical defaults
+                    let defaultRate = expectedProductivity ?? historicalProductivity ?? unit.defaultProductivityRate ?? 0.0
+
+                    if abs(customRate - defaultRate) > 0.01 {
+                        // This is a saved custom rate - restore it and set mode to custom
+                        productivityRate = customRate
+                        productivityMode = .custom
+                        customProductivityInput = String(format: "%.1f", customRate)
+                    }
+                }
+            }
+
             // Initialize required values based on calculation mode
             switch quantityCalculationMode {
             case .calculateDuration:
