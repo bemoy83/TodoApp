@@ -251,6 +251,6 @@ struct DateEditSheet: View {
     task.endDate = Date().addingTimeInterval(86400)
     context.insert(task)
 
-    return DateEditSheet(task: task, dateType: .end)
+    DateEditSheet(task: task, dateType: .end)
         .modelContainer(container)
 }
