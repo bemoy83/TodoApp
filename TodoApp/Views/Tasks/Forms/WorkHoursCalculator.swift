@@ -2,14 +2,21 @@ import Foundation
 
 /// Pure utility for calculating available work hours and personnel requirements.
 /// Separated from UI for testability and reusability.
+/// Work hours are configurable in Settings and persist via UserDefaults.
 struct WorkHoursCalculator {
     // MARK: - Configuration
 
-    /// Work hours window (07:00 to 15:00 = 8-hour workday)
-    static let workdayStart = 7
-    static let workdayEnd = 15
+    /// Work hours window - reads from user settings with fallback to defaults (07:00-15:00)
+    static var workdayStart: Int {
+        UserDefaults.standard.object(forKey: "workdayStartHour") as? Int ?? 7
+    }
+
+    static var workdayEnd: Int {
+        UserDefaults.standard.object(forKey: "workdayEndHour") as? Int ?? 15
+    }
+
     static var workdayHours: Double {
-        Double(workdayEnd - workdayStart)
+        Double(max(1, workdayEnd - workdayStart))
     }
 
     // MARK: - Public Methods
