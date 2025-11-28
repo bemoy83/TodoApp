@@ -9,8 +9,8 @@ struct AddProjectSheet: View {
     
     @State private var title = ""
     @State private var selectedColor = "#007AFF"
-    @State private var startDate = Date()
-    @State private var dueDate = Date()
+    @State private var startDate = DateTimeHelper.smartStartDate(for: Date())
+    @State private var dueDate = DateTimeHelper.smartDueDate(for: Date())
     @State private var estimatedHours = ""
     @State private var status: ProjectStatus = .inProgress
 
@@ -45,22 +45,42 @@ struct AddProjectSheet: View {
                 Section("Event Scheduling") {
                     // Start Date
                     Toggle("Set Start Date", isOn: $hasStartDate)
+                        .onChange(of: hasStartDate) { oldValue, newValue in
+                            if newValue {
+                                startDate = DateTimeHelper.smartStartDate(for: startDate)
+                            }
+                        }
 
                     if hasStartDate {
                         DatePicker(
                             "Start Date",
-                            selection: $startDate,
+                            selection: Binding(
+                                get: { startDate },
+                                set: { newValue in
+                                    startDate = DateTimeHelper.smartStartDate(for: newValue)
+                                }
+                            ),
                             displayedComponents: [.date]
                         )
                     }
 
                     // Due Date
                     Toggle("Set Due Date", isOn: $hasDueDate)
+                        .onChange(of: hasDueDate) { oldValue, newValue in
+                            if newValue {
+                                dueDate = DateTimeHelper.smartDueDate(for: dueDate)
+                            }
+                        }
 
                     if hasDueDate {
                         DatePicker(
                             "Due Date",
-                            selection: $dueDate,
+                            selection: Binding(
+                                get: { dueDate },
+                                set: { newValue in
+                                    dueDate = DateTimeHelper.smartDueDate(for: newValue)
+                                }
+                            ),
                             displayedComponents: [.date]
                         )
                     }

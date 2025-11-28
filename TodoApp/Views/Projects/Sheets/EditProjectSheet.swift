@@ -49,13 +49,20 @@ struct EditProjectSheet: View {
                 Section("Event Scheduling") {
                     // Start Date
                     Toggle("Set Start Date", isOn: $hasStartDate)
+                        .onChange(of: hasStartDate) { oldValue, newValue in
+                            if newValue && startDate == nil {
+                                startDate = DateTimeHelper.smartStartDate(for: Date())
+                            }
+                        }
 
                     if hasStartDate {
                         DatePicker(
                             "Start Date",
                             selection: Binding(
-                                get: { startDate ?? Date() },
-                                set: { startDate = $0 }
+                                get: { startDate ?? DateTimeHelper.smartStartDate(for: Date()) },
+                                set: { newValue in
+                                    startDate = DateTimeHelper.smartStartDate(for: newValue)
+                                }
                             ),
                             displayedComponents: [.date]
                         )
@@ -63,13 +70,20 @@ struct EditProjectSheet: View {
 
                     // Due Date
                     Toggle("Set Due Date", isOn: $hasDueDate)
+                        .onChange(of: hasDueDate) { oldValue, newValue in
+                            if newValue && dueDate == nil {
+                                dueDate = DateTimeHelper.smartDueDate(for: Date())
+                            }
+                        }
 
                     if hasDueDate {
                         DatePicker(
                             "Due Date",
                             selection: Binding(
-                                get: { dueDate ?? Date() },
-                                set: { dueDate = $0 }
+                                get: { dueDate ?? DateTimeHelper.smartDueDate(for: Date()) },
+                                set: { newValue in
+                                    dueDate = DateTimeHelper.smartDueDate(for: newValue)
+                                }
                             ),
                             displayedComponents: [.date]
                         )
