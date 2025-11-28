@@ -145,12 +145,13 @@ final class Project {
             return .critical
         }
 
-        // Warning: Nearing budget OR Tasks over budget by 10%+ OR slightly behind OR has blocked tasks OR missing estimates
+        // Warning: Nearing budget OR Tasks over budget by 10%+ OR slightly behind OR has blocked tasks OR missing estimates OR date conflicts
         if actualProgress > 0.85 ||
            planProgress > 1.1 ||
            (actualProgress > 0.7 && taskCompletion < 0.4) ||
            blockedTasks > 0 ||
-           tasksWithMissingEstimates > 0 {
+           tasksWithMissingEstimates > 0 ||
+           tasksWithDateConflicts > 0 {
             return .warning
         }
 
