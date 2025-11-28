@@ -239,18 +239,17 @@ struct DateEditSheet: View {
 }
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Task.self, configurations: config)
-    let context = container.mainContext
-
-    let task = Task(
-        title: "Sample Task",
-        priority: 1,
-        notes: "Test task for date editing"
+    DateEditSheet(
+        task: Task(
+            title: "Sample Task",
+            priority: 1,
+            endDate: Date().addingTimeInterval(86400),
+            notes: "Test task for date editing"
+        ),
+        dateType: .end
     )
-    task.endDate = Date().addingTimeInterval(86400)
-    context.insert(task)
-
-    DateEditSheet(task: task, dateType: .end)
-        .modelContainer(container)
+    .modelContainer(
+        for: [Task.self, Project.self, TimeEntry.self],
+        inMemory: true
+    )
 }
