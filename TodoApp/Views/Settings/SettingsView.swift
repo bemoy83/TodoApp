@@ -21,6 +21,10 @@ struct SettingsView: View {
     @AppStorage("showCompletedByDefault") private var showCompletedByDefault: Bool = true
     @AppStorage("compactViewMode") private var compactViewMode: Bool = false
     @AppStorage("appearanceMode") private var appearanceMode: Int = 0
+
+    // Work Hours Settings
+    @AppStorage("workdayStartHour") private var workdayStartHour: Int = 7
+    @AppStorage("workdayEndHour") private var workdayEndHour: Int = 15
     
     // State for alerts and toasts
     @State private var showingClearDataAlert = false
@@ -58,7 +62,12 @@ struct SettingsView: View {
                     showCompletedByDefault: $showCompletedByDefault,
                     compactViewMode: $compactViewMode
                 )
-                
+
+                WorkHoursSection(
+                    workdayStartHour: $workdayStartHour,
+                    workdayEndHour: $workdayEndHour
+                )
+
                 DataStatisticsSection(
                     totalProjects: totalProjects,
                     totalTasks: totalTasks,

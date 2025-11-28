@@ -142,10 +142,11 @@ struct TaskComposerDueDateSection: View {
             hasEndDate = true
             hasDueDate = true
             if dueDate < Date() {
-                endDate = tomorrow()
+                endDate = DateTimeHelper.smartDueDate(for: tomorrow())
                 dueDate = endDate
             } else {
-                endDate = dueDate
+                endDate = DateTimeHelper.smartDueDate(for: dueDate)
+                dueDate = endDate
             }
             HapticManager.light()
         } label: {
@@ -167,13 +168,15 @@ struct TaskComposerDueDateSection: View {
                 selection: Binding(
                     get: { endDate },
                     set: { newValue in
-                        endDate = newValue
-                        dueDate = newValue
-                        onDateChange(newValue)
+                        // Apply smart default time for future dates (workday end)
+                        let smartValue = DateTimeHelper.smartDueDate(for: newValue)
+                        endDate = smartValue
+                        dueDate = smartValue
+                        onDateChange(smartValue)
 
                         // Auto-adjust start date if it's after deadline
-                        if hasStartDate && startDate > newValue {
-                            startDate = oneDayBefore(newValue)
+                        if hasStartDate && startDate > smartValue {
+                            startDate = DateTimeHelper.smartStartDate(for: oneDayBefore(smartValue))
                         }
                     }
                 ),
@@ -212,7 +215,8 @@ struct TaskComposerDueDateSection: View {
     private var addStartDateButton: some View {
         Button {
             hasStartDate = true
-            startDate = min(Date(), oneDayBefore(endDate))
+            let defaultDate = min(Date(), oneDayBefore(endDate))
+            startDate = DateTimeHelper.smartStartDate(for: defaultDate)
             HapticManager.light()
         } label: {
             HStack(spacing: 6) {
@@ -233,15 +237,22 @@ struct TaskComposerDueDateSection: View {
         VStack(alignment: .leading, spacing: 6) {
             DatePicker(
                 "Start Date",
-                selection: $startDate,
+                selection: Binding(
+                    get: { startDate },
+                    set: { newValue in
+                        // Apply smart default time for future dates (workday start)
+                        let smartValue = DateTimeHelper.smartStartDate(for: newValue)
+                        startDate = smartValue
+
+                        // Ensure start is before end
+                        if smartValue >= endDate {
+                            startDate = endDate.addingTimeInterval(-3600)
+                        }
+                    }
+                ),
                 in: ...endDate,
                 displayedComponents: [.date, .hourAndMinute]
             )
-            .onChange(of: startDate) { _, newValue in
-                if newValue >= endDate {
-                    startDate = endDate.addingTimeInterval(-3600)
-                }
-            }
 
             // Real-time warning: start date before project start
             if startsBeforeProject, let projectStart = selectedProject?.startDate {

@@ -20,7 +20,7 @@ struct ProjectIssuesDetailView: View {
     private var overdueTasks: [Task] {
         let now = Date()
         return (projectIssue.project.tasks ?? []).filter { task in
-            !task.isCompleted && !task.isArchived && task.dueDate != nil && task.dueDate! < now
+            !task.isCompleted && !task.isArchived && task.endDate != nil && task.endDate! < now
         }
     }
 
