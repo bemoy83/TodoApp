@@ -174,7 +174,7 @@ struct ProjectDetailView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background {
             LinearGradient(
