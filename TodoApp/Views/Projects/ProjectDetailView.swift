@@ -147,6 +147,8 @@ struct ProjectDetailView: View {
                             task: task,
                             allTasks: allTasks
                         )
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     }
                 } header: {
                     TaskSectionHeader(
@@ -167,6 +169,8 @@ struct ProjectDetailView: View {
                             task: task,
                             allTasks: allTasks
                         )
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     }
                 } header: {
                     TaskSectionHeader(
