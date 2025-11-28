@@ -12,7 +12,8 @@ import SwiftData
 // MARK: - Protocols
 
 /// Protocol for items that have an editable title
-protocol TitledItem: AnyObject {
+/// Requires Observable conformance for @Bindable support
+protocol TitledItem: AnyObject, Observable {
     var title: String { get set }
 }
 
@@ -207,7 +208,8 @@ struct InfoHintView: View {
 
 #if DEBUG
 // Mock classes for preview
-private class MockTitledItem: TitledItem, ObservableObject {
+@Observable
+private class MockTitledItem: TitledItem {
     var title: String
 
     init(title: String) {
