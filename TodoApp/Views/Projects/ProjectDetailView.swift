@@ -381,6 +381,11 @@ private struct LightweightTaskRow: View {
 
             Spacer()
         }
+        .padding(DesignSystem.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
+                .fill(Color(.systemBackground))
+        )
         .contentShape(Rectangle())
     }
 }
