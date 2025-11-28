@@ -272,7 +272,10 @@ private struct BasicDatesSection: View {
 // MARK: - Schedule Section
 
 private struct ScheduleSection: View {
-    let task: Task
+    @Bindable var task: Task
+
+    @State private var showingDateEditSheet = false
+    @State private var editingDateType: DateEditSheet.DateEditType = .end
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -289,7 +292,13 @@ private struct ScheduleSection: View {
                         label: "Start",
                         date: startDate,
                         color: .blue,
-                        showTime: true
+                        isActionable: true,
+                        showTime: true,
+                        onTap: {
+                            editingDateType = .start
+                            showingDateEditSheet = true
+                            HapticManager.light()
+                        }
                     )
                 }
 
@@ -300,7 +309,13 @@ private struct ScheduleSection: View {
                         label: "Due",
                         date: endDate,
                         color: endDate < Date() && !task.isCompleted ? .red : .orange,
-                        showTime: true
+                        isActionable: true,
+                        showTime: true,
+                        onTap: {
+                            editingDateType = .end
+                            showingDateEditSheet = true
+                            HapticManager.light()
+                        }
                     )
                 }
 
@@ -317,6 +332,9 @@ private struct ScheduleSection: View {
             }
         }
         .padding(.horizontal)
+        .sheet(isPresented: $showingDateEditSheet) {
+            DateEditSheet(task: task, dateType: editingDateType)
+        }
     }
 
     @ViewBuilder
@@ -404,8 +422,22 @@ private struct DateRow: View {
     let color: Color
     var isActionable: Bool = false
     var showTime: Bool = false
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
+        Group {
+            if isActionable && onTap != nil {
+                Button(action: { onTap?() }) {
+                    dateRowContent
+                }
+                .buttonStyle(.plain)
+            } else {
+                dateRowContent
+            }
+        }
+    }
+
+    private var dateRowContent: some View {
         HStack {
             Image(systemName: icon)
                 .font(.body)
@@ -426,6 +458,12 @@ private struct DateRow: View {
                 Text(date.formatted(date: .abbreviated, time: .omitted))
                     .font(.subheadline)
                     .foregroundStyle(.primary)
+            }
+
+            if isActionable && onTap != nil {
+                Image(systemName: "pencil.circle.fill")
+                    .font(.body)
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(.vertical, 2)
