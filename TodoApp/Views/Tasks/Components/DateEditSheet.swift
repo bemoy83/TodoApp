@@ -86,13 +86,19 @@ struct DateEditSheet: View {
                     )
                 } footer: {
                     VStack(alignment: .leading, spacing: 8) {
-                        if DateTimeHelper.isFutureDate(editedDate) {
-                            let defaultTime = dateType == .start
-                                ? WorkHoursCalculator.workdayStart
-                                : WorkHoursCalculator.workdayEnd
-                            Text("Future dates default to \(formatHour(defaultTime))")
-                                .font(DesignSystem.Typography.caption)
+                        // Smart defaults explanation
+                        let defaultTime = dateType == .start
+                            ? WorkHoursCalculator.workdayStart
+                            : WorkHoursCalculator.workdayEnd
+                        let timeDescription = dateType == .start ? "start of workday" : "end of workday"
+
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.caption)
                                 .foregroundStyle(DesignSystem.Colors.info)
+                            Text("\(dateType == .start ? "Start dates" : "Due dates") automatically default to \(formatHour(defaultTime)) (\(timeDescription))")
+                                .font(DesignSystem.Typography.caption)
+                                .foregroundStyle(.secondary)
                         }
 
                         if showValidationError {
