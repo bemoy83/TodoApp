@@ -284,7 +284,7 @@ private struct ScheduleSection: View {
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
-            VStack(spacing: DesignSystem.Spacing.xs) {
+            VStack(spacing: DesignSystem.Spacing.md) {
                 // Start date
                 if let startDate = task.startDate {
                     DateRow(
@@ -300,6 +300,7 @@ private struct ScheduleSection: View {
                             HapticManager.light()
                         }
                     )
+                    .padding(.vertical, DesignSystem.Spacing.xs)
                 }
 
                 // End date (labeled as "Due" - no redundancy with old dueDate field)
@@ -317,6 +318,7 @@ private struct ScheduleSection: View {
                             HapticManager.light()
                         }
                     )
+                    .padding(.vertical, DesignSystem.Spacing.xs)
                 }
 
                 // Working window summary (when both dates exist)
