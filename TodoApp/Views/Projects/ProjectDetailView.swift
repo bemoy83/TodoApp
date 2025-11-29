@@ -147,6 +147,7 @@ struct ProjectDetailView: View {
                             task: task,
                             allTasks: allTasks
                         )
+                        .listRowBackground(Color(.systemBackground))
                     }
                 } header: {
                     TaskSectionHeader(
@@ -167,6 +168,7 @@ struct ProjectDetailView: View {
                             task: task,
                             allTasks: allTasks
                         )
+                        .listRowBackground(Color(.systemBackground))
                     }
                 } header: {
                     TaskSectionHeader(
