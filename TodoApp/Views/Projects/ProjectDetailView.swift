@@ -108,7 +108,7 @@ struct ProjectDetailView: View {
                     ProjectCrewPlanningCard(project: project, allTasks: allTasks)
                 }
                 .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                 .listRowSeparator(.hidden)
             }
 
@@ -125,6 +125,8 @@ struct ProjectDetailView: View {
                     .foregroundStyle(DesignSystem.Colors.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: DesignSystem.Spacing.sm, leading: DesignSystem.Spacing.lg, bottom: DesignSystem.Spacing.sm, trailing: DesignSystem.Spacing.lg))
                 .listRowSeparator(.hidden)
             }
 
