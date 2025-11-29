@@ -147,8 +147,6 @@ struct ProjectDetailView: View {
                             task: task,
                             allTasks: allTasks
                         )
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     }
                 } header: {
                     TaskSectionHeader(
@@ -169,8 +167,6 @@ struct ProjectDetailView: View {
                             task: task,
                             allTasks: allTasks
                         )
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     }
                 } header: {
                     TaskSectionHeader(
@@ -273,17 +269,9 @@ private struct ProjectTaskRow: View {
 
     var body: some View {
         Group {
-            NavigationLink {
-                TaskDetailView(task: task)
-            } label: {
-                // Use a lightweight row that doesn't re-query the database
-                LightweightTaskRow(task: task, hasSubtasks: hasSubtasks)
+            TaskRowView(task: task) {
+                // onOpen callback - not needed here since NavigationLink handles navigation
             }
-            .padding(DesignSystem.Spacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                    .fill(Color(.systemBackground))
-            )
 
             if expansionState.isExpanded(task.id), hasSubtasks {
                 TaskExpandedSubtasksView(parentTask: task)
@@ -293,106 +281,6 @@ private struct ProjectTaskRow: View {
     }
 }
 
-// MARK: - Lightweight Task Row (no @Query)
-
-private struct LightweightTaskRow: View {
-    @Bindable var task: Task
-    let hasSubtasks: Bool
-
-    private var statusColor: Color {
-        switch task.status {
-        case .blocked: return DesignSystem.Colors.taskBlocked
-        case .ready: return DesignSystem.Colors.taskReady
-        case .inProgress: return DesignSystem.Colors.taskInProgress
-        case .completed: return DesignSystem.Colors.taskCompleted
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            // Status indicator
-            Image(systemName: task.status.icon)
-                .font(.body)
-                .foregroundStyle(statusColor)
-                .frame(width: 24)
-
-            VStack(alignment: .leading, spacing: 4) {
-                // Title
-                Text(task.title)
-                    .font(DesignSystem.Typography.body)
-                    .foregroundStyle(task.isCompleted ? DesignSystem.Colors.secondary : DesignSystem.Colors.primary)
-                    .strikethrough(task.isCompleted)
-
-                // Metadata row
-                HStack(spacing: 8) {
-                    // Priority
-                    if task.priority < 2 {
-                        HStack(spacing: 2) {
-                            Image(systemName: Priority(rawValue: task.priority)?.icon ?? "minus")
-                                .font(.caption2)
-                            Text(Priority(rawValue: task.priority)?.label ?? "")
-                                .font(DesignSystem.Typography.caption2)
-                        }
-                        .foregroundStyle(Priority(rawValue: task.priority)?.color ?? Color.gray)
-                    }
-
-                    // Subtasks count
-                    if hasSubtasks {
-                        HStack(spacing: 2) {
-                            Image(systemName: "list.bullet.indent")
-                                .font(.caption2)
-                            Text("subtasks")
-                                .font(DesignSystem.Typography.caption2)
-                        }
-                        .foregroundStyle(DesignSystem.Colors.info)
-                    }
-
-                    // Due date (if urgent)
-                    if let dueDate = task.dueDate {
-                        let isOverdue = dueDate < Date()
-                        let isToday = Calendar.current.isDateInToday(dueDate)
-
-                        if isOverdue || isToday {
-                            HStack(spacing: 2) {
-                                Image(systemName: "calendar")
-                                    .font(.caption2)
-                                Text(isOverdue ? "Overdue" : "Today")
-                                    .font(DesignSystem.Typography.caption2)
-                            }
-                            .foregroundStyle(isOverdue ? DesignSystem.Colors.error : DesignSystem.Colors.warning)
-                        }
-                    }
-
-                    // Active timer
-                    if task.hasActiveTimer {
-                        HStack(spacing: 2) {
-                            Image(systemName: "timer")
-                                .font(.caption2)
-                            Text("Active")
-                                .font(DesignSystem.Typography.caption2)
-                        }
-                        .foregroundStyle(DesignSystem.Colors.success)
-                    }
-
-                    // Date conflict indicator (Improvement #1)
-                    if task.hasDateConflicts {
-                        HStack(spacing: 2) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.caption2)
-                            Text("Dates")
-                                .font(DesignSystem.Typography.caption2)
-                        }
-                        .foregroundStyle(DesignSystem.Colors.warning)
-                    }
-                }
-                .foregroundStyle(DesignSystem.Colors.secondary)
-            }
-
-            Spacer()
-        }
-        .contentShape(Rectangle())
-    }
-}
 
 // MARK: - Preview
 
