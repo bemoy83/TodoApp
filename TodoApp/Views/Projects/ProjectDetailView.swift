@@ -279,6 +279,11 @@ private struct ProjectTaskRow: View {
                 // Use a lightweight row that doesn't re-query the database
                 LightweightTaskRow(task: task, hasSubtasks: hasSubtasks)
             }
+            .padding(DesignSystem.Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
+                    .fill(Color(.systemBackground))
+            )
 
             if expansionState.isExpanded(task.id), hasSubtasks {
                 TaskExpandedSubtasksView(parentTask: task)
@@ -385,11 +390,6 @@ private struct LightweightTaskRow: View {
 
             Spacer()
         }
-        .padding(DesignSystem.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                .fill(Color(.systemBackground))
-        )
         .contentShape(Rectangle())
     }
 }
