@@ -667,30 +667,20 @@ final class Task: TitledItem {
 
     // MARK: - Date Conflict Resolution (Phase 5: Quick Fix Actions)
 
-    /// Adjusts task dates to match project dates (Quick Fix)
+    /// Adjusts task dates to match project timeline (Quick Fix)
+    /// Makes the task span the entire project timeline (from project start to project end)
     func adjustToProjectDates() {
         guard let project = project else { return }
 
-        // Adjust start date if it starts before project
-        if startsBeforeProject, let projectStart = project.startDate {
+        // Set task to span the full project timeline
+        // This is the most predictable behavior for "Fit to Project"
+        if let projectStart = project.startDate {
             startDate = projectStart
         }
 
-        // Adjust end date if it ends after project
-        if endsAfterProject, let projectDue = project.dueDate {
+        if let projectDue = project.dueDate {
             endDate = projectDue
             dueDate = projectDue  // Keep dueDate synced with endDate
-        }
-
-        // Adjust start date if it starts after project ends
-        if startsAfterProject, let projectDue = project.dueDate {
-            startDate = projectDue.addingTimeInterval(-3600)  // 1 hour before project ends
-        }
-
-        // Adjust end date if it ends before project starts
-        if endsBeforeProject, let projectStart = project.startDate {
-            endDate = projectStart.addingTimeInterval(3600)  // 1 hour after project starts
-            dueDate = endDate  // Keep dueDate synced with endDate
         }
     }
 
