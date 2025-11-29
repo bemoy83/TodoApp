@@ -147,7 +147,6 @@ struct ProjectDetailView: View {
                             task: task,
                             allTasks: allTasks
                         )
-                        .listRowBackground(Color(.systemBackground))
                     }
                 } header: {
                     TaskSectionHeader(
@@ -168,7 +167,6 @@ struct ProjectDetailView: View {
                             task: task,
                             allTasks: allTasks
                         )
-                        .listRowBackground(Color(.systemBackground))
                     }
                 } header: {
                     TaskSectionHeader(
@@ -180,7 +178,7 @@ struct ProjectDetailView: View {
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background {
             LinearGradient(
