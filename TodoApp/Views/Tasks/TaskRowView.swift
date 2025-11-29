@@ -34,11 +34,11 @@ struct TaskRowView: View {
     }
     
     private var effectiveDueDate: Date? {
-        task.dueDate ?? task.parentTask?.dueDate
+        task.effectiveDeadline ?? task.parentTask?.effectiveDeadline
     }
-    
+
     private var isDueDateInherited: Bool {
-        task.dueDate == nil && task.parentTask?.dueDate != nil
+        task.effectiveDeadline == nil && task.parentTask?.effectiveDeadline != nil
     }
     
     private var taskPriority: Priority {

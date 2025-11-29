@@ -281,7 +281,7 @@ struct IssueTaskRow: View {
                     }
 
                     // Due date if overdue
-                    if let dueDate = task.dueDate, dueDate < Date() {
+                    if let dueDate = task.effectiveDeadline, dueDate < Date() {
                         HStack(spacing: 2) {
                             Image(systemName: "calendar")
                                 .font(.caption2)

@@ -51,7 +51,7 @@ struct TaskDetailRow: View {
     let showReason: Bool
 
     private var daysOverdue: Int? {
-        guard let dueDate = task.dueDate, !task.isCompleted else { return nil }
+        guard let dueDate = task.effectiveDeadline, !task.isCompleted else { return nil }
         let days = Calendar.current.dateComponents([.day], from: dueDate, to: Date()).day
         return days
     }

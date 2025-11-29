@@ -102,7 +102,7 @@ struct TaskEditView: View {
     }
     
     private func handleSave() {
-        task.dueDate = hasDueDate ? dueDate : nil
+        // Only write to endDate (primary field), keep dueDate for backwards compatibility (read-only)
         task.startDate = hasStartDate ? startDate : nil
         task.endDate = hasEndDate ? endDate : nil
 
