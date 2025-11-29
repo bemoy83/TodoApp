@@ -42,49 +42,17 @@ struct AddProjectSheet: View {
                     }
                 }
 
-                Section("Event Scheduling") {
-                    // Start Date
-                    Toggle("Set Start Date", isOn: $hasStartDate)
-                        .onChange(of: hasStartDate) { oldValue, newValue in
-                            if newValue {
-                                startDate = DateTimeHelper.smartStartDate(for: startDate)
-                            }
-                        }
-
-                    if hasStartDate {
-                        DatePicker(
-                            "Start Date",
-                            selection: Binding(
-                                get: { startDate },
-                                set: { newValue in
-                                    startDate = DateTimeHelper.smartStartDate(for: newValue)
-                                }
-                            ),
-                            displayedComponents: [.date]
-                        )
-                    }
-
-                    // Due Date
-                    Toggle("Set Due Date", isOn: $hasDueDate)
-                        .onChange(of: hasDueDate) { oldValue, newValue in
-                            if newValue {
-                                dueDate = DateTimeHelper.smartDueDate(for: dueDate)
-                            }
-                        }
-
-                    if hasDueDate {
-                        DatePicker(
-                            "Due Date",
-                            selection: Binding(
-                                get: { dueDate },
-                                set: { newValue in
-                                    dueDate = DateTimeHelper.smartDueDate(for: newValue)
-                                }
-                            ),
-                            displayedComponents: [.date]
-                        )
-                    }
-                }
+                SharedDateSection(
+                    hasStartDate: $hasStartDate,
+                    startDate: $startDate,
+                    hasEndDate: $hasDueDate,
+                    endDate: $dueDate,
+                    sectionTitle: "Event Scheduling",
+                    includeTime: false,  // Date only for projects
+                    showWorkingWindow: false,
+                    validationContext: nil,
+                    onEndDateChange: nil
+                )
 
                 Section("Budget") {
                     HStack {
