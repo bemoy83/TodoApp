@@ -29,7 +29,14 @@ struct ProjectCrewPlanningCard: View {
     /// Only counts tasks that still need to be done AND are within project timeline
     private var totalEffortHours: Double {
         let totalSeconds = tasksInScope.reduce(0) { sum, task in
-            sum + (task.effectiveEstimate ?? 0)
+            // Use explicit effortHours if set, otherwise calculate from duration × personnel
+            if let effortHours = task.effortHours {
+                return sum + Int(effortHours * 3600.0)  // Convert person-hours to seconds
+            } else {
+                let durationSeconds = task.effectiveEstimate ?? 0
+                let personnelCount = task.expectedPersonnelCount ?? 1
+                return sum + (durationSeconds * personnelCount)
+            }
         }
 
         return totalSeconds > 0 ? Double(totalSeconds) / 3600.0 : 0
@@ -63,7 +70,14 @@ struct ProjectCrewPlanningCard: View {
             guard let taskType = taskType else { return nil }
 
             let hours = typeTasks.reduce(0.0) { sum, task in
-                sum + (Double(task.effectiveEstimate ?? 0) / 3600.0) // effectiveEstimate is in SECONDS
+                // Use explicit effortHours if set, otherwise calculate from duration × personnel
+                if let effortHours = task.effortHours {
+                    return sum + effortHours
+                } else {
+                    let durationSeconds = Double(task.effectiveEstimate ?? 0)
+                    let personnelCount = Double(task.expectedPersonnelCount ?? 1)
+                    return sum + ((durationSeconds / 3600.0) * personnelCount)
+                }
             }
 
             let analytics = TaskTypeAnalytics.calculate(for: taskType, from: allTasks)

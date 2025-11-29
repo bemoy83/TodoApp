@@ -100,6 +100,7 @@ struct ProjectDetailView: View {
             }
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
 
             // Crew planning card
             if ProjectCrewPlanningCard(project: project, allTasks: allTasks).shouldShow {
@@ -107,7 +108,8 @@ struct ProjectDetailView: View {
                     ProjectCrewPlanningCard(project: project, allTasks: allTasks)
                 }
                 .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
             }
 
             // Subtasks hint
@@ -123,6 +125,9 @@ struct ProjectDetailView: View {
                     .foregroundStyle(DesignSystem.Colors.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: DesignSystem.Spacing.sm, leading: DesignSystem.Spacing.lg, bottom: DesignSystem.Spacing.sm, trailing: DesignSystem.Spacing.lg))
+                .listRowSeparator(.hidden)
             }
 
             // Empty state
@@ -132,6 +137,7 @@ struct ProjectDetailView: View {
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
             }
 
             // Active tasks (with expansion)
@@ -268,7 +274,6 @@ private struct ProjectTaskRow: View {
             NavigationLink {
                 TaskDetailView(task: task)
             } label: {
-                // Use a lightweight row that doesn't re-query the database
                 LightweightTaskRow(task: task, hasSubtasks: hasSubtasks)
             }
 
@@ -380,6 +385,7 @@ private struct LightweightTaskRow: View {
         .contentShape(Rectangle())
     }
 }
+
 
 // MARK: - Preview
 

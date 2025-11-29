@@ -69,10 +69,11 @@ struct TaskDetailHeaderView: View {
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
                 // Title (always shown, editable)
-                TitleSection(
-                    task: task,
+                SharedTitleSection(
+                    item: task,
                     isEditing: $isEditingTitle,
-                    editedTitle: $editedTitle
+                    editedTitle: $editedTitle,
+                    placeholder: "Task title"
                 )
 
                 // Status Section (always shown)
@@ -100,7 +101,7 @@ struct TaskDetailHeaderView: View {
 
                 // Notes Section (conditional - only if has notes)
                 if let notes = task.notes, !notes.isEmpty {
-                    NotesSection(notes: notes, isExpanded: $notesExpanded)
+                    SharedNotesSection(notes: notes, isExpanded: $notesExpanded)
                 }
             }
             .detailCardStyle()
@@ -111,60 +112,6 @@ struct TaskDetailHeaderView: View {
     // Conditional logic
     private var hasScheduleInfo: Bool {
         task.startDate != nil || task.endDate != nil
-    }
-}
-
-// MARK: - Title Section
-
-private struct TitleSection: View {
-    @Bindable var task: Task
-    @Binding var isEditing: Bool
-    @Binding var editedTitle: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-            Text("Title")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-            
-            if isEditing {
-                HStack {
-                    TextField("Task title", text: $editedTitle)
-                        .font(.body)
-                        .fontWeight(.semibold)
-                        .textFieldStyle(.plain)
-                    
-                    Button("Done") {
-                        task.title = editedTitle
-                        isEditing = false
-                        HapticManager.success()
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.blue)
-                }
-            } else {
-                Button {
-                    isEditing = true
-                } label: {
-                    HStack {
-                        Text(task.title)
-                            .font(.body)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.primary)
-                            .multilineTextAlignment(.leading)
-                        
-                        Spacer()
-                        
-                        Image(systemName: "pencil.circle.fill")
-                            .font(.body)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal)
     }
 }
 
@@ -247,7 +194,7 @@ private struct BasicDatesSection: View {
 
             VStack(spacing: DesignSystem.Spacing.xs) {
                 // Created date (always shown)
-                DateRow(
+                SharedDateRow(
                     icon: "clock",
                     label: "Created",
                     date: task.createdDate,
@@ -256,7 +203,7 @@ private struct BasicDatesSection: View {
 
                 // Completed date (conditional)
                 if let completedDate = task.completedDate {
-                    DateRow(
+                    SharedDateRow(
                         icon: "checkmark.circle.fill",
                         label: "Completed",
                         date: completedDate,
@@ -287,7 +234,7 @@ private struct ScheduleSection: View {
             VStack(spacing: DesignSystem.Spacing.md) {
                 // Start date
                 if let startDate = task.startDate {
-                    DateRow(
+                    SharedDateRow(
                         icon: "play.circle.fill",
                         label: "Start",
                         date: startDate,
@@ -305,7 +252,7 @@ private struct ScheduleSection: View {
 
                 // End date (labeled as "Due" - no redundancy with old dueDate field)
                 if let endDate = task.endDate {
-                    DateRow(
+                    SharedDateRow(
                         icon: "flag.fill",
                         label: "Due",
                         date: endDate,
@@ -415,62 +362,6 @@ private enum ScheduleEstimateStatus {
     case comfortable   // Estimate is < 75% of available time
 }
 
-// MARK: - Date Row Component
-
-private struct DateRow: View {
-    let icon: String
-    let label: String
-    let date: Date
-    let color: Color
-    var isActionable: Bool = false
-    var showTime: Bool = false
-    var onTap: (() -> Void)? = nil
-
-    var body: some View {
-        Group {
-            if isActionable && onTap != nil {
-                Button(action: { onTap?() }) {
-                    dateRowContent
-                }
-                .buttonStyle(.plain)
-            } else {
-                dateRowContent
-            }
-        }
-    }
-
-    private var dateRowContent: some View {
-        HStack {
-            Image(systemName: icon)
-                .font(.body)
-                .foregroundStyle(color)
-                .frame(width: 28)
-
-            Text(label)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Spacer()
-
-            if showTime {
-                Text(date.formatted(date: .abbreviated, time: .shortened))
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-            } else {
-                Text(date.formatted(date: .abbreviated, time: .omitted))
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-            }
-
-            if isActionable && onTap != nil {
-                Image(systemName: "pencil.circle.fill")
-                    .font(.body)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.vertical, 2)
-    }
-}
 
 // MARK: - Organization Section
 
@@ -544,46 +435,6 @@ private struct OrganizationSection: View {
                     .padding(.vertical, 2)
                 }
                 .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal)
-    }
-}
-
-// MARK: - Notes Section
-
-private struct NotesSection: View {
-    let notes: String
-    @Binding var isExpanded: Bool
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Button {
-                withAnimation {
-                    isExpanded.toggle()
-                }
-            } label: {
-                HStack {
-                    Text("Notes")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                    
-                    Spacer()
-                    
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .buttonStyle(.plain)
-            
-            if isExpanded {
-                Text(notes)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .padding(DesignSystem.Spacing.sm)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(.horizontal)

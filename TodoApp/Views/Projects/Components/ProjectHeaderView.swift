@@ -19,6 +19,8 @@ struct ProjectHeaderView: View {
     @State private var editedTitle: String
     @State private var showingStatusSheet = false
     @State private var showingIssuesDetail = false
+    @State private var showingDateEditSheet = false
+    @State private var editingDateType: ProjectDateEditSheet.DateEditType = .due
 
     init(project: Project, totalTasks: Int, completedTasks: Int, totalTimeSpent: Int, totalPersonHours: Double) {
         self._project = Bindable(wrappedValue: project)
@@ -107,10 +109,11 @@ struct ProjectHeaderView: View {
 
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
                     // Title Section
-                    TitleSection(
-                        project: project,
+                    SharedTitleSection(
+                        item: project,
                         isEditing: $isEditingTitle,
-                        editedTitle: $editedTitle
+                        editedTitle: $editedTitle,
+                        placeholder: "Project title"
                     )
 
                     // Status Section
@@ -121,7 +124,11 @@ struct ProjectHeaderView: View {
 
                     // Timeline Section (conditional)
                     if hasTimelineInfo {
-                        TimelineSection(project: project)
+                        TimelineSection(
+                            project: project,
+                            showingDateEditSheet: $showingDateEditSheet,
+                            editingDateType: $editingDateType
+                        )
                     }
 
                     // Health Section (conditional) - tappable to show issues detail
@@ -185,6 +192,9 @@ struct ProjectHeaderView: View {
         .sheet(isPresented: $showingIssuesDetail) {
             ProjectIssuesDetailView(projectIssue: createProjectIssue())
         }
+        .sheet(isPresented: $showingDateEditSheet) {
+            ProjectDateEditSheet(project: project, dateType: editingDateType)
+        }
     }
 
     // Helper to create ProjectIssue for navigation
@@ -232,60 +242,6 @@ struct ProjectHeaderView: View {
         case .completed: return "checkmark.circle.fill"
         case .onHold: return "pause.circle.fill"
         }
-    }
-}
-
-// MARK: - Title Section
-
-private struct TitleSection: View {
-    @Bindable var project: Project
-    @Binding var isEditing: Bool
-    @Binding var editedTitle: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Text("Title")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-
-            if isEditing {
-                HStack {
-                    TextField("Project title", text: $editedTitle)
-                        .font(.body)
-                        .fontWeight(.semibold)
-                        .textFieldStyle(.plain)
-
-                    Button("Done") {
-                        project.title = editedTitle
-                        isEditing = false
-                        HapticManager.success()
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.blue)
-                }
-            } else {
-                Button {
-                    isEditing = true
-                } label: {
-                    HStack {
-                        Text(project.title)
-                            .font(.body)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.primary)
-                            .multilineTextAlignment(.leading)
-
-                        Spacer()
-
-                        Image(systemName: "pencil.circle.fill")
-                            .font(.body)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal)
     }
 }
 
@@ -353,7 +309,9 @@ private struct StatusSection: View {
 // MARK: - Timeline Section
 
 private struct TimelineSection: View {
-    let project: Project
+    @Bindable var project: Project
+    @Binding var showingDateEditSheet: Bool
+    @Binding var editingDateType: ProjectDateEditSheet.DateEditType
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -362,73 +320,81 @@ private struct TimelineSection: View {
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
-            VStack(spacing: DesignSystem.Spacing.xs) {
+            VStack(spacing: DesignSystem.Spacing.md) {
+                // Start date - now editable with SharedDateRow
                 if let startDate = project.startDate {
-                    HStack {
-                        Image(systemName: "play.circle")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 28)
-
-                        Text("Start")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        Text(startDate.formatted(date: .abbreviated, time: .omitted))
-                            .font(.subheadline)
-                            .foregroundStyle(.primary)
-                    }
-                    .padding(.vertical, 2)
+                    SharedDateRow(
+                        icon: "play.circle.fill",
+                        label: "Start",
+                        date: startDate,
+                        color: .blue,
+                        isActionable: true,
+                        showTime: true,
+                        onTap: {
+                            editingDateType = .start
+                            showingDateEditSheet = true
+                            HapticManager.light()
+                        }
+                    )
+                    .padding(.vertical, DesignSystem.Spacing.xs)
                 }
 
+                // Due date - now editable with SharedDateRow
                 if let dueDate = project.dueDate {
-                    HStack {
-                        Image(systemName: "flag.fill")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 28)
-
-                        Text("Due")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        Text(dueDate.formatted(date: .abbreviated, time: .omitted))
-                            .font(.subheadline)
-                            .foregroundStyle(.primary)
-                    }
-                    .padding(.vertical, 2)
+                    SharedDateRow(
+                        icon: "flag.fill",
+                        label: "Due",
+                        date: dueDate,
+                        color: dueDate < Date() && project.status != .completed ? .red : .orange,
+                        isActionable: true,
+                        showTime: true,
+                        onTap: {
+                            editingDateType = .due
+                            showingDateEditSheet = true
+                            HapticManager.light()
+                        }
+                    )
+                    .padding(.vertical, DesignSystem.Spacing.xs)
                 }
 
-                // Duration summary (when both dates exist)
+                // Enhanced working window summary (when both dates exist)
                 if let startDate = project.startDate, let dueDate = project.dueDate {
-                    let days = Calendar.current.dateComponents([.day], from: startDate, to: dueDate).day ?? 0
-                    let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: dueDate)
-
-                    HStack {
-                        Image(systemName: "clock.arrow.2.circlepath")
-                            .font(.body)
-                            .foregroundStyle(.green)
-                            .frame(width: 28)
-
-                        Text("Duration")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        Text("\(days) \(days == 1 ? "day" : "days") • \(String(format: "%.0f", hours)) work hrs")
-                            .font(.subheadline)
-                            .foregroundStyle(.primary)
-                    }
-                    .padding(.vertical, 2)
+                    let availableHours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: dueDate)
+                    workingWindowSummary(hours: availableHours)
                 }
             }
         }
         .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private func workingWindowSummary(hours: Double) -> some View {
+        // Calculate work days based on actual work hours (not calendar days)
+        let workDays = hours / WorkHoursCalculator.workdayHours
+
+        // Format work days nicely (show 1 decimal place if not a whole number)
+        let daysText = workDays.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(workDays)) \(Int(workDays) == 1 ? "work day" : "work days")"
+            : String(format: "%.1f work days", workDays)
+
+        HStack {
+            Image(systemName: "clock.arrow.2.circlepath")
+                .font(.body)
+                .foregroundStyle(.green)
+                .frame(width: 28)
+
+            Text("Duration")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text("\(daysText) • \(String(format: "%.1f", hours)) work hrs")
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+        }
+        .padding(.vertical, 2)
+        .padding(.top, DesignSystem.Spacing.xs)
     }
 }
 

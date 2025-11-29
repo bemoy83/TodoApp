@@ -107,7 +107,7 @@ enum UnitType: String, Codable, CaseIterable, Sendable {
 // MARK: - Task Model
 
 @Model
-final class Task {
+final class Task: TitledItem {
     var id: UUID
     var title: String
     var priority: Int
