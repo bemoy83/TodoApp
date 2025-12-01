@@ -200,6 +200,7 @@ struct SharedDateSection: View {
                 ),
                 displayedComponents: dateComponents
             )
+            .datePickerStyle(.compact)
 
             // Subtask validation warning
             if let context = validationContext, context.isSubtask, context.parentDueDate != nil {
@@ -275,6 +276,7 @@ struct SharedDateSection: View {
                 in: ...endDate,
                 displayedComponents: dateComponents
             )
+            .datePickerStyle(.compact)
 
             // Project conflict warnings
             if startsBeforeProject, let projectStart = validationContext?.selectedProject?.startDate {
