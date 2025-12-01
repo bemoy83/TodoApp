@@ -56,7 +56,7 @@ struct SubtaskRowContent: View {
             if style.showMetadata {
                 HStack(spacing: 8) {
                     // Due date (if soon/overdue)
-                    if let dueDate = subtask.dueDate ?? subtask.parentTask?.dueDate {
+                    if let dueDate = subtask.effectiveDeadline ?? subtask.parentTask?.effectiveDeadline {
                         let cal = Calendar.current
                         if dueDate < Date() || cal.isDateInToday(dueDate) || cal.isDateInTomorrow(dueDate) {
                             HStack(spacing: 2) {

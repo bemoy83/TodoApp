@@ -536,10 +536,28 @@ final class Task: TitledItem {
         return taskDue > projectDue
     }
 
+    /// Whether task start date is after project due date
+    @Transient
+    var startsAfterProject: Bool {
+        guard let project = project,
+              let projectDue = project.dueDate,
+              let taskStart = startDate else { return false }
+        return taskStart > projectDue
+    }
+
+    /// Whether task end date is before project start date
+    @Transient
+    var endsBeforeProject: Bool {
+        guard let project = project,
+              let projectStart = project.startDate,
+              let taskEnd = endDate else { return false }
+        return taskEnd < projectStart
+    }
+
     /// Whether task has any date conflicts with its project
     @Transient
     var hasDateConflicts: Bool {
-        startsBeforeProject || endsAfterProject
+        startsBeforeProject || endsAfterProject || startsAfterProject || endsBeforeProject
     }
 
     /// Human-readable description of date conflicts (nil if no conflicts)
@@ -548,20 +566,30 @@ final class Task: TitledItem {
         guard hasDateConflicts else { return nil }
 
         var messages: [String] = []
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
 
         if startsBeforeProject {
             if let projectStart = project?.startDate, let taskStart = startDate {
-                let formatter = DateFormatter()
-                formatter.dateStyle = .medium
                 messages.append("starts before event (\(formatter.string(from: taskStart)) vs \(formatter.string(from: projectStart)))")
             }
         }
 
         if endsAfterProject {
             if let projectDue = project?.dueDate, let taskDue = endDate {
-                let formatter = DateFormatter()
-                formatter.dateStyle = .medium
                 messages.append("ends after event (\(formatter.string(from: taskDue)) vs \(formatter.string(from: projectDue)))")
+            }
+        }
+
+        if startsAfterProject {
+            if let projectDue = project?.dueDate, let taskStart = startDate {
+                messages.append("starts after event ends (\(formatter.string(from: taskStart)) vs \(formatter.string(from: projectDue)))")
+            }
+        }
+
+        if endsBeforeProject {
+            if let projectStart = project?.startDate, let taskEnd = endDate {
+                messages.append("ends before event starts (\(formatter.string(from: taskEnd)) vs \(formatter.string(from: projectStart)))")
             }
         }
 
@@ -639,27 +667,29 @@ final class Task: TitledItem {
 
     // MARK: - Date Conflict Resolution (Phase 5: Quick Fix Actions)
 
-    /// Adjusts task dates to match project dates (Quick Fix)
+    /// Adjusts task dates to match project timeline (Quick Fix)
+    /// Makes the task span the entire project timeline (from project start to project end)
     func adjustToProjectDates() {
         guard let project = project else { return }
 
-        // Adjust start date if it conflicts
-        if startsBeforeProject, let projectStart = project.startDate {
+        // Set task to span the full project timeline
+        // This is the most predictable behavior for "Fit to Project"
+        if let projectStart = project.startDate {
             startDate = projectStart
         }
 
-        // Adjust end date if it conflicts
-        if endsAfterProject, let projectDue = project.dueDate {
+        if let projectDue = project.dueDate {
             endDate = projectDue
             dueDate = projectDue  // Keep dueDate synced with endDate
         }
     }
 
     /// Expands project timeline to include this task's dates (Quick Fix)
+    /// Handles all 4 conflict types by expanding project boundaries as needed
     func expandProjectToIncludeTask() {
         guard let project = project else { return }
 
-        // Expand project start if task starts before
+        // Expand project start date to include task (handles startsBeforeProject and endsBeforeProject)
         if let taskStart = startDate {
             if let projectStart = project.startDate {
                 project.startDate = min(projectStart, taskStart)
@@ -668,16 +698,7 @@ final class Task: TitledItem {
             }
         }
 
-        // Expand project due date if task ends after
-        if let taskDue = endDate {
-            if let projectDue = project.dueDate {
-                project.dueDate = max(projectDue, taskDue)
-            } else {
-                project.dueDate = taskDue
-            }
-        }
-
-        // Also check endDate
+        // Expand project end date to include task (handles endsAfterProject and startsAfterProject)
         if let taskEnd = endDate {
             if let projectDue = project.dueDate {
                 project.dueDate = max(projectDue, taskEnd)

@@ -221,8 +221,13 @@ private struct BasicDatesSection: View {
 private struct ScheduleSection: View {
     @Bindable var task: Task
 
-    @State private var showingDateEditSheet = false
-    @State private var editingDateType: DateEditSheet.DateEditType = .end
+    @State private var dateEditItem: DateEditItem?
+
+    // Identifiable wrapper to fix sheet state capture bug
+    private struct DateEditItem: Identifiable {
+        let id = UUID()
+        let dateType: DateEditSheet.DateEditType
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -242,8 +247,7 @@ private struct ScheduleSection: View {
                         isActionable: true,
                         showTime: true,
                         onTap: {
-                            editingDateType = .start
-                            showingDateEditSheet = true
+                            dateEditItem = DateEditItem(dateType: .start)
                             HapticManager.light()
                         }
                     )
@@ -260,8 +264,7 @@ private struct ScheduleSection: View {
                         isActionable: true,
                         showTime: true,
                         onTap: {
-                            editingDateType = .end
-                            showingDateEditSheet = true
+                            dateEditItem = DateEditItem(dateType: .end)
                             HapticManager.light()
                         }
                     )
@@ -281,8 +284,8 @@ private struct ScheduleSection: View {
             }
         }
         .padding(.horizontal)
-        .sheet(isPresented: $showingDateEditSheet) {
-            DateEditSheet(task: task, dateType: editingDateType)
+        .sheet(item: $dateEditItem) { item in
+            DateEditSheet(task: task, dateType: item.dateType)
         }
     }
 

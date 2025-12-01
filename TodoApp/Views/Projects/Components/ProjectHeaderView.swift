@@ -19,8 +19,14 @@ struct ProjectHeaderView: View {
     @State private var editedTitle: String
     @State private var showingStatusSheet = false
     @State private var showingIssuesDetail = false
-    @State private var showingDateEditSheet = false
-    @State private var editingDateType: ProjectDateEditSheet.DateEditType = .due
+    @State private var dateEditItem: DateEditItem?
+
+    // Identifiable wrapper to fix sheet state capture bug
+    // Must be fileprivate so TimelineSection can access it
+    fileprivate struct DateEditItem: Identifiable {
+        let id = UUID()
+        let dateType: ProjectDateEditSheet.DateEditType
+    }
 
     init(project: Project, totalTasks: Int, completedTasks: Int, totalTimeSpent: Int, totalPersonHours: Double) {
         self._project = Bindable(wrappedValue: project)
@@ -126,8 +132,7 @@ struct ProjectHeaderView: View {
                     if hasTimelineInfo {
                         TimelineSection(
                             project: project,
-                            showingDateEditSheet: $showingDateEditSheet,
-                            editingDateType: $editingDateType
+                            dateEditItem: $dateEditItem
                         )
                     }
 
@@ -192,8 +197,8 @@ struct ProjectHeaderView: View {
         .sheet(isPresented: $showingIssuesDetail) {
             ProjectIssuesDetailView(projectIssue: createProjectIssue())
         }
-        .sheet(isPresented: $showingDateEditSheet) {
-            ProjectDateEditSheet(project: project, dateType: editingDateType)
+        .sheet(item: $dateEditItem) { item in
+            ProjectDateEditSheet(project: project, dateType: item.dateType)
         }
     }
 
@@ -310,8 +315,7 @@ private struct StatusSection: View {
 
 private struct TimelineSection: View {
     @Bindable var project: Project
-    @Binding var showingDateEditSheet: Bool
-    @Binding var editingDateType: ProjectDateEditSheet.DateEditType
+    @Binding var dateEditItem: ProjectHeaderView.DateEditItem?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -331,8 +335,7 @@ private struct TimelineSection: View {
                         isActionable: true,
                         showTime: true,
                         onTap: {
-                            editingDateType = .start
-                            showingDateEditSheet = true
+                            dateEditItem = ProjectHeaderView.DateEditItem(dateType: .start)
                             HapticManager.light()
                         }
                     )
@@ -349,8 +352,7 @@ private struct TimelineSection: View {
                         isActionable: true,
                         showTime: true,
                         onTap: {
-                            editingDateType = .due
-                            showingDateEditSheet = true
+                            dateEditItem = ProjectHeaderView.DateEditItem(dateType: .due)
                             HapticManager.light()
                         }
                     )

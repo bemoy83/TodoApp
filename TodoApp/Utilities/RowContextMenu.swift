@@ -77,9 +77,9 @@ struct RowContextMenu: ViewModifier {
                             Label("Custom...", systemImage: "calendar.badge.clock")
                         }
 
-                        if task.dueDate != nil {
+                        if task.effectiveDeadline != nil {
                             Button(role: .destructive) {
-                                task.dueDate = nil
+                                task.endDate = nil
                             } label: {
                                 Label("Clear Due Date", systemImage: "xmark.circle")
                             }
@@ -208,7 +208,7 @@ struct RowContextMenu: ViewModifier {
     /// Validates and sets due date, respecting parent/subtask relationships
     private func setDueDateIfValid(_ newDate: Date) {
         // If this is a subtask, validate against parent's due date
-        if let parentDueDate = task.parentTask?.dueDate, newDate > parentDueDate {
+        if let parentDueDate = task.parentTask?.effectiveDeadline, newDate > parentDueDate {
             // Show alert about validation failure
             alert?.wrappedValue = TaskActionAlert(
                 title: "Invalid Due Date",
@@ -218,7 +218,7 @@ struct RowContextMenu: ViewModifier {
                 ]
             )
         } else {
-            task.dueDate = newDate
+            task.endDate = newDate
         }
     }
 }
@@ -270,11 +270,11 @@ private struct CustomDatePickerSheet: View {
 
     init(task: Task) {
         self.task = task
-        self._selectedDate = State(initialValue: task.dueDate ?? Date())
+        self._selectedDate = State(initialValue: task.effectiveDeadline ?? Date())
     }
 
     private var parentDueDate: Date? {
-        task.parentTask?.dueDate
+        task.parentTask?.effectiveDeadline
     }
 
     var body: some View {
@@ -327,7 +327,7 @@ private struct CustomDatePickerSheet: View {
                         if let parentDue = parentDueDate, selectedDate > parentDue {
                             showValidationAlert = true
                         } else {
-                            task.dueDate = selectedDate
+                            task.endDate = selectedDate
                             dismiss()
                         }
                     }

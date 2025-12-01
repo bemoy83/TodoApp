@@ -26,8 +26,18 @@ struct SharedDateSection: View {
     // MARK: - State
     @State private var showingValidationAlert = false
 
+    // MARK: - Constants
+    private let calendar = Calendar.current
+
+    private enum DateAdjustment {
+        static let oneHourInSeconds: TimeInterval = 3600
+    }
+
+    private var abbreviatedDateFormatter: Date.FormatStyle {
+        .dateTime.day().month(.abbreviated).year()
+    }
+
     // MARK: - Calendar Helpers
-    private var calendar: Calendar { Calendar.current }
 
     private func tomorrow() -> Date {
         calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()
@@ -37,39 +47,50 @@ struct SharedDateSection: View {
         calendar.date(byAdding: .day, value: -1, to: date) ?? date
     }
 
-    // MARK: - DatePicker Components
+    // MARK: - Computed Properties
     private var dateComponents: DatePickerComponents {
         includeTime ? [.date, .hourAndMinute] : [.date]
     }
 
+    private var selectedProject: Project? {
+        validationContext?.selectedProject
+    }
+
+    private var workingWindowData: (hours: Double, daysText: String) {
+        let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
+        let workDays = hours / WorkHoursCalculator.workdayHours
+
+        let daysText = workDays.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(workDays)) \(Int(workDays) == 1 ? "work day" : "work days")"
+            : String(format: "%.1f work days", workDays)
+
+        return (hours, daysText)
+    }
+
     // MARK: - Project Date Conflict Detection
     private var startsBeforeProject: Bool {
-        guard let context = validationContext,
-              let project = context.selectedProject,
+        guard let project = selectedProject,
               let projectStart = project.startDate,
               hasStartDate else { return false }
         return startDate < projectStart
     }
 
     private var startsAfterProject: Bool {
-        guard let context = validationContext,
-              let project = context.selectedProject,
+        guard let project = selectedProject,
               let projectDue = project.dueDate,
               hasStartDate else { return false }
         return startDate > projectDue
     }
 
     private var endsBeforeProject: Bool {
-        guard let context = validationContext,
-              let project = context.selectedProject,
+        guard let project = selectedProject,
               let projectStart = project.startDate,
               hasEndDate else { return false }
         return endDate < projectStart
     }
 
     private var endsAfterProject: Bool {
-        guard let context = validationContext,
-              let project = context.selectedProject,
+        guard let project = selectedProject,
               let projectDue = project.dueDate,
               hasEndDate else { return false }
         return endDate > projectDue
@@ -132,6 +153,37 @@ struct SharedDateSection: View {
         }
     }
 
+    // MARK: - Date Change Handlers
+
+    /// Handles end date changes with smart defaults and auto-adjustments
+    private func handleEndDateChange(_ newValue: Date) {
+        let smartValue = includeTime
+            ? DateTimeHelper.smartDueDate(for: newValue)
+            : newValue
+        endDate = smartValue
+        onEndDateChange?(smartValue)
+
+        // Auto-adjust start date if it's after end date
+        if hasStartDate && startDate > smartValue {
+            startDate = includeTime
+                ? DateTimeHelper.smartStartDate(for: oneDayBefore(smartValue))
+                : oneDayBefore(smartValue)
+        }
+    }
+
+    /// Handles start date changes ensuring it stays before end date
+    private func handleStartDateChange(_ newValue: Date) {
+        let smartValue = includeTime
+            ? DateTimeHelper.smartStartDate(for: newValue)
+            : newValue
+        startDate = smartValue
+
+        // Ensure start is before end
+        if smartValue >= endDate {
+            startDate = endDate.addingTimeInterval(-DateAdjustment.oneHourInSeconds)
+        }
+    }
+
     // MARK: - Subviews
 
     @ViewBuilder
@@ -183,20 +235,7 @@ struct SharedDateSection: View {
                 includeTime ? "Deadline" : "Due Date",
                 selection: Binding(
                     get: { endDate },
-                    set: { newValue in
-                        let smartValue = includeTime
-                            ? DateTimeHelper.smartDueDate(for: newValue)
-                            : newValue
-                        endDate = smartValue
-                        onEndDateChange?(smartValue)
-
-                        // Auto-adjust start date if it's after end date
-                        if hasStartDate && startDate > smartValue {
-                            startDate = includeTime
-                                ? DateTimeHelper.smartStartDate(for: oneDayBefore(smartValue))
-                                : oneDayBefore(smartValue)
-                        }
-                    }
+                    set: handleEndDateChange
                 ),
                 displayedComponents: dateComponents
             )
@@ -211,18 +250,18 @@ struct SharedDateSection: View {
             }
 
             // Project conflict warnings
-            if endsBeforeProject, let projectStart = validationContext?.selectedProject?.startDate {
+            if endsBeforeProject, let projectStart = selectedProject?.startDate {
                 TaskInlineInfoRow(
                     icon: "exclamationmark.triangle",
-                    message: "Completes before project begins (\(projectStart.formatted(date: .abbreviated, time: .omitted)))",
+                    message: "Completes before project begins (\(projectStart.formatted(abbreviatedDateFormatter)))",
                     style: .warning
                 )
             }
 
-            if endsAfterProject, let projectDue = validationContext?.selectedProject?.dueDate {
+            if endsAfterProject, let projectDue = selectedProject?.dueDate {
                 TaskInlineInfoRow(
                     icon: "exclamationmark.triangle",
-                    message: "Ends after project completes (\(projectDue.formatted(date: .abbreviated, time: .omitted)))",
+                    message: "Ends after project completes (\(projectDue.formatted(abbreviatedDateFormatter)))",
                     style: .warning
                 )
             }
@@ -260,35 +299,25 @@ struct SharedDateSection: View {
                 "Start Date",
                 selection: Binding(
                     get: { startDate },
-                    set: { newValue in
-                        let smartValue = includeTime
-                            ? DateTimeHelper.smartStartDate(for: newValue)
-                            : newValue
-                        startDate = smartValue
-
-                        // Ensure start is before end
-                        if smartValue >= endDate {
-                            startDate = endDate.addingTimeInterval(-3600)
-                        }
-                    }
+                    set: handleStartDateChange
                 ),
                 in: ...endDate,
                 displayedComponents: dateComponents
             )
 
             // Project conflict warnings
-            if startsBeforeProject, let projectStart = validationContext?.selectedProject?.startDate {
+            if startsBeforeProject, let projectStart = selectedProject?.startDate {
                 TaskInlineInfoRow(
                     icon: "exclamationmark.triangle",
-                    message: "Starts before project begins (\(projectStart.formatted(date: .abbreviated, time: .omitted)))",
+                    message: "Starts before project begins (\(projectStart.formatted(abbreviatedDateFormatter)))",
                     style: .warning
                 )
             }
 
-            if startsAfterProject, let projectDue = validationContext?.selectedProject?.dueDate {
+            if startsAfterProject, let projectDue = selectedProject?.dueDate {
                 TaskInlineInfoRow(
                     icon: "exclamationmark.triangle",
-                    message: "Starts after project completes (\(projectDue.formatted(date: .abbreviated, time: .omitted)))",
+                    message: "Starts after project completes (\(projectDue.formatted(abbreviatedDateFormatter)))",
                     style: .warning
                 )
             }
@@ -296,12 +325,7 @@ struct SharedDateSection: View {
     }
 
     private var workingWindowSummary: some View {
-        let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
-        let workDays = hours / WorkHoursCalculator.workdayHours
-
-        let daysText = workDays.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(workDays)) \(Int(workDays) == 1 ? "work day" : "work days")"
-            : String(format: "%.1f work days", workDays)
+        let data = workingWindowData
 
         return HStack(spacing: 8) {
             Image(systemName: "clock.arrow.2.circlepath")
@@ -314,7 +338,7 @@ struct SharedDateSection: View {
 
             Spacer()
 
-            Text("\(daysText) • \(String(format: "%.1f", hours)) hrs")
+            Text("\(data.daysText) • \(String(format: "%.1f", data.hours)) hrs")
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(.primary)

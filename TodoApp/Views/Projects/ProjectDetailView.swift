@@ -340,7 +340,7 @@ private struct LightweightTaskRow: View {
                     }
 
                     // Due date (if urgent)
-                    if let dueDate = task.dueDate {
+                    if let dueDate = task.effectiveDeadline {
                         let isOverdue = dueDate < Date()
                         let isToday = Calendar.current.isDateInToday(dueDate)
 
