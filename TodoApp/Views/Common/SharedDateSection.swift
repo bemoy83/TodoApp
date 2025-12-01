@@ -25,6 +25,19 @@ struct SharedDateSection: View {
 
     // MARK: - State
     @State private var showingValidationAlert = false
+    @State private var dateEditItem: DateEditItem?
+
+    // Identifiable wrapper for sheet presentation with consistent formatting
+    private struct DateEditItem: Identifiable {
+        let id = UUID()
+        let dateType: DateType
+        let currentDate: Date
+
+        enum DateType {
+            case start
+            case end
+        }
+    }
 
     // MARK: - Calendar Helpers
     private var calendar: Calendar { Calendar.current }
@@ -130,6 +143,42 @@ struct SharedDateSection: View {
                 Text("Subtask due date cannot be later than parent's due date (\(parentDue.formatted(date: .abbreviated, time: .shortened))).")
             }
         }
+        .sheet(item: $dateEditItem) { item in
+            DateEditSheetWrapper(
+                dateType: item.dateType,
+                currentDate: item.currentDate,
+                includeTime: includeTime,
+                validationContext: validationContext,
+                onSave: { newDate in
+                    handleDateSave(dateType: item.dateType, newDate: newDate)
+                }
+            )
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private func handleDateSave(dateType: DateEditItem.DateType, newDate: Date) {
+        let smartValue: Date
+        switch dateType {
+        case .start:
+            smartValue = includeTime ? DateTimeHelper.smartStartDate(for: newDate) : newDate
+            startDate = smartValue
+            // Ensure start is before end
+            if smartValue >= endDate {
+                startDate = endDate.addingTimeInterval(-3600)
+            }
+        case .end:
+            smartValue = includeTime ? DateTimeHelper.smartDueDate(for: newDate) : newDate
+            endDate = smartValue
+            onEndDateChange?(smartValue)
+            // Auto-adjust start date if it's after end date
+            if hasStartDate && startDate > smartValue {
+                startDate = includeTime
+                    ? DateTimeHelper.smartStartDate(for: oneDayBefore(smartValue))
+                    : oneDayBefore(smartValue)
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -179,26 +228,17 @@ struct SharedDateSection: View {
 
     private var endDateRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            DatePicker(
-                includeTime ? "Deadline" : "Due Date",
-                selection: Binding(
-                    get: { endDate },
-                    set: { newValue in
-                        let smartValue = includeTime
-                            ? DateTimeHelper.smartDueDate(for: newValue)
-                            : newValue
-                        endDate = smartValue
-                        onEndDateChange?(smartValue)
-
-                        // Auto-adjust start date if it's after end date
-                        if hasStartDate && startDate > smartValue {
-                            startDate = includeTime
-                                ? DateTimeHelper.smartStartDate(for: oneDayBefore(smartValue))
-                                : oneDayBefore(smartValue)
-                        }
-                    }
-                ),
-                displayedComponents: dateComponents
+            SharedDateRow(
+                icon: "flag.fill",
+                label: includeTime ? "Deadline" : "Due Date",
+                date: endDate,
+                color: .orange,
+                isActionable: true,
+                showTime: includeTime,
+                onTap: {
+                    dateEditItem = DateEditItem(dateType: .end, currentDate: endDate)
+                    HapticManager.light()
+                }
             )
 
             // Subtask validation warning
@@ -256,24 +296,17 @@ struct SharedDateSection: View {
 
     private var startDateRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            DatePicker(
-                "Start Date",
-                selection: Binding(
-                    get: { startDate },
-                    set: { newValue in
-                        let smartValue = includeTime
-                            ? DateTimeHelper.smartStartDate(for: newValue)
-                            : newValue
-                        startDate = smartValue
-
-                        // Ensure start is before end
-                        if smartValue >= endDate {
-                            startDate = endDate.addingTimeInterval(-3600)
-                        }
-                    }
-                ),
-                in: ...endDate,
-                displayedComponents: dateComponents
+            SharedDateRow(
+                icon: "play.circle.fill",
+                label: "Start Date",
+                date: startDate,
+                color: .blue,
+                isActionable: true,
+                showTime: includeTime,
+                onTap: {
+                    dateEditItem = DateEditItem(dateType: .start, currentDate: startDate)
+                    HapticManager.light()
+                }
             )
 
             // Project conflict warnings
@@ -320,5 +353,63 @@ struct SharedDateSection: View {
                 .foregroundStyle(.primary)
         }
         .padding(.vertical, DesignSystem.Spacing.xs)
+    }
+}
+
+// MARK: - Date Edit Sheet Wrapper
+
+/// Simple sheet wrapper for editing dates with consistent formatting
+private struct DateEditSheetWrapper: View {
+    @Environment(\.dismiss) private var dismiss
+    let dateType: SharedDateSection.DateEditItem.DateType
+    let currentDate: Date
+    let includeTime: Bool
+    let validationContext: SharedDateSection.ValidationContext?
+    let onSave: (Date) -> Void
+
+    @State private var editedDate: Date
+
+    init(dateType: SharedDateSection.DateEditItem.DateType,
+         currentDate: Date,
+         includeTime: Bool,
+         validationContext: SharedDateSection.ValidationContext?,
+         onSave: @escaping (Date) -> Void) {
+        self.dateType = dateType
+        self.currentDate = currentDate
+        self.includeTime = includeTime
+        self.validationContext = validationContext
+        self.onSave = onSave
+        _editedDate = State(initialValue: currentDate)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    DatePicker(
+                        dateType == .start ? "Start Date" : "Due Date",
+                        selection: $editedDate,
+                        displayedComponents: includeTime ? [.date, .hourAndMinute] : [.date]
+                    )
+                    .datePickerStyle(.graphical)
+                }
+            }
+            .navigationTitle(dateType == .start ? "Edit Start Date" : "Edit Due Date")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(editedDate)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
     }
 }
