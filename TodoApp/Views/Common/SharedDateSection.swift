@@ -28,7 +28,8 @@ struct SharedDateSection: View {
     @State private var dateEditItem: DateEditItem?
 
     // Identifiable wrapper for sheet presentation with consistent formatting
-    private struct DateEditItem: Identifiable {
+    // Must be fileprivate so DateEditSheetWrapper can access it
+    fileprivate struct DateEditItem: Identifiable {
         let id = UUID()
         let dateType: DateType
         let currentDate: Date
