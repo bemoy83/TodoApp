@@ -19,8 +19,13 @@ struct ProjectHeaderView: View {
     @State private var editedTitle: String
     @State private var showingStatusSheet = false
     @State private var showingIssuesDetail = false
-    @State private var showingDateEditSheet = false
-    @State private var editingDateType: ProjectDateEditSheet.DateEditType = .due
+    @State private var dateEditItem: DateEditItem?
+
+    // Identifiable wrapper to fix sheet state capture bug
+    private struct DateEditItem: Identifiable {
+        let id = UUID()
+        let dateType: ProjectDateEditSheet.DateEditType
+    }
 
     init(project: Project, totalTasks: Int, completedTasks: Int, totalTimeSpent: Int, totalPersonHours: Double) {
         self._project = Bindable(wrappedValue: project)
@@ -192,8 +197,8 @@ struct ProjectHeaderView: View {
         .sheet(isPresented: $showingIssuesDetail) {
             ProjectIssuesDetailView(projectIssue: createProjectIssue())
         }
-        .sheet(isPresented: $showingDateEditSheet) {
-            ProjectDateEditSheet(project: project, dateType: editingDateType)
+        .sheet(item: $dateEditItem) { item in
+            ProjectDateEditSheet(project: project, dateType: item.dateType)
         }
     }
 
@@ -331,8 +336,7 @@ private struct TimelineSection: View {
                         isActionable: true,
                         showTime: true,
                         onTap: {
-                            editingDateType = .start
-                            showingDateEditSheet = true
+                            dateEditItem = DateEditItem(dateType: .start)
                             HapticManager.light()
                         }
                     )
@@ -349,8 +353,7 @@ private struct TimelineSection: View {
                         isActionable: true,
                         showTime: true,
                         onTap: {
-                            editingDateType = .due
-                            showingDateEditSheet = true
+                            dateEditItem = DateEditItem(dateType: .due)
                             HapticManager.light()
                         }
                     )
