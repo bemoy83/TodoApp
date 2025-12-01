@@ -131,8 +131,7 @@ struct ProjectHeaderView: View {
                     if hasTimelineInfo {
                         TimelineSection(
                             project: project,
-                            showingDateEditSheet: $showingDateEditSheet,
-                            editingDateType: $editingDateType
+                            dateEditItem: $dateEditItem
                         )
                     }
 
@@ -315,8 +314,7 @@ private struct StatusSection: View {
 
 private struct TimelineSection: View {
     @Bindable var project: Project
-    @Binding var showingDateEditSheet: Bool
-    @Binding var editingDateType: ProjectDateEditSheet.DateEditType
+    @Binding var dateEditItem: ProjectHeaderView.DateEditItem?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -336,7 +334,7 @@ private struct TimelineSection: View {
                         isActionable: true,
                         showTime: true,
                         onTap: {
-                            dateEditItem = DateEditItem(dateType: .start)
+                            dateEditItem = ProjectHeaderView.DateEditItem(dateType: .start)
                             HapticManager.light()
                         }
                     )
@@ -353,7 +351,7 @@ private struct TimelineSection: View {
                         isActionable: true,
                         showTime: true,
                         onTap: {
-                            dateEditItem = DateEditItem(dateType: .due)
+                            dateEditItem = ProjectHeaderView.DateEditItem(dateType: .due)
                             HapticManager.light()
                         }
                     )
