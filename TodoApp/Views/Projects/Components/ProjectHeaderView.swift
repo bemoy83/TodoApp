@@ -22,7 +22,8 @@ struct ProjectHeaderView: View {
     @State private var dateEditItem: DateEditItem?
 
     // Identifiable wrapper to fix sheet state capture bug
-    private struct DateEditItem: Identifiable {
+    // Must be fileprivate so TimelineSection can access it
+    fileprivate struct DateEditItem: Identifiable {
         let id = UUID()
         let dateType: ProjectDateEditSheet.DateEditType
     }
