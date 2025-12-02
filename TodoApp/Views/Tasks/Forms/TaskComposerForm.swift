@@ -97,34 +97,43 @@ struct TaskComposerForm: View {
     // MARK: - Body
 
     var body: some View {
-        Form {
-            titleSection
-            notesSection
-            dueDateSection
-            prioritySection
-            projectSection
-            personnelSection
-            estimateSection
-        }
-        .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
-            Button("OK") {
+        ScrollViewReader { proxy in
+            Form {
+                titleSection
+                notesSection
+                dueDateSection
+                prioritySection
+                projectSection
+                personnelSection
+                estimateSection
+                    .id("estimateSection")
+            }
+            .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
+                Button("OK") {
+                    if let parentDue = parentDueDate {
+                        dueDate = parentDue
+                    }
+                }
+            } message: {
                 if let parentDue = parentDueDate {
-                    dueDate = parentDue
+                    Text("Subtask due date cannot be later than parent's due date (\(parentDue.formatted(date: .abbreviated, time: .shortened))).")
                 }
             }
-        } message: {
-            if let parentDue = parentDueDate {
-                Text("Subtask due date cannot be later than parent's due date (\(parentDue.formatted(date: .abbreviated, time: .shortened))).")
+            .alert("Invalid Time Estimate", isPresented: $showingEstimateValidationAlert) {
+                Button("OK") {
+                    resetToSubtaskTotal()
+                }
+            } message: {
+                Text(estimateValidationMessage)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: estimation.hasPersonnel) { oldValue, newValue in
+                // When personnel section expands, maintain focus on estimate section
+                if newValue && !oldValue {
+                    proxy.scrollTo("estimateSection", anchor: .top)
+                }
             }
         }
-        .alert("Invalid Time Estimate", isPresented: $showingEstimateValidationAlert) {
-            Button("OK") {
-                resetToSubtaskTotal()
-            }
-        } message: {
-            Text(estimateValidationMessage)
-        }
-        .scrollDismissesKeyboard(.interactively)
     }
 
     // MARK: - Section Views
