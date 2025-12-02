@@ -180,6 +180,15 @@ struct TaskComposerQuantitySection: View {
             // Clear quantity and show warning
             quantity = ""
             calculationViewModel.quantity = ""
+
+            // Clear calculated values to prevent stale data
+            estimateHours = 0
+            estimateMinutes = 0
+            expectedPersonnelCount = nil
+            hasEstimate = false
+            hasPersonnel = false
+            calculationError = "Please re-enter quantity for \(newUnit.displayName)"
+
             unitChangeWarning = "Unit changed from \(oldUnit.displayName) to \(newUnit.displayName) - please re-enter quantity"
 
             // Clear warning after 4 seconds
