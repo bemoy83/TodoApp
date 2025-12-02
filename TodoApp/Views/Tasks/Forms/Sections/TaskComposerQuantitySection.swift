@@ -177,23 +177,23 @@ struct TaskComposerQuantitySection: View {
             // When unit changes (e.g., m² → meters), clear quantity to prevent confusion
             guard oldUnit != newUnit, !quantity.isEmpty else { return }
 
-            // Clear quantity and show warning
+            // Clear quantity and calculated values
             quantity = ""
             calculationViewModel.quantity = ""
 
-            // Clear calculated values to prevent stale data
+            // Reset calculated values to zero (but keep flags so view doesn't collapse)
             estimateHours = 0
             estimateMinutes = 0
-            expectedPersonnelCount = nil
-            hasEstimate = false
-            hasPersonnel = false
-            calculationError = "Please re-enter quantity for \(newUnit.displayName)"
+            expectedPersonnelCount = 1 // Reset to default instead of nil
 
+            // Show error prompting re-entry
+            calculationError = "Please re-enter quantity for \(newUnit.displayName)"
             unitChangeWarning = "Unit changed from \(oldUnit.displayName) to \(newUnit.displayName) - please re-enter quantity"
 
-            // Clear warning after 4 seconds
+            // Clear warnings after 4 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
                 unitChangeWarning = nil
+                calculationError = nil
             }
         }
         .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {

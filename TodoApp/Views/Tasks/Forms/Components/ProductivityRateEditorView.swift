@@ -135,19 +135,6 @@ struct ProductivityRateEditorView: View {
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
-            // Inline validation error (above input, so visible above keyboard)
-            if let error = productivityValidationError {
-                HStack(spacing: 4) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-                .padding(.bottom, DesignSystem.Spacing.xs)
-            }
-
             HStack {
                 TextField("Enter rate", text: Binding(
                     get: { viewModel.customProductivityInput },
@@ -166,6 +153,19 @@ struct ProductivityRateEditorView: View {
                 Text("\(unit.displayName)/person-hr")
                     .font(.headline)
                     .foregroundStyle(.secondary)
+            }
+
+            // Inline validation error (below input)
+            if let error = productivityValidationError {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+                .padding(.top, DesignSystem.Spacing.xs)
             }
         }
         .padding(.vertical, DesignSystem.Spacing.sm)
