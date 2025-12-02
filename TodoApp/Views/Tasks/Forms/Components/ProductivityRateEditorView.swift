@@ -9,6 +9,7 @@ struct ProductivityRateEditorView: View {
     let unit: UnitType
     let onUpdate: () -> Void
 
+    @State private var productivityValidationError: String?
     @FocusState private var isCustomProductivityFocused: Bool
 
     var body: some View {
@@ -139,6 +140,7 @@ struct ProductivityRateEditorView: View {
                     get: { viewModel.customProductivityInput },
                     set: { newValue in
                         viewModel.setCustomRate(newValue)
+                        validateProductivityInput(newValue)
                         onUpdate()
                     }
                 ))
@@ -152,14 +154,50 @@ struct ProductivityRateEditorView: View {
                     .font(.headline)
                     .foregroundStyle(.secondary)
             }
+
+            // Inline validation error
+            if let error = productivityValidationError {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+                .padding(.top, DesignSystem.Spacing.xs)
+            }
         }
         .padding(.vertical, DesignSystem.Spacing.sm)
         .onAppear {
             isCustomProductivityFocused = true
+            // Validate current value when sheet appears
+            if !viewModel.customProductivityInput.isEmpty {
+                validateProductivityInput(viewModel.customProductivityInput)
+            }
         }
     }
 
     // MARK: - Helper Methods
+
+    /// Validate productivity rate input in real-time
+    private func validateProductivityInput(_ input: String) {
+        // Empty input is valid (allows user to clear and retype)
+        guard !input.isEmpty else {
+            productivityValidationError = nil
+            return
+        }
+
+        // Validate using InputValidator
+        let validation = InputValidator.validateProductivityRate(input, unit: unit.displayName)
+
+        // Update error message
+        if let error = validation.error {
+            productivityValidationError = error.message
+        } else {
+            productivityValidationError = nil
+        }
+    }
 
     /// Initialize mode based on current productivity rate
     private func initializeModeFromCurrentRate() {
