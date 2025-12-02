@@ -85,104 +85,7 @@ struct TaskComposerQuantitySection: View {
             taskTypePickerView
 
             if unit.isQuantifiable {
-                Divider()
-                    .padding(.vertical, DesignSystem.Spacing.xs)
-
-                // Info about tap-to-calculate
-                TaskInlineInfoRow(
-                    icon: "info.circle",
-                    message: "Tap any calculated value to change what's being calculated",
-                    style: .info
-                )
-
-                // Historical productivity badge
-                if productivityViewModel.historicalProductivity != nil, taskType != nil {
-                    HistoricalProductivityBadge(
-                        viewModel: productivityViewModel,
-                        unit: unit
-                    )
-                }
-
-                Divider()
-                    .padding(.vertical, DesignSystem.Spacing.sm)
-
-                // All inputs visible - one is calculated
-                quantityInputRow
-                productivityInputRow
-                personnelInputRow
-                durationInputRow
-
-                // Calculation error message (compact, inline)
-                if let error = calculationError {
-                    HStack(spacing: 4) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.orange)
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
-                    .padding(.top, 2)
-                }
-
-                // Shared calculation mode menu
-                    .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
-                        Button("Calculate Duration") {
-                            quantityCalculationMode = .calculateDuration
-                            calculationViewModel.calculationMode = .calculateDuration
-                            // Ensure personnel is set for duration calculation
-                            if expectedPersonnelCount == nil {
-                                expectedPersonnelCount = 1
-                                calculationViewModel.expectedPersonnelCount = 1
-                            }
-                            hasPersonnel = true
-                            performCalculation()
-                        }
-                        Button("Calculate Personnel") {
-                            quantityCalculationMode = .calculatePersonnel
-                            calculationViewModel.calculationMode = .calculatePersonnel
-                            // Ensure estimate is set for personnel calculation
-                            hasEstimate = true
-                            performCalculation()
-                        }
-                        Button("Calculate Productivity (Manual)") {
-                            quantityCalculationMode = .manualEntry
-                            calculationViewModel.calculationMode = .manualEntry
-                            onCalculationUpdate()
-                        }
-                        Button("Cancel", role: .cancel) {}
-                    } message: {
-                        Text("Choose what to calculate from quantity and other inputs")
-                    }
-
-                // Show result summary
-                if hasEstimate || hasPersonnel {
-                    Divider()
-                        .padding(.vertical, DesignSystem.Spacing.xs)
-                    calculationSummary
-                }
-
-                // Personnel recommendation
-                if calculationViewModel.shouldShowPersonnelRecommendation(hasDueDate: schedule.hasDueDate) {
-                    Divider()
-                        .padding(.vertical, DesignSystem.Spacing.sm)
-
-                    PersonnelRecommendationView(
-                        effortHours: calculationViewModel.calculatedEffort,
-                        startDate: schedule.hasStartDate ? schedule.startDate : nil,
-                        deadline: schedule.dueDate,
-                        currentSelection: expectedPersonnelCount,
-                        taskType: taskType,
-                        allTasks: allTasks
-                    ) { selectedCount in
-                        hasPersonnel = true
-                        expectedPersonnelCount = selectedCount
-                        calculationViewModel.expectedPersonnelCount = selectedCount
-                        // Trigger recalculation when personnel is set via recommendation
-                        performCalculation()
-                    }
-                    .id("\(schedule.hasStartDate ? schedule.startDate.timeIntervalSince1970 : 0)-\(schedule.dueDate.timeIntervalSince1970)")
-                }
+                quantifiableContent
             } else if taskType != nil {
                 TaskInlineInfoRow(
                     icon: "exclamationmark.triangle.fill",
@@ -267,6 +170,109 @@ struct TaskComposerQuantitySection: View {
             // Trigger recalculation when productivity changes (affects both calculation modes)
             if quantityCalculationMode == .calculateDuration || quantityCalculationMode == .calculatePersonnel {
                 performCalculation()
+            }
+        }
+        .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
+            Button("Calculate Duration") {
+                quantityCalculationMode = .calculateDuration
+                calculationViewModel.calculationMode = .calculateDuration
+                // Ensure personnel is set for duration calculation
+                if expectedPersonnelCount == nil {
+                    expectedPersonnelCount = 1
+                    calculationViewModel.expectedPersonnelCount = 1
+                }
+                hasPersonnel = true
+                performCalculation()
+            }
+            Button("Calculate Personnel") {
+                quantityCalculationMode = .calculatePersonnel
+                calculationViewModel.calculationMode = .calculatePersonnel
+                // Ensure estimate is set for personnel calculation
+                hasEstimate = true
+                performCalculation()
+            }
+            Button("Calculate Productivity (Manual)") {
+                quantityCalculationMode = .manualEntry
+                calculationViewModel.calculationMode = .manualEntry
+                onCalculationUpdate()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Choose what to calculate from quantity and other inputs")
+        }
+    }
+
+    // MARK: - Quantifiable Content
+
+    private var quantifiableContent: some View {
+        Group {
+            Divider()
+                .padding(.vertical, DesignSystem.Spacing.xs)
+
+            // Info about tap-to-calculate
+            TaskInlineInfoRow(
+                icon: "info.circle",
+                message: "Tap any calculated value to change what's being calculated",
+                style: .info
+            )
+
+            // Historical productivity badge
+            if productivityViewModel.historicalProductivity != nil, taskType != nil {
+                HistoricalProductivityBadge(
+                    viewModel: productivityViewModel,
+                    unit: unit
+                )
+            }
+
+            Divider()
+                .padding(.vertical, DesignSystem.Spacing.sm)
+
+            // All inputs visible - one is calculated
+            quantityInputRow
+            productivityInputRow
+            personnelInputRow
+            durationInputRow
+
+            // Calculation error message (compact, inline)
+            if let error = calculationError {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                .padding(.top, 2)
+            }
+
+            // Show result summary
+            if hasEstimate || hasPersonnel {
+                Divider()
+                    .padding(.vertical, DesignSystem.Spacing.xs)
+                calculationSummary
+            }
+
+            // Personnel recommendation
+            if calculationViewModel.shouldShowPersonnelRecommendation(hasDueDate: schedule.hasDueDate) {
+                Divider()
+                    .padding(.vertical, DesignSystem.Spacing.sm)
+
+                PersonnelRecommendationView(
+                    effortHours: calculationViewModel.calculatedEffort,
+                    startDate: schedule.hasStartDate ? schedule.startDate : nil,
+                    deadline: schedule.dueDate,
+                    currentSelection: expectedPersonnelCount,
+                    taskType: taskType,
+                    allTasks: allTasks
+                ) { selectedCount in
+                    hasPersonnel = true
+                    expectedPersonnelCount = selectedCount
+                    calculationViewModel.expectedPersonnelCount = selectedCount
+                    // Trigger recalculation when personnel is set via recommendation
+                    performCalculation()
+                }
+                .id("\(schedule.hasStartDate ? schedule.startDate.timeIntervalSince1970 : 0)-\(schedule.dueDate.timeIntervalSince1970)")
             }
         }
     }
