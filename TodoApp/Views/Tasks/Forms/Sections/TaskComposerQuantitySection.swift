@@ -34,6 +34,7 @@ struct TaskComposerQuantitySection: View {
     @State private var hasInitialized = false
     @State private var quantityValidationError: String?
     @State private var calculationError: String?
+    @State private var unitChangeWarning: String?
     @State private var shouldAnimateDuration = false
     @State private var shouldAnimatePersonnel = false
     @FocusState private var isQuantityFieldFocused: Bool
@@ -172,6 +173,20 @@ struct TaskComposerQuantitySection: View {
                 performCalculation()
             }
         }
+        .onChange(of: unit) { oldUnit, newUnit in
+            // When unit changes (e.g., m² → meters), clear quantity to prevent confusion
+            guard oldUnit != newUnit, !quantity.isEmpty else { return }
+
+            // Clear quantity and show warning
+            quantity = ""
+            calculationViewModel.quantity = ""
+            unitChangeWarning = "Unit changed from \(oldUnit.displayName) to \(newUnit.displayName) - please re-enter quantity"
+
+            // Clear warning after 4 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                unitChangeWarning = nil
+            }
+        }
         .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
             Button("Calculate Duration") {
                 quantityCalculationMode = .calculateDuration
@@ -229,6 +244,20 @@ struct TaskComposerQuantitySection: View {
 
             // All inputs visible - one is calculated
             quantityInputRow
+
+            // Unit change warning (prompts user to re-enter quantity)
+            if let warning = unitChangeWarning {
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                    Text(warning)
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
+                .padding(.top, 2)
+            }
+
             productivityInputRow
             personnelInputRow
             durationInputRow
