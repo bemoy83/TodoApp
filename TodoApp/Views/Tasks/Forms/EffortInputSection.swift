@@ -8,15 +8,13 @@ struct EffortInputSection: View {
     @Binding var estimateHours: Int
     @Binding var estimateMinutes: Int
 
-    // Deadline (for personnel recommendations)
-    let hasDueDate: Bool
-    let dueDate: Date
-    let hasStartDate: Bool
-    let startDate: Date
+    // Schedule context (for personnel recommendations)
+    let schedule: ScheduleContext
 
     @State private var showEffortPicker = false
     @State private var effortInput: String = ""
     @State private var manuallySetEffort: Double? = nil
+    @State private var hasInitialized = false
     @FocusState private var isEffortFieldFocused: Bool
 
     // MARK: - Computed Properties
@@ -74,7 +72,7 @@ struct EffortInputSection: View {
 
     /// Whether to show personnel recommendations
     private var shouldShowPersonnelRecommendation: Bool {
-        hasDueDate && effectiveEffort > 0
+        schedule.hasDueDate && effectiveEffort > 0
     }
 
     var body: some View {
@@ -112,8 +110,8 @@ struct EffortInputSection: View {
 
                 PersonnelRecommendationView(
                     effortHours: effectiveEffort,
-                    startDate: hasStartDate ? startDate : nil,
-                    deadline: dueDate,
+                    startDate: schedule.hasStartDate ? schedule.startDate : nil,
+                    deadline: schedule.dueDate,
                     currentSelection: expectedPersonnelCount,
                     taskType: nil,
                     allTasks: nil
@@ -121,7 +119,7 @@ struct EffortInputSection: View {
                     hasPersonnel = true
                     expectedPersonnelCount = selectedCount
                 }
-                .id("\(hasStartDate ? startDate.timeIntervalSince1970 : 0)-\(dueDate.timeIntervalSince1970)")
+                .id("\(schedule.hasStartDate ? schedule.startDate.timeIntervalSince1970 : 0)-\(schedule.dueDate.timeIntervalSince1970)")
             }
         }
         .onChange(of: effectiveEffort) { _, newValue in
@@ -129,6 +127,10 @@ struct EffortInputSection: View {
             effortHours = newValue
         }
         .onAppear {
+            // Guard: Only initialize once to prevent side effects on re-appear
+            guard !hasInitialized else { return }
+            hasInitialized = true
+
             // Initialize manuallySetEffort if effortHours was already set
             if effortHours > 0 {
                 manuallySetEffort = effortHours

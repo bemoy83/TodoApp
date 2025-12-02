@@ -11,16 +11,14 @@ struct TaskComposerDurationMode: View {
     let isSubtask: Bool
     let taskSubtaskEstimateTotal: Int?
 
-    // Schedule parameters for auto-calculating duration from working window
-    let hasStartDate: Bool
-    let startDate: Date
-    let hasEndDate: Bool
-    let endDate: Date
+    // Schedule context for auto-calculating duration from working window
+    let schedule: ScheduleContext
 
     let onValidation: () -> Void
 
     @State private var showTimePicker = false
     @State private var manualOverride = false
+    @State private var hasInitialized = false
 
     private var hasSubtasksWithEstimates: Bool {
         !isSubtask && (taskSubtaskEstimateTotal ?? 0) > 0
@@ -28,14 +26,12 @@ struct TaskComposerDurationMode: View {
 
     /// Whether we have a working window (schedule) set
     private var hasSchedule: Bool {
-        hasStartDate && hasEndDate
+        schedule.hasWorkingWindow
     }
 
     /// Calculate duration from schedule (available work hours)
     private var scheduleDurationSeconds: Int? {
-        guard hasSchedule else { return nil }
-        let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
-        return Int(hours * 3600)
+        schedule.availableWorkSeconds
     }
 
     /// Determine the source of duration (priority order: manual > schedule > subtasks)
@@ -81,6 +77,10 @@ struct TaskComposerDurationMode: View {
             timePickerRow
         }
         .onAppear {
+            // Guard: Only initialize once to prevent side effects on re-appear
+            guard !hasInitialized else { return }
+            hasInitialized = true
+
             // Initialize from schedule if available
             if hasSchedule, let scheduleDuration = scheduleDurationSeconds, !manualOverride {
                 estimateHours = scheduleDuration / 3600
@@ -91,16 +91,7 @@ struct TaskComposerDurationMode: View {
                 hasCustomEstimate = true
             }
         }
-        .onChange(of: startDate) { _, _ in
-            updateFromSchedule()
-        }
-        .onChange(of: endDate) { _, _ in
-            updateFromSchedule()
-        }
-        .onChange(of: hasStartDate) { _, _ in
-            updateFromSchedule()
-        }
-        .onChange(of: hasEndDate) { _, _ in
+        .onChange(of: schedule) { _, _ in
             updateFromSchedule()
         }
     }
@@ -165,52 +156,19 @@ struct TaskComposerDurationMode: View {
     }
 
     private var timePickerSheet: some View {
-        NavigationStack {
-            VStack(spacing: DesignSystem.Spacing.lg) {
-                Text("Set Time Estimate")
-                    .font(.headline)
-                    .padding(.top, DesignSystem.Spacing.md)
-
-                DatePicker(
-                    "Time Estimate",
-                    selection: Binding(
-                        get: {
-                            Calendar.current.date(
-                                from: DateComponents(
-                                    hour: estimateHours,
-                                    minute: estimateMinutes
-                                )
-                            ) ?? Date()
-                        },
-                        set: { newValue in
-                            let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
-                            estimateHours = min(max(components.hour ?? 0, 0), 99)
-                            estimateMinutes = min(max(components.minute ?? 0, 0), 59)
-
-                            // Mark as manual override if user changes it
-                            if hasSchedule {
-                                manualOverride = true
-                            }
-
-                            onValidation()
-                        }
-                    ),
-                    displayedComponents: [.hourAndMinute]
-                )
-                .labelsHidden()
-                .datePickerStyle(.wheel)
-
-                Spacer()
+        DurationPickerSheet(
+            hours: $estimateHours,
+            minutes: $estimateMinutes,
+            isPresented: $showTimePicker,
+            title: "Set Time Estimate",
+            maxHours: EstimationLimits.maxDurationHours
+        ) {
+            // Mark as manual override if user changes it
+            if hasSchedule {
+                manualOverride = true
             }
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        showTimePicker = false
-                    }
-                }
-            }
-            .presentationDetents([.height(300)])
-            .presentationDragIndicator(.visible)
+            hasEstimate = true
+            onValidation()
         }
     }
 

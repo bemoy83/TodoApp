@@ -30,6 +30,10 @@ struct TaskComposerForm: View {
         !task.isArchived
     }, sort: \Task.order) private var allTasks: [Task]
 
+    // Query projects and templates to pass to child views
+    @Query(sort: \Project.title) private var projects: [Project]
+    @Query(sort: \TaskTemplate.order) private var templates: [TaskTemplate]
+
     @State private var showingDateValidationAlert = false
     @State private var showingEstimateValidationAlert = false
     @State private var estimateValidationMessage = ""
@@ -38,6 +42,18 @@ struct TaskComposerForm: View {
 
     private var inheritedProject: Project? {
         parentTask?.project
+    }
+
+    /// Schedule context consolidating 6 date-related parameters
+    private var scheduleContext: ScheduleContext {
+        ScheduleContext(
+            hasDueDate: hasDueDate,
+            dueDate: dueDate,
+            hasStartDate: hasStartDate,
+            startDate: startDate,
+            hasEndDate: hasEndDate,
+            endDate: endDate
+        )
     }
 
     /// Personnel is auto-calculated (read-only) when in certain modes
@@ -81,34 +97,49 @@ struct TaskComposerForm: View {
     // MARK: - Body
 
     var body: some View {
-        Form {
-            titleSection
-            notesSection
-            dueDateSection
-            prioritySection
-            projectSection
-            personnelSection
-            estimateSection
-        }
-        .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
-            Button("OK") {
+        ScrollViewReader { proxy in
+            Form {
+                titleSection
+                notesSection
+                dueDateSection
+                prioritySection
+                projectSection
+                personnelSection
+                estimateSection
+                    .id("estimateSection")
+            }
+            .alert("Invalid Due Date", isPresented: $showingDateValidationAlert) {
+                Button("OK") {
+                    if let parentDue = parentDueDate {
+                        dueDate = parentDue
+                    }
+                }
+            } message: {
                 if let parentDue = parentDueDate {
-                    dueDate = parentDue
+                    Text("Subtask due date cannot be later than parent's due date (\(parentDue.formatted(date: .abbreviated, time: .shortened))).")
                 }
             }
-        } message: {
-            if let parentDue = parentDueDate {
-                Text("Subtask due date cannot be later than parent's due date (\(parentDue.formatted(date: .abbreviated, time: .shortened))).")
+            .alert("Invalid Time Estimate", isPresented: $showingEstimateValidationAlert) {
+                Button("OK") {
+                    resetToSubtaskTotal()
+                }
+            } message: {
+                Text(estimateValidationMessage)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: estimation.hasEstimate) { oldValue, newValue in
+                // When estimate section expands, maintain focus on estimate section
+                if newValue && !oldValue {
+                    proxy.scrollTo("estimateSection", anchor: .top)
+                }
+            }
+            .onChange(of: estimation.hasPersonnel) { oldValue, newValue in
+                // When personnel section expands, maintain focus on estimate section
+                if newValue && !oldValue {
+                    proxy.scrollTo("estimateSection", anchor: .top)
+                }
             }
         }
-        .alert("Invalid Time Estimate", isPresented: $showingEstimateValidationAlert) {
-            Button("OK") {
-                resetToSubtaskTotal()
-            }
-        } message: {
-            Text(estimateValidationMessage)
-        }
-        .scrollDismissesKeyboard(.interactively)
     }
 
     // MARK: - Section Views
@@ -150,7 +181,8 @@ struct TaskComposerForm: View {
         TaskComposerProjectSection(
             selectedProject: $selectedProject,
             isSubtask: isSubtask,
-            inheritedProject: inheritedProject
+            inheritedProject: inheritedProject,
+            projects: projects
         )
     }
 
@@ -176,15 +208,15 @@ struct TaskComposerForm: View {
             isSubtask: isSubtask,
             parentSubtaskEstimateTotal: parentSubtaskEstimateTotal,
             taskSubtaskEstimateTotal: taskSubtaskEstimateTotal,
-            hasDueDate: hasDueDate,
-            dueDate: dueDate,
-            hasStartDate: hasStartDate,
-            startDate: startDate,
-            hasEndDate: hasEndDate,
-            endDate: endDate,
-            onEstimateChange: validateEstimate,
-            onEffortChange: updateDurationFromEffort,
-            onQuantityChange: updateFromQuantityCalculation
+            schedule: scheduleContext,
+            templates: templates,
+            allTasks: allTasks,
+            callbacks: DetailedEstimationCallbacks(
+                onEstimateChange: validateEstimate,
+                onEffortChange: updateDurationFromEffort,
+                onQuantityChange: updateFromQuantityCalculation,
+                onPersonnelChange: { /* No-op for now */ }
+            )
         )
     }
 
