@@ -33,6 +33,8 @@ struct TaskComposerQuantitySection: View {
     @State private var showCalculationModeMenu = false
     @State private var hasInitialized = false
     @State private var quantityValidationError: String?
+    @State private var shouldAnimateDuration = false
+    @State private var shouldAnimatePersonnel = false
     @FocusState private var isQuantityFieldFocused: Bool
 
     let onCalculationUpdate: () -> Void
@@ -358,6 +360,8 @@ struct TaskComposerQuantitySection: View {
                 showCalculationModeMenu = true
             }
         }
+        .scaleEffect(shouldAnimatePersonnel ? 1.05 : 1.0)
+        .animation(.easeInOut(duration: 0.3), value: shouldAnimatePersonnel)
         .sheet(isPresented: $showPersonnelPicker) {
             personnelPickerSheet
         }
@@ -380,6 +384,8 @@ struct TaskComposerQuantitySection: View {
                 showCalculationModeMenu = true
             }
         }
+        .scaleEffect(shouldAnimateDuration ? 1.05 : 1.0)
+        .animation(.easeInOut(duration: 0.3), value: shouldAnimateDuration)
         .sheet(isPresented: $showDurationPicker) {
             durationPickerSheet
         }
@@ -565,6 +571,11 @@ struct TaskComposerQuantitySection: View {
         case .calculateDuration:
             // Calculate duration from quantity, productivity, and personnel
             guard let personnel = expectedPersonnelCount, personnel > 0 else { return }
+
+            // Store previous values to detect changes
+            let previousHours = estimateHours
+            let previousMinutes = estimateMinutes
+
             calculationViewModel.calculateDuration(personnelCount: personnel)
 
             // Sync ViewModel results back to bindings
@@ -572,12 +583,25 @@ struct TaskComposerQuantitySection: View {
             estimateMinutes = calculationViewModel.estimateMinutes
             hasEstimate = true
 
+            // Trigger pulse animation if value actually changed
+            if previousHours != estimateHours || previousMinutes != estimateMinutes {
+                triggerDurationAnimation()
+            }
+
         case .calculatePersonnel:
+            // Store previous value to detect changes
+            let previousPersonnel = expectedPersonnelCount
+
             // Calculate personnel from quantity, productivity, and duration
             if let calculated = calculationViewModel.calculatePersonnel() {
                 expectedPersonnelCount = calculated
                 calculationViewModel.expectedPersonnelCount = calculated
                 hasPersonnel = true
+
+                // Trigger pulse animation if value actually changed
+                if previousPersonnel != calculated {
+                    triggerPersonnelAnimation()
+                }
             }
 
         case .manualEntry:
@@ -587,5 +611,23 @@ struct TaskComposerQuantitySection: View {
 
         // Notify parent to update its state
         onCalculationUpdate()
+    }
+
+    /// Trigger brief pulse animation for duration value
+    private func triggerDurationAnimation() {
+        shouldAnimateDuration = true
+        // Reset after animation completes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            shouldAnimateDuration = false
+        }
+    }
+
+    /// Trigger brief pulse animation for personnel value
+    private func triggerPersonnelAnimation() {
+        shouldAnimatePersonnel = true
+        // Reset after animation completes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            shouldAnimatePersonnel = false
+        }
     }
 }
