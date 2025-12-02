@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// Main estimation section with three modes: Duration, Effort, and Quantity
 /// Orchestrates the different estimation methods and calculator
@@ -12,20 +11,15 @@ struct TaskComposerEstimateSection: View {
     let parentSubtaskEstimateTotal: Int?
     let taskSubtaskEstimateTotal: Int?
 
-    // Schedule context (for personnel recommendations)
-    let hasDueDate: Bool
-    let dueDate: Date
-    let hasStartDate: Bool
-    let startDate: Date
-    let hasEndDate: Bool
-    let endDate: Date
+    // Schedule context (consolidates 6 date parameters)
+    let schedule: ScheduleContext
 
-    // Callbacks
-    let onEstimateChange: () -> Void
-    let onEffortChange: () -> Void
-    let onQuantityChange: () -> Void
+    // Data passed from parent (no @Query)
+    let templates: [TaskTemplate]
+    let allTasks: [Task]
 
-    @Query(filter: #Predicate<Task> { task in !task.isArchived }, sort: \Task.order) private var allTasks: [Task]
+    // Callbacks (consolidated)
+    let callbacks: DetailedEstimationCallbacks
 
     var body: some View {
         Section("Estimate") {
@@ -135,11 +129,8 @@ struct TaskComposerEstimateSection: View {
                 hasCustomEstimate: $estimation.hasCustomEstimate,
                 isSubtask: isSubtask,
                 taskSubtaskEstimateTotal: taskSubtaskEstimateTotal,
-                hasStartDate: hasStartDate,
-                startDate: startDate,
-                hasEndDate: hasEndDate,
-                endDate: endDate,
-                onValidation: onEstimateChange
+                schedule: schedule,
+                onValidation: callbacks.onEstimateChange
             )
 
         case .effort:
@@ -149,19 +140,16 @@ struct TaskComposerEstimateSection: View {
                 expectedPersonnelCount: $estimation.expectedPersonnelCount,
                 estimateHours: $estimation.estimateHours,
                 estimateMinutes: $estimation.estimateMinutes,
-                hasDueDate: hasDueDate,
-                dueDate: dueDate,
-                hasStartDate: hasStartDate,
-                startDate: startDate
+                schedule: schedule
             )
             .onChange(of: estimation.effortHours) { _, _ in
-                onEffortChange()
+                callbacks.onEffortChange()
             }
             .onChange(of: estimation.hasPersonnel) { _, _ in
-                onEffortChange()
+                callbacks.onEffortChange()
             }
             .onChange(of: estimation.expectedPersonnelCount) { _, _ in
-                onEffortChange()
+                callbacks.onEffortChange()
             }
 
         case .quantity:
@@ -176,11 +164,10 @@ struct TaskComposerEstimateSection: View {
                 estimateMinutes: $estimation.estimateMinutes,
                 hasPersonnel: $estimation.hasPersonnel,
                 expectedPersonnelCount: $estimation.expectedPersonnelCount,
-                hasDueDate: hasDueDate,
-                dueDate: dueDate,
-                hasStartDate: hasStartDate,
-                startDate: startDate,
-                onCalculationUpdate: onQuantityChange
+                schedule: schedule,
+                templates: templates,
+                allTasks: allTasks,
+                onCalculationUpdate: callbacks.onQuantityChange
             )
         }
     }

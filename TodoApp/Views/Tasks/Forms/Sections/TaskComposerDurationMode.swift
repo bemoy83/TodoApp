@@ -11,11 +11,8 @@ struct TaskComposerDurationMode: View {
     let isSubtask: Bool
     let taskSubtaskEstimateTotal: Int?
 
-    // Schedule parameters for auto-calculating duration from working window
-    let hasStartDate: Bool
-    let startDate: Date
-    let hasEndDate: Bool
-    let endDate: Date
+    // Schedule context for auto-calculating duration from working window
+    let schedule: ScheduleContext
 
     let onValidation: () -> Void
 
@@ -28,14 +25,12 @@ struct TaskComposerDurationMode: View {
 
     /// Whether we have a working window (schedule) set
     private var hasSchedule: Bool {
-        hasStartDate && hasEndDate
+        schedule.hasWorkingWindow
     }
 
     /// Calculate duration from schedule (available work hours)
     private var scheduleDurationSeconds: Int? {
-        guard hasSchedule else { return nil }
-        let hours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
-        return Int(hours * 3600)
+        schedule.availableWorkSeconds
     }
 
     /// Determine the source of duration (priority order: manual > schedule > subtasks)
@@ -91,16 +86,7 @@ struct TaskComposerDurationMode: View {
                 hasCustomEstimate = true
             }
         }
-        .onChange(of: startDate) { _, _ in
-            updateFromSchedule()
-        }
-        .onChange(of: endDate) { _, _ in
-            updateFromSchedule()
-        }
-        .onChange(of: hasStartDate) { _, _ in
-            updateFromSchedule()
-        }
-        .onChange(of: hasEndDate) { _, _ in
+        .onChange(of: schedule) { _, _ in
             updateFromSchedule()
         }
     }

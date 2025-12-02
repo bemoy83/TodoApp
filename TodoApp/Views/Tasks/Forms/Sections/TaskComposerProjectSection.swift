@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// Project selection section for TaskComposerForm
 /// Handles both subtask (inherited) and regular task (selectable) project assignment
@@ -7,8 +6,7 @@ struct TaskComposerProjectSection: View {
     @Binding var selectedProject: Project?
     let isSubtask: Bool
     let inheritedProject: Project?
-
-    @Query(sort: \Project.title) private var projects: [Project]
+    let projects: [Project]
 
     var body: some View {
         Section("Project") {

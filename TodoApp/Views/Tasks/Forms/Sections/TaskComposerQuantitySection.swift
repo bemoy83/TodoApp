@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// Productivity mode selection for task estimation
 enum ProductivityMode: String, CaseIterable {
@@ -23,14 +22,12 @@ struct TaskComposerQuantitySection: View {
     @Binding var hasPersonnel: Bool
     @Binding var expectedPersonnelCount: Int?
 
-    // Deadline (for personnel recommendations)
-    let hasDueDate: Bool
-    let dueDate: Date
-    let hasStartDate: Bool
-    let startDate: Date
+    // Schedule context (for personnel recommendations)
+    let schedule: ScheduleContext
 
-    @Query(sort: \TaskTemplate.order) private var templates: [TaskTemplate]
-    @Query(filter: #Predicate<Task> { task in !task.isArchived }, sort: \Task.order) private var allTasks: [Task]
+    // Data passed from parent (no @Query)
+    let templates: [TaskTemplate]
+    let allTasks: [Task]
 
     @State private var historicalProductivity: Double?
     @State private var expectedProductivity: Double?
@@ -60,7 +57,7 @@ struct TaskComposerQuantitySection: View {
 
     /// Whether to show personnel recommendations
     private var shouldShowPersonnelRecommendation: Bool {
-        guard hasDueDate, calculatedEffort > 0 else { return false }
+        guard schedule.hasDueDate, calculatedEffort > 0 else { return false }
 
         // Only show when we're calculating duration (user needs personnel recommendation)
         return quantityCalculationMode == .calculateDuration
@@ -135,8 +132,8 @@ struct TaskComposerQuantitySection: View {
 
                     PersonnelRecommendationView(
                         effortHours: calculatedEffort,
-                        startDate: hasStartDate ? startDate : nil,
-                        deadline: dueDate,
+                        startDate: schedule.hasStartDate ? schedule.startDate : nil,
+                        deadline: schedule.dueDate,
                         currentSelection: expectedPersonnelCount,
                         taskType: taskType,
                         allTasks: allTasks
@@ -146,7 +143,7 @@ struct TaskComposerQuantitySection: View {
                         // Trigger recalculation when personnel is set via recommendation
                         onCalculationUpdate()
                     }
-                    .id("\(hasStartDate ? startDate.timeIntervalSince1970 : 0)-\(dueDate.timeIntervalSince1970)")
+                    .id("\(schedule.hasStartDate ? schedule.startDate.timeIntervalSince1970 : 0)-\(schedule.dueDate.timeIntervalSince1970)")
                 }
             } else if taskType != nil {
                 TaskInlineInfoRow(

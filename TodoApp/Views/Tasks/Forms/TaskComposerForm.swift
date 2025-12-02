@@ -30,6 +30,10 @@ struct TaskComposerForm: View {
         !task.isArchived
     }, sort: \Task.order) private var allTasks: [Task]
 
+    // Query projects and templates to pass to child views
+    @Query(sort: \Project.title) private var projects: [Project]
+    @Query(sort: \TaskTemplate.order) private var templates: [TaskTemplate]
+
     @State private var showingDateValidationAlert = false
     @State private var showingEstimateValidationAlert = false
     @State private var estimateValidationMessage = ""
@@ -38,6 +42,18 @@ struct TaskComposerForm: View {
 
     private var inheritedProject: Project? {
         parentTask?.project
+    }
+
+    /// Schedule context consolidating 6 date-related parameters
+    private var scheduleContext: ScheduleContext {
+        ScheduleContext(
+            hasDueDate: hasDueDate,
+            dueDate: dueDate,
+            hasStartDate: hasStartDate,
+            startDate: startDate,
+            hasEndDate: hasEndDate,
+            endDate: endDate
+        )
     }
 
     /// Personnel is auto-calculated (read-only) when in certain modes
@@ -150,7 +166,8 @@ struct TaskComposerForm: View {
         TaskComposerProjectSection(
             selectedProject: $selectedProject,
             isSubtask: isSubtask,
-            inheritedProject: inheritedProject
+            inheritedProject: inheritedProject,
+            projects: projects
         )
     }
 
@@ -176,15 +193,15 @@ struct TaskComposerForm: View {
             isSubtask: isSubtask,
             parentSubtaskEstimateTotal: parentSubtaskEstimateTotal,
             taskSubtaskEstimateTotal: taskSubtaskEstimateTotal,
-            hasDueDate: hasDueDate,
-            dueDate: dueDate,
-            hasStartDate: hasStartDate,
-            startDate: startDate,
-            hasEndDate: hasEndDate,
-            endDate: endDate,
-            onEstimateChange: validateEstimate,
-            onEffortChange: updateDurationFromEffort,
-            onQuantityChange: updateFromQuantityCalculation
+            schedule: scheduleContext,
+            templates: templates,
+            allTasks: allTasks,
+            callbacks: DetailedEstimationCallbacks(
+                onEstimateChange: validateEstimate,
+                onEffortChange: updateDurationFromEffort,
+                onQuantityChange: updateFromQuantityCalculation,
+                onPersonnelChange: { /* No-op for now */ }
+            )
         )
     }
 
