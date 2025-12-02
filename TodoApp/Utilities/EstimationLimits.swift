@@ -29,8 +29,8 @@ struct EstimationLimits {
 
     // MARK: - Quantity Limits
 
-    /// Minimum quantity value
-    static let minQuantity: Double = 0.0
+    /// Minimum quantity value (must be greater than 0 for calculations to work)
+    static let minQuantity: Double = 0.01
 
     /// Maximum quantity value (e.g., for carpet tiles in m²)
     /// Default: 1,000,000 (sufficient for very large venues)
@@ -128,7 +128,7 @@ struct EstimationLimits {
     /// Error message for invalid quantity
     static func quantityErrorMessage(for quantity: Double) -> String {
         if quantity < minQuantity {
-            return "Quantity must be greater than 0"
+            return "Quantity cannot be 0 for calculation to work"
         } else if quantity > maxQuantity {
             return "Quantity cannot exceed \(String(format: "%.0f", maxQuantity))"
         }

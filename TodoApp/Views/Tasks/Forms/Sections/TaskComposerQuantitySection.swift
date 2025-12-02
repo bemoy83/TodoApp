@@ -32,6 +32,7 @@ struct TaskComposerQuantitySection: View {
     @State private var showProductivityRateEditor = false
     @State private var showCalculationModeMenu = false
     @State private var hasInitialized = false
+    @State private var quantityValidationError: String?
     @FocusState private var isQuantityFieldFocused: Bool
 
     let onCalculationUpdate: () -> Void
@@ -402,6 +403,23 @@ struct TaskComposerQuantitySection: View {
                         .font(.title2)
                         .focused($isQuantityFieldFocused)
                         .frame(maxWidth: 200)
+                        .onChange(of: quantity) { _, newValue in
+                            // Real-time validation as user types
+                            validateQuantityInput(newValue)
+                        }
+
+                    // Inline validation error
+                    if let error = quantityValidationError {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                        .padding(.top, DesignSystem.Spacing.xs)
+                    }
                 }
 
                 Spacer()
@@ -411,13 +429,17 @@ struct TaskComposerQuantitySection: View {
                     Button("Done") {
                         showQuantityPicker = false
                         isQuantityFieldFocused = false
+                        // Clear validation error when closing
+                        quantityValidationError = nil
                     }
                 }
             }
-            .presentationDetents([.height(300)])
+            .presentationDetents([.height(350)])
             .presentationDragIndicator(.visible)
             .onAppear {
                 isQuantityFieldFocused = true
+                // Validate current value when sheet appears
+                validateQuantityInput(quantity)
             }
         }
     }
@@ -503,6 +525,25 @@ struct TaskComposerQuantitySection: View {
     }
 
     // MARK: - Helper Methods
+
+    /// Validate quantity input in real-time
+    private func validateQuantityInput(_ input: String) {
+        // Empty input is valid (allows user to clear and retype)
+        guard !input.isEmpty else {
+            quantityValidationError = nil
+            return
+        }
+
+        // Validate using InputValidator
+        let validation = InputValidator.validateQuantity(input, unit: unit.displayName)
+
+        // Update error message
+        if let error = validation.error {
+            quantityValidationError = error.message
+        } else {
+            quantityValidationError = nil
+        }
+    }
 
     /// Sync ViewModel state with bindings
     private func syncViewModelState() {
