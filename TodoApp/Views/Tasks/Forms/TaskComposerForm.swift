@@ -127,6 +127,12 @@ struct TaskComposerForm: View {
                 Text(estimateValidationMessage)
             }
             .scrollDismissesKeyboard(.interactively)
+            .onChange(of: estimation.hasEstimate) { oldValue, newValue in
+                // When estimate section expands, maintain focus on estimate section
+                if newValue && !oldValue {
+                    proxy.scrollTo("estimateSection", anchor: .top)
+                }
+            }
             .onChange(of: estimation.hasPersonnel) { oldValue, newValue in
                 // When personnel section expands, maintain focus on estimate section
                 if newValue && !oldValue {
