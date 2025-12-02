@@ -33,6 +33,7 @@ struct TaskComposerQuantitySection: View {
     @State private var showCalculationModeMenu = false
     @State private var hasInitialized = false
     @State private var quantityValidationError: String?
+    @State private var calculationError: String?
     @State private var shouldAnimateDuration = false
     @State private var shouldAnimatePersonnel = false
     @FocusState private var isQuantityFieldFocused: Bool
@@ -110,6 +111,19 @@ struct TaskComposerQuantitySection: View {
                 productivityInputRow
                 personnelInputRow
                 durationInputRow
+
+                // Calculation error message (compact, inline)
+                if let error = calculationError {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                    .padding(.top, 2)
+                }
 
                 // Shared calculation mode menu
                     .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
@@ -567,15 +581,32 @@ struct TaskComposerQuantitySection: View {
 
     /// Perform calculation based on current mode and sync results back to bindings
     private func performCalculation() {
+        // Clear any previous error
+        calculationError = nil
+
         switch quantityCalculationMode {
         case .calculateDuration:
-            // Calculate duration from quantity, productivity, and personnel
-            guard let personnel = expectedPersonnelCount, personnel > 0 else { return }
+            // Validate inputs before calculation
+            guard let qty = Double(quantity), qty > 0 else {
+                calculationError = "Quantity cannot be 0 for calculation to work"
+                return
+            }
+
+            guard let rate = productivityRate ?? calculationViewModel.historicalProductivity, rate > 0 else {
+                calculationError = "Productivity rate not set"
+                return
+            }
+
+            guard let personnel = expectedPersonnelCount, personnel > 0 else {
+                calculationError = "Personnel count required"
+                return
+            }
 
             // Store previous values to detect changes
             let previousHours = estimateHours
             let previousMinutes = estimateMinutes
 
+            // Perform calculation
             calculationViewModel.calculateDuration(personnelCount: personnel)
 
             // Sync ViewModel results back to bindings
@@ -589,6 +620,23 @@ struct TaskComposerQuantitySection: View {
             }
 
         case .calculatePersonnel:
+            // Validate inputs before calculation
+            guard let qty = Double(quantity), qty > 0 else {
+                calculationError = "Quantity cannot be 0 for calculation to work"
+                return
+            }
+
+            guard let rate = productivityRate ?? calculationViewModel.historicalProductivity, rate > 0 else {
+                calculationError = "Productivity rate not set"
+                return
+            }
+
+            let totalSeconds = (estimateHours * 3600) + (estimateMinutes * 60)
+            guard totalSeconds > 0 else {
+                calculationError = "Duration must be greater than 0"
+                return
+            }
+
             // Store previous value to detect changes
             let previousPersonnel = expectedPersonnelCount
 
@@ -602,6 +650,9 @@ struct TaskComposerQuantitySection: View {
                 if previousPersonnel != calculated {
                     triggerPersonnelAnimation()
                 }
+            } else {
+                calculationError = "Unable to calculate personnel"
+                return
             }
 
         case .manualEntry:
