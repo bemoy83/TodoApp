@@ -14,6 +14,7 @@ struct EffortInputSection: View {
     @State private var showEffortPicker = false
     @State private var effortInput: String = ""
     @State private var manuallySetEffort: Double? = nil
+    @State private var hasInitialized = false
     @FocusState private var isEffortFieldFocused: Bool
 
     // MARK: - Computed Properties
@@ -126,6 +127,10 @@ struct EffortInputSection: View {
             effortHours = newValue
         }
         .onAppear {
+            // Guard: Only initialize once to prevent side effects on re-appear
+            guard !hasInitialized else { return }
+            hasInitialized = true
+
             // Initialize manuallySetEffort if effortHours was already set
             if effortHours > 0 {
                 manuallySetEffort = effortHours

@@ -38,6 +38,7 @@ struct TaskComposerQuantitySection: View {
     @State private var showDurationPicker = false
     @State private var showProductivityRateEditor = false
     @State private var showCalculationModeMenu = false
+    @State private var hasInitialized = false
     @FocusState private var isQuantityFieldFocused: Bool
     @FocusState private var isCustomProductivityFocused: Bool
 
@@ -154,6 +155,10 @@ struct TaskComposerQuantitySection: View {
             }
         }
         .onAppear {
+            // Guard: Only initialize once to prevent side effects on re-appear
+            guard !hasInitialized else { return }
+            hasInitialized = true
+
             // Initialize productivity rates if task type is already set
             if let currentTaskType = taskType {
                 // Store the existing productivity rate (could be custom or historical)
@@ -659,47 +664,15 @@ struct TaskComposerQuantitySection: View {
     }
 
     private var durationPickerSheet: some View {
-        NavigationStack {
-            VStack(spacing: DesignSystem.Spacing.lg) {
-                Text("Set Duration")
-                    .font(.headline)
-                    .padding(.top, DesignSystem.Spacing.md)
-
-                DatePicker(
-                    "Duration",
-                    selection: Binding(
-                        get: {
-                            Calendar.current.date(
-                                from: DateComponents(
-                                    hour: estimateHours,
-                                    minute: estimateMinutes
-                                )
-                            ) ?? Date()
-                        },
-                        set: { newValue in
-                            let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
-                            estimateHours = components.hour ?? 0
-                            estimateMinutes = components.minute ?? 0
-                            hasEstimate = true
-                            onCalculationUpdate()
-                        }
-                    ),
-                    displayedComponents: [.hourAndMinute]
-                )
-                .labelsHidden()
-                .datePickerStyle(.wheel)
-
-                Spacer()
-            }
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        showDurationPicker = false
-                    }
-                }
-            }
-            .presentationDetents([.height(300)])
-            .presentationDragIndicator(.visible)
+        DurationPickerSheet(
+            hours: $estimateHours,
+            minutes: $estimateMinutes,
+            isPresented: $showDurationPicker,
+            title: "Set Duration",
+            maxHours: EstimationLimits.maxDurationHours
+        ) {
+            hasEstimate = true
+            onCalculationUpdate()
         }
     }
 

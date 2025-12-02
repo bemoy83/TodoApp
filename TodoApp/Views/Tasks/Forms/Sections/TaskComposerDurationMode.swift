@@ -18,6 +18,7 @@ struct TaskComposerDurationMode: View {
 
     @State private var showTimePicker = false
     @State private var manualOverride = false
+    @State private var hasInitialized = false
 
     private var hasSubtasksWithEstimates: Bool {
         !isSubtask && (taskSubtaskEstimateTotal ?? 0) > 0
@@ -76,6 +77,10 @@ struct TaskComposerDurationMode: View {
             timePickerRow
         }
         .onAppear {
+            // Guard: Only initialize once to prevent side effects on re-appear
+            guard !hasInitialized else { return }
+            hasInitialized = true
+
             // Initialize from schedule if available
             if hasSchedule, let scheduleDuration = scheduleDurationSeconds, !manualOverride {
                 estimateHours = scheduleDuration / 3600
@@ -151,52 +156,19 @@ struct TaskComposerDurationMode: View {
     }
 
     private var timePickerSheet: some View {
-        NavigationStack {
-            VStack(spacing: DesignSystem.Spacing.lg) {
-                Text("Set Time Estimate")
-                    .font(.headline)
-                    .padding(.top, DesignSystem.Spacing.md)
-
-                DatePicker(
-                    "Time Estimate",
-                    selection: Binding(
-                        get: {
-                            Calendar.current.date(
-                                from: DateComponents(
-                                    hour: estimateHours,
-                                    minute: estimateMinutes
-                                )
-                            ) ?? Date()
-                        },
-                        set: { newValue in
-                            let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
-                            estimateHours = min(max(components.hour ?? 0, 0), 99)
-                            estimateMinutes = min(max(components.minute ?? 0, 0), 59)
-
-                            // Mark as manual override if user changes it
-                            if hasSchedule {
-                                manualOverride = true
-                            }
-
-                            onValidation()
-                        }
-                    ),
-                    displayedComponents: [.hourAndMinute]
-                )
-                .labelsHidden()
-                .datePickerStyle(.wheel)
-
-                Spacer()
+        DurationPickerSheet(
+            hours: $estimateHours,
+            minutes: $estimateMinutes,
+            isPresented: $showTimePicker,
+            title: "Set Time Estimate",
+            maxHours: EstimationLimits.maxDurationHours
+        ) {
+            // Mark as manual override if user changes it
+            if hasSchedule {
+                manualOverride = true
             }
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        showTimePicker = false
-                    }
-                }
-            }
-            .presentationDetents([.height(300)])
-            .presentationDragIndicator(.visible)
+            hasEstimate = true
+            onValidation()
         }
     }
 
