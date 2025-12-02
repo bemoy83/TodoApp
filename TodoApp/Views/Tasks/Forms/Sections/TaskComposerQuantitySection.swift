@@ -186,15 +186,9 @@ struct TaskComposerQuantitySection: View {
             estimateMinutes = 0
             expectedPersonnelCount = 1 // Reset to default instead of nil
 
-            // Show error prompting re-entry
+            // Show error prompting re-entry (persists until user starts typing)
             calculationError = "Please re-enter quantity for \(newUnit.displayName)"
             unitChangeWarning = "Unit changed from \(oldUnit.displayName) to \(newUnit.displayName) - please re-enter quantity"
-
-            // Clear warnings after 4 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                unitChangeWarning = nil
-                calculationError = nil
-            }
         }
         .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
             Button("Calculate Duration") {
@@ -470,6 +464,15 @@ struct TaskComposerQuantitySection: View {
                         .onChange(of: quantity) { _, newValue in
                             // Real-time validation as user types
                             validateQuantityInput(newValue)
+
+                            // Clear unit change warnings when user starts typing
+                            if !newValue.isEmpty {
+                                unitChangeWarning = nil
+                                // Only clear calculationError if it was from unit change
+                                if calculationError?.contains("re-enter quantity") == true {
+                                    calculationError = nil
+                                }
+                            }
                         }
 
                     // Inline validation error
