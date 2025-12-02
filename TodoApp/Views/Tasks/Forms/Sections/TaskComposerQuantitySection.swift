@@ -116,16 +116,17 @@ struct TaskComposerQuantitySection: View {
                             // Ensure personnel is set for duration calculation
                             if expectedPersonnelCount == nil {
                                 expectedPersonnelCount = 1
+                                calculationViewModel.expectedPersonnelCount = 1
                             }
                             hasPersonnel = true
-                            onCalculationUpdate()
+                            performCalculation()
                         }
                         Button("Calculate Personnel") {
                             quantityCalculationMode = .calculatePersonnel
                             calculationViewModel.calculationMode = .calculatePersonnel
                             // Ensure estimate is set for personnel calculation
                             hasEstimate = true
-                            onCalculationUpdate()
+                            performCalculation()
                         }
                         Button("Calculate Productivity (Manual)") {
                             quantityCalculationMode = .manualEntry
@@ -159,8 +160,9 @@ struct TaskComposerQuantitySection: View {
                     ) { selectedCount in
                         hasPersonnel = true
                         expectedPersonnelCount = selectedCount
+                        calculationViewModel.expectedPersonnelCount = selectedCount
                         // Trigger recalculation when personnel is set via recommendation
-                        onCalculationUpdate()
+                        performCalculation()
                     }
                     .id("\(schedule.hasStartDate ? schedule.startDate.timeIntervalSince1970 : 0)-\(schedule.dueDate.timeIntervalSince1970)")
                 }
@@ -212,21 +214,43 @@ struct TaskComposerQuantitySection: View {
                 break
             }
         }
-        .onChange(of: expectedPersonnelCount) { _, _ in
-            // Trigger recalculation when personnel count changes
+        .onChange(of: expectedPersonnelCount) { _, newValue in
+            // Sync with ViewModel
+            calculationViewModel.expectedPersonnelCount = newValue
+            // Trigger recalculation when personnel count changes (in Calculate Duration mode)
             if quantityCalculationMode == .calculateDuration {
-                onCalculationUpdate()
+                performCalculation()
             }
         }
         .onChange(of: quantity) { _, newValue in
             calculationViewModel.quantity = newValue
-            onCalculationUpdate()
+            // Trigger recalculation for any mode that depends on quantity
+            if quantityCalculationMode == .calculateDuration || quantityCalculationMode == .calculatePersonnel {
+                performCalculation()
+            } else {
+                onCalculationUpdate()
+            }
         }
         .onChange(of: estimateHours) { _, newValue in
             calculationViewModel.estimateHours = newValue
+            // Trigger recalculation when duration changes (in Calculate Personnel mode)
+            if quantityCalculationMode == .calculatePersonnel {
+                performCalculation()
+            }
         }
         .onChange(of: estimateMinutes) { _, newValue in
             calculationViewModel.estimateMinutes = newValue
+            // Trigger recalculation when duration changes (in Calculate Personnel mode)
+            if quantityCalculationMode == .calculatePersonnel {
+                performCalculation()
+            }
+        }
+        .onChange(of: productivityRate) { _, newValue in
+            calculationViewModel.productivityRate = newValue
+            // Trigger recalculation when productivity changes (affects both calculation modes)
+            if quantityCalculationMode == .calculateDuration || quantityCalculationMode == .calculatePersonnel {
+                performCalculation()
+            }
         }
     }
 
@@ -305,7 +329,12 @@ struct TaskComposerQuantitySection: View {
                 // Update binding when productivity changes
                 productivityRate = productivityViewModel.currentProductivity
                 calculationViewModel.productivityRate = productivityViewModel.currentProductivity
-                onCalculationUpdate()
+                // Trigger recalculation with new productivity rate
+                if quantityCalculationMode == .calculateDuration || quantityCalculationMode == .calculatePersonnel {
+                    performCalculation()
+                } else {
+                    onCalculationUpdate()
+                }
             }
         }
     }
@@ -426,7 +455,12 @@ struct TaskComposerQuantitySection: View {
                         expectedPersonnelCount = $0
                         calculationViewModel.expectedPersonnelCount = $0
                         hasPersonnel = true
-                        onCalculationUpdate()
+                        // Trigger recalculation when personnel is manually set
+                        if quantityCalculationMode == .calculateDuration {
+                            performCalculation()
+                        } else {
+                            onCalculationUpdate()
+                        }
                     }
                 )) {
                     ForEach(1...20, id: \.self) { count in
@@ -459,7 +493,12 @@ struct TaskComposerQuantitySection: View {
             maxHours: EstimationLimits.maxDurationHours
         ) {
             hasEstimate = true
-            onCalculationUpdate()
+            // Trigger recalculation when duration is manually set
+            if quantityCalculationMode == .calculatePersonnel {
+                performCalculation()
+            } else {
+                onCalculationUpdate()
+            }
         }
     }
 
@@ -477,5 +516,35 @@ struct TaskComposerQuantitySection: View {
         calculationViewModel.expectedPersonnelCount = expectedPersonnelCount
 
         productivityViewModel.currentProductivity = productivityRate
+    }
+
+    /// Perform calculation based on current mode and sync results back to bindings
+    private func performCalculation() {
+        switch quantityCalculationMode {
+        case .calculateDuration:
+            // Calculate duration from quantity, productivity, and personnel
+            guard let personnel = expectedPersonnelCount, personnel > 0 else { return }
+            calculationViewModel.calculateDuration(personnelCount: personnel)
+
+            // Sync ViewModel results back to bindings
+            estimateHours = calculationViewModel.estimateHours
+            estimateMinutes = calculationViewModel.estimateMinutes
+            hasEstimate = true
+
+        case .calculatePersonnel:
+            // Calculate personnel from quantity, productivity, and duration
+            if let calculated = calculationViewModel.calculatePersonnel() {
+                expectedPersonnelCount = calculated
+                calculationViewModel.expectedPersonnelCount = calculated
+                hasPersonnel = true
+            }
+
+        case .manualEntry:
+            // No automatic calculation - productivity will be calculated on completion
+            break
+        }
+
+        // Notify parent to update its state
+        onCalculationUpdate()
     }
 }
