@@ -1,15 +1,8 @@
 import SwiftUI
 
-/// Productivity mode selection for task estimation
-enum ProductivityMode: String, CaseIterable {
-    case expected = "Expected"
-    case historical = "Historical"
-    case custom = "Custom"
-}
-
 /// Quantity-based estimation calculator section
 /// Handles task type selection, unit tracking, and calculation modes
-/// Consolidated implementation with shared productivity view and calculation transparency
+/// Refactored to use ViewModels and reusable components
 struct TaskComposerQuantitySection: View {
     @Binding var taskType: String?
     @Binding var unit: UnitType
@@ -29,10 +22,10 @@ struct TaskComposerQuantitySection: View {
     let templates: [TaskTemplate]
     let allTasks: [Task]
 
-    @State private var historicalProductivity: Double?
-    @State private var expectedProductivity: Double?
-    @State private var productivityMode: ProductivityMode = .expected
-    @State private var customProductivityInput: String = ""
+    // ViewModels for business logic
+    @State private var calculationViewModel: QuantityCalculationViewModel
+    @State private var productivityViewModel: ProductivityRateViewModel
+
     @State private var showQuantityPicker = false
     @State private var showPersonnelPicker = false
     @State private var showDurationPicker = false
@@ -40,28 +33,47 @@ struct TaskComposerQuantitySection: View {
     @State private var showCalculationModeMenu = false
     @State private var hasInitialized = false
     @FocusState private var isQuantityFieldFocused: Bool
-    @FocusState private var isCustomProductivityFocused: Bool
 
     let onCalculationUpdate: () -> Void
 
-    // MARK: - Computed Properties
+    // MARK: - Initialization
 
-    /// Calculate effort hours from quantity and productivity (only when in Calculate Duration or Personnel mode)
-    private var calculatedEffort: Double {
-        let quantityValue = Double(quantity) ?? 0
-        let rate = productivityRate ?? historicalProductivity ?? 0
-        guard quantityValue > 0, rate > 0 else { return 0 }
+    init(
+        taskType: Binding<String?>,
+        unit: Binding<UnitType>,
+        quantity: Binding<String>,
+        quantityCalculationMode: Binding<TaskEstimator.QuantityCalculationMode>,
+        productivityRate: Binding<Double?>,
+        hasEstimate: Binding<Bool>,
+        estimateHours: Binding<Int>,
+        estimateMinutes: Binding<Int>,
+        hasPersonnel: Binding<Bool>,
+        expectedPersonnelCount: Binding<Int?>,
+        schedule: ScheduleContext,
+        templates: [TaskTemplate],
+        allTasks: [Task],
+        onCalculationUpdate: @escaping () -> Void
+    ) {
+        self._taskType = taskType
+        self._unit = unit
+        self._quantity = quantity
+        self._quantityCalculationMode = quantityCalculationMode
+        self._productivityRate = productivityRate
+        self._hasEstimate = hasEstimate
+        self._estimateHours = estimateHours
+        self._estimateMinutes = estimateMinutes
+        self._hasPersonnel = hasPersonnel
+        self._expectedPersonnelCount = expectedPersonnelCount
+        self.schedule = schedule
+        self.templates = templates
+        self.allTasks = allTasks
+        self.onCalculationUpdate = onCalculationUpdate
 
-        // Effort = Quantity ÷ Productivity Rate (gives us person-hours)
-        return quantityValue / rate
-    }
-
-    /// Whether to show personnel recommendations
-    private var shouldShowPersonnelRecommendation: Bool {
-        guard schedule.hasDueDate, calculatedEffort > 0 else { return false }
-
-        // Only show when we're calculating duration (user needs personnel recommendation)
-        return quantityCalculationMode == .calculateDuration
+        // Initialize ViewModels
+        let calcVM = QuantityCalculationViewModel(templates: templates, allTasks: allTasks)
+        let prodVM = ProductivityRateViewModel()
+        self._calculationViewModel = State(initialValue: calcVM)
+        self._productivityViewModel = State(initialValue: prodVM)
     }
 
     var body: some View {
@@ -80,8 +92,11 @@ struct TaskComposerQuantitySection: View {
                 )
 
                 // Historical productivity badge
-                if let historical = historicalProductivity, taskType != nil {
-                    historicalProductivityBadge(historical: historical)
+                if productivityViewModel.historicalProductivity != nil, taskType != nil {
+                    HistoricalProductivityBadge(
+                        viewModel: productivityViewModel,
+                        unit: unit
+                    )
                 }
 
                 Divider()
@@ -97,6 +112,7 @@ struct TaskComposerQuantitySection: View {
                     .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
                         Button("Calculate Duration") {
                             quantityCalculationMode = .calculateDuration
+                            calculationViewModel.calculationMode = .calculateDuration
                             // Ensure personnel is set for duration calculation
                             if expectedPersonnelCount == nil {
                                 expectedPersonnelCount = 1
@@ -106,12 +122,14 @@ struct TaskComposerQuantitySection: View {
                         }
                         Button("Calculate Personnel") {
                             quantityCalculationMode = .calculatePersonnel
+                            calculationViewModel.calculationMode = .calculatePersonnel
                             // Ensure estimate is set for personnel calculation
                             hasEstimate = true
                             onCalculationUpdate()
                         }
                         Button("Calculate Productivity (Manual)") {
                             quantityCalculationMode = .manualEntry
+                            calculationViewModel.calculationMode = .manualEntry
                             onCalculationUpdate()
                         }
                         Button("Cancel", role: .cancel) {}
@@ -127,12 +145,12 @@ struct TaskComposerQuantitySection: View {
                 }
 
                 // Personnel recommendation
-                if shouldShowPersonnelRecommendation {
+                if calculationViewModel.shouldShowPersonnelRecommendation(hasDueDate: schedule.hasDueDate) {
                     Divider()
                         .padding(.vertical, DesignSystem.Spacing.sm)
 
                     PersonnelRecommendationView(
-                        effortHours: calculatedEffort,
+                        effortHours: calculationViewModel.calculatedEffort,
                         startDate: schedule.hasStartDate ? schedule.startDate : nil,
                         deadline: schedule.dueDate,
                         currentSelection: expectedPersonnelCount,
@@ -159,28 +177,24 @@ struct TaskComposerQuantitySection: View {
             guard !hasInitialized else { return }
             hasInitialized = true
 
+            // Sync ViewModel state with bindings
+            syncViewModelState()
+
             // Initialize productivity rates if task type is already set
             if let currentTaskType = taskType {
-                // Store the existing productivity rate (could be custom or historical)
-                // If task.customProductivityRate was set, it's loaded via EstimationState.init(from:)
-                let existingCustomRate = productivityRate
+                calculationViewModel.initialize(
+                    existingTaskType: currentTaskType,
+                    existingQuantity: quantity,
+                    existingProductivityRate: productivityRate,
+                    existingUnit: unit
+                )
 
-                // Initialize template and historical rates for this task type
-                handleTaskTypeChange(currentTaskType)
-
-                // Restore custom productivity rate if it differs from defaults
-                // (Now properly persisted via Task.customProductivityRate)
-                if let customRate = existingCustomRate, customRate > 0 {
-                    // Check if this differs from the newly loaded template/historical defaults
-                    let defaultRate = expectedProductivity ?? historicalProductivity ?? unit.defaultProductivityRate ?? 0.0
-
-                    if abs(customRate - defaultRate) > 0.01 {
-                        // This is a saved custom rate - restore it and set mode to custom
-                        productivityRate = customRate
-                        productivityMode = .custom
-                        customProductivityInput = String(format: "%.1f", customRate)
-                    }
-                }
+                // Sync productivity ViewModel
+                productivityViewModel.loadProductivityRates(
+                    expected: calculationViewModel.expectedProductivity,
+                    historical: calculationViewModel.historicalProductivity,
+                    existingCustom: productivityRate
+                )
             }
 
             // Initialize required values based on calculation mode
@@ -200,10 +214,19 @@ struct TaskComposerQuantitySection: View {
         }
         .onChange(of: expectedPersonnelCount) { _, _ in
             // Trigger recalculation when personnel count changes
-            // (relevant when in Calculate Duration mode)
             if quantityCalculationMode == .calculateDuration {
                 onCalculationUpdate()
             }
+        }
+        .onChange(of: quantity) { _, newValue in
+            calculationViewModel.quantity = newValue
+            onCalculationUpdate()
+        }
+        .onChange(of: estimateHours) { _, newValue in
+            calculationViewModel.estimateHours = newValue
+        }
+        .onChange(of: estimateMinutes) { _, newValue in
+            calculationViewModel.estimateMinutes = newValue
         }
     }
 
@@ -221,81 +244,52 @@ struct TaskComposerQuantitySection: View {
             }
         }
         .pickerStyle(.menu)
-        .onChange(of: taskType) { oldValue, newValue in
-            handleTaskTypeChange(newValue)
-        }
-    }
+        .onChange(of: taskType) { _, newValue in
+            calculationViewModel.taskType = newValue
+            calculationViewModel.handleTaskTypeChange(newValue)
 
-    private var formattedQuantity: String {
-        if quantity.isEmpty || quantity == "0" {
-            return "Not set"
+            // Sync with bindings
+            unit = calculationViewModel.unit
+            productivityRate = calculationViewModel.productivityRate
+
+            // Update productivity ViewModel
+            productivityViewModel.loadProductivityRates(
+                expected: calculationViewModel.expectedProductivity,
+                historical: calculationViewModel.historicalProductivity,
+                existingCustom: nil
+            )
+            productivityViewModel.currentProductivity = calculationViewModel.productivityRate
         }
-        return "\(quantity) \(unit.displayName)"
     }
 
     // Quantity is never calculated - always an input
     private var quantityInputRow: some View {
-        HStack {
-            Image(systemName: "number")
-                .font(.subheadline)
-                .foregroundStyle(.blue)
-                .frame(width: 24)
-
-            Text("Quantity")
-
-            Spacer()
-
-            Text(formattedQuantity)
-                .foregroundStyle(.secondary)
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
+        CalculationInputRow(
+            icon: "number",
+            label: "Quantity",
+            value: calculationViewModel.formattedQuantity,
+            isCalculated: false,
+            calculatedColor: .blue
+        ) {
             showQuantityPicker = true
         }
         .sheet(isPresented: $showQuantityPicker) {
             quantityPickerSheet
-        }
-        .onChange(of: quantity) { _, _ in
-            onCalculationUpdate()
         }
     }
 
     // Productivity row - can be input or calculated (for manual mode)
     private var productivityInputRow: some View {
         let isCalculated = quantityCalculationMode == .manualEntry
-        let rate = productivityRate ?? historicalProductivity ?? 0
+        let rate = productivityRate ?? calculationViewModel.historicalProductivity ?? 0
 
-        return HStack {
-            Image(systemName: isCalculated ? "lock.fill" : "chart.line.uptrend.xyaxis")
-                .font(.subheadline)
-                .foregroundStyle(isCalculated ? .orange : .blue)
-                .frame(width: 24)
-
-            Text("Productivity")
-
-            Spacer()
-
-            if isCalculated {
-                Text("Auto-calculated")
-                    .foregroundStyle(.orange)
-                    .font(.caption)
-            } else {
-                Text("\(String(format: "%.1f", rate)) \(unit.displayName)/person-hr")
-                    .foregroundStyle(.secondary)
-            }
-
-            if !isCalculated {
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
+        return CalculationInputRow(
+            icon: "chart.line.uptrend.xyaxis",
+            label: "Productivity",
+            value: isCalculated ? "Auto-calculated" : "\(String(format: "%.1f", rate)) \(unit.displayName)/person-hr",
+            isCalculated: isCalculated,
+            calculatedColor: .orange
+        ) {
             if !isCalculated {
                 showProductivityRateEditor = true
             } else {
@@ -303,7 +297,16 @@ struct TaskComposerQuantitySection: View {
             }
         }
         .sheet(isPresented: $showProductivityRateEditor) {
-            productivityRateEditorSheet
+            ProductivityRateEditorView(
+                isPresented: $showProductivityRateEditor,
+                viewModel: productivityViewModel,
+                unit: unit
+            ) {
+                // Update binding when productivity changes
+                productivityRate = productivityViewModel.currentProductivity
+                calculationViewModel.productivityRate = productivityViewModel.currentProductivity
+                onCalculationUpdate()
+            }
         }
     }
 
@@ -312,31 +315,13 @@ struct TaskComposerQuantitySection: View {
         let isCalculated = quantityCalculationMode == .calculatePersonnel
         let personnel = expectedPersonnelCount ?? 1
 
-        return HStack {
-            Image(systemName: isCalculated ? "lock.fill" : "person.2.fill")
-                .font(.subheadline)
-                .foregroundStyle(isCalculated ? .green : .blue)
-                .frame(width: 24)
-
-            Text("Personnel")
-
-            Spacer()
-
-            Text("\(personnel) \(personnel == 1 ? "person" : "people")")
-                .foregroundStyle(isCalculated ? .green : .secondary)
-
-            if !isCalculated {
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            } else {
-                Image(systemName: "function")
-                    .font(.caption2)
-                    .foregroundStyle(.green)
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
+        return CalculationInputRow(
+            icon: "person.2.fill",
+            label: "Personnel",
+            value: "\(personnel) \(personnel == 1 ? "person" : "people")",
+            isCalculated: isCalculated,
+            calculatedColor: .green
+        ) {
             if !isCalculated {
                 showPersonnelPicker = true
             } else {
@@ -352,31 +337,13 @@ struct TaskComposerQuantitySection: View {
     private var durationInputRow: some View {
         let isCalculated = quantityCalculationMode == .calculateDuration
 
-        return HStack {
-            Image(systemName: isCalculated ? "lock.fill" : "clock.fill")
-                .font(.subheadline)
-                .foregroundStyle(isCalculated ? .green : .blue)
-                .frame(width: 24)
-
-            Text("Duration")
-
-            Spacer()
-
-            Text(formattedDuration)
-                .foregroundStyle(isCalculated ? .green : .secondary)
-
-            if !isCalculated {
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            } else {
-                Image(systemName: "function")
-                    .font(.caption2)
-                    .foregroundStyle(.green)
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
+        return CalculationInputRow(
+            icon: "clock.fill",
+            label: "Duration",
+            value: calculationViewModel.formattedDuration,
+            isCalculated: isCalculated,
+            calculatedColor: .green
+        ) {
             if !isCalculated {
                 showDurationPicker = true
             } else {
@@ -429,10 +396,7 @@ struct TaskComposerQuantitySection: View {
     // MARK: - Calculation Summary
 
     private var calculationSummary: some View {
-        let quantityValue = Double(quantity) ?? 0
-        let rate = productivityRate ?? historicalProductivity ?? 1.0
         let personnel = expectedPersonnelCount ?? 1
-        let totalSeconds = (estimateHours * 3600) + (estimateMinutes * 60)
 
         return VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
             Text("Formula")
@@ -440,188 +404,10 @@ struct TaskComposerQuantitySection: View {
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
-            switch quantityCalculationMode {
-            case .calculateDuration:
-                Text("\(String(format: "%.0f", quantityValue)) ÷ \(String(format: "%.1f", rate)) ÷ \(personnel) = \(totalSeconds.formattedTime())")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-            case .calculatePersonnel:
-                Text("\(String(format: "%.0f", quantityValue)) ÷ \(String(format: "%.1f", rate)) ÷ \(totalSeconds.formattedTime()) = \(personnel) \(personnel == 1 ? "person" : "people")")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-            case .manualEntry:
-                Text("Productivity will be calculated on task completion")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    // MARK: - Productivity Rate Editor Sheet
-
-    private var productivityRateEditorSheet: some View {
-        NavigationStack {
-            VStack(spacing: DesignSystem.Spacing.lg) {
-                Text("Set Productivity Rate")
-                    .font(.headline)
-                    .padding(.top, DesignSystem.Spacing.md)
-
-                // Variance warning (if significant)
-                if let variance = calculateVariance(), variance.percentage > 30 {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Historical is \(String(format: "%.0f", variance.percentage))% \(variance.isPositive ? "faster" : "slower") than expected.")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            Text("Consider updating your template's expected rate.")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-                    }
-                    .padding(DesignSystem.Spacing.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.orange.opacity(0.1))
-                    )
-                }
-
-                // Segmented control for mode selection
-                Picker("Mode", selection: $productivityMode) {
-                    ForEach(ProductivityMode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: productivityMode) { _, newMode in
-                    updateProductivityRate(for: newMode)
-                }
-
-                // Show available productivity values
-                VStack(spacing: DesignSystem.Spacing.sm) {
-                    if let expected = expectedProductivity {
-                        HStack {
-                            Image(systemName: "target")
-                                .font(.caption)
-                                .foregroundStyle(DesignSystem.Colors.info)
-                                .frame(width: 20)
-                            Text("Expected:")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text("\(String(format: "%.1f", expected)) \(unit.displayName)/person-hr")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                        }
-                    }
-
-                    if let historical = historicalProductivity {
-                        HStack {
-                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                .font(.caption)
-                                .foregroundStyle(DesignSystem.Colors.success)
-                                .frame(width: 20)
-                            Text("Historical:")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text("\(String(format: "%.1f", historical)) \(unit.displayName)/person-hr")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                        }
-                    }
-                }
-                .padding(.vertical, DesignSystem.Spacing.sm)
-
-                // Custom input field (only shown when Custom mode is selected)
-                if productivityMode == .custom {
-                    VStack(spacing: DesignSystem.Spacing.xs) {
-                        Text("Custom Rate")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
-
-                        HStack {
-                            TextField("Enter rate", text: $customProductivityInput)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.center)
-                                .font(.title2)
-                                .focused($isCustomProductivityFocused)
-                                .frame(maxWidth: 200)
-                                .onChange(of: customProductivityInput) { _, newValue in
-                                    // Update productivity rate as user types
-                                    if let customRate = Double(newValue), customRate > 0 {
-                                        productivityRate = customRate
-                                        onCalculationUpdate()
-                                    }
-                                }
-
-                            Text("\(unit.displayName)/person-hr")
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.vertical, DesignSystem.Spacing.sm)
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal, DesignSystem.Spacing.md)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        showProductivityRateEditor = false
-                        isCustomProductivityFocused = false
-                    }
-                }
-            }
-            .presentationDetents([.height(450)])
-            .presentationDragIndicator(.visible)
-            .onAppear {
-                // Initialize mode based on current productivity rate
-                if let current = productivityRate {
-                    if current == expectedProductivity {
-                        productivityMode = .expected
-                    } else if current == historicalProductivity {
-                        productivityMode = .historical
-                    } else {
-                        productivityMode = .custom
-                        customProductivityInput = String(format: "%.1f", current)
-                    }
-                }
-            }
-        }
-    }
-
-    /// Update productivity rate based on selected mode
-    private func updateProductivityRate(for mode: ProductivityMode) {
-        switch mode {
-        case .expected:
-            if let expected = expectedProductivity {
-                productivityRate = expected
-                onCalculationUpdate()
-            }
-        case .historical:
-            if let historical = historicalProductivity {
-                productivityRate = historical
-                onCalculationUpdate()
-            }
-        case .custom:
-            // Focus custom input field
-            isCustomProductivityFocused = true
-
-            // Parse and apply custom rate
-            if let customRate = Double(customProductivityInput), customRate > 0 {
-                productivityRate = customRate
-                onCalculationUpdate()
-            }
+            Text(calculationViewModel.calculationSummary(personnelCount: personnel))
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(quantityCalculationMode == .manualEntry ? .secondary : .primary)
         }
     }
 
@@ -638,6 +424,7 @@ struct TaskComposerQuantitySection: View {
                     get: { expectedPersonnelCount ?? 1 },
                     set: {
                         expectedPersonnelCount = $0
+                        calculationViewModel.expectedPersonnelCount = $0
                         hasPersonnel = true
                         onCalculationUpdate()
                     }
@@ -676,106 +463,19 @@ struct TaskComposerQuantitySection: View {
         }
     }
 
-    private var formattedDuration: String {
-        let totalMinutes = (estimateHours * 60) + estimateMinutes
-        if totalMinutes == 0 {
-            return "Not set"
-        }
-
-        if estimateHours > 0 && estimateMinutes > 0 {
-            return "\(estimateHours)h \(estimateMinutes)m"
-        } else if estimateHours > 0 {
-            return "\(estimateHours)h"
-        } else {
-            return "\(estimateMinutes)m"
-        }
-    }
-
     // MARK: - Helper Methods
 
-    /// Calculate variance percentage between historical and expected
-    private func calculateVariance() -> (percentage: Double, isPositive: Bool)? {
-        guard let historical = historicalProductivity,
-              let expected = expectedProductivity,
-              expected > 0 else {
-            return nil
-        }
+    /// Sync ViewModel state with bindings
+    private func syncViewModelState() {
+        calculationViewModel.taskType = taskType
+        calculationViewModel.unit = unit
+        calculationViewModel.quantity = quantity
+        calculationViewModel.calculationMode = quantityCalculationMode
+        calculationViewModel.productivityRate = productivityRate
+        calculationViewModel.estimateHours = estimateHours
+        calculationViewModel.estimateMinutes = estimateMinutes
+        calculationViewModel.expectedPersonnelCount = expectedPersonnelCount
 
-        let variance = ((historical - expected) / expected) * 100
-        return (abs(variance), variance > 0)
-    }
-
-    /// Historical productivity info badge with variance indicator
-    @ViewBuilder
-    private func historicalProductivityBadge(historical: Double) -> some View {
-        let variance = calculateVariance()
-        let hasSignificantVariance = if let variance = variance {
-            variance.percentage > 30
-        } else {
-            false
-        }
-
-        HStack(spacing: 6) {
-            Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.caption2)
-                .foregroundStyle(DesignSystem.Colors.success)
-
-            Text("Historical:")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Text("\(String(format: "%.1f", historical)) \(unit.displayName)/person-hr")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundStyle(.primary)
-
-            // Variance indicator
-            if let variance = variance {
-                HStack(spacing: 2) {
-                    Image(systemName: variance.isPositive ? "arrow.up" : "arrow.down")
-                        .font(.caption2)
-                    Text("\(String(format: "%.0f", variance.percentage))%")
-                        .font(.caption2)
-                }
-                .foregroundStyle(variance.isPositive ? DesignSystem.Colors.success : .orange)
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, DesignSystem.Spacing.xs)
-        .padding(.horizontal, DesignSystem.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(hasSignificantVariance ? Color.orange.opacity(0.1) : DesignSystem.Colors.success.opacity(0.1))
-        )
-    }
-
-    private func handleTaskTypeChange(_ newValue: String?) {
-        guard let selectedTaskType = newValue,
-              let template = templates.first(where: { $0.name == selectedTaskType }) else {
-            return
-        }
-
-        unit = template.defaultUnit
-
-        // Store historical and expected productivity separately
-        historicalProductivity = TemplateManager.getHistoricalProductivity(
-            for: selectedTaskType,
-            unit: template.defaultUnit,
-            from: allTasks
-        )
-        expectedProductivity = template.defaultProductivityRate
-
-        // Reset to expected mode for each new task (goal-oriented)
-        productivityMode = .expected
-        customProductivityInput = ""
-
-        // Priority order (goal-oriented approach):
-        // 1. Template's expected productivity rate (if set) - the goal
-        // 2. Historical data (if available) - fallback
-        // 3. Unit's default productivity rate (fallback)
-        productivityRate = template.defaultProductivityRate
-            ?? historicalProductivity
-            ?? template.defaultUnit.defaultProductivityRate
+        productivityViewModel.currentProductivity = productivityRate
     }
 }
