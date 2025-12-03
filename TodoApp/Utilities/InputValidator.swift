@@ -98,6 +98,47 @@ struct InputValidator {
         return result
     }
 
+    /// Validate quantity with task-type-specific limits
+    /// - Parameters:
+    ///   - input: Raw string input from user
+    ///   - unit: Unit name for error messages
+    ///   - minQuantity: Optional minimum from TaskTemplate (falls back to EstimationLimits)
+    ///   - maxQuantity: Optional maximum from TaskTemplate (falls back to EstimationLimits)
+    /// - Returns: ValidationResult with Double value or contextual error
+    static func validateQuantity(
+        _ input: String,
+        unit: String,
+        minQuantity: Double?,
+        maxQuantity: Double?
+    ) -> ValidationResult<Double> {
+        // Check for empty input
+        let trimmed = input.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else {
+            return .failure(.emptyValue("Please enter the quantity of \(unit)"))
+        }
+
+        // Parse as double
+        guard let value = Double(trimmed) else {
+            return .failure(.invalidQuantity("Please enter a valid number for \(unit)"))
+        }
+
+        // Use task-type-specific limits if available, otherwise use EstimationLimits
+        let min = minQuantity ?? EstimationLimits.minQuantity
+        let max = maxQuantity ?? EstimationLimits.maxQuantity
+
+        // Check range with contextual error message
+        if value < min {
+            if value == 0 {
+                return .failure(.outOfRange("Quantity cannot be 0 for calculation to work"))
+            }
+            return .failure(.outOfRange("\(unit.capitalized) quantity must be at least \(formatQuantity(min))"))
+        } else if value > max {
+            return .failure(.outOfRange("\(unit.capitalized) quantity cannot exceed \(formatQuantity(max))"))
+        }
+
+        return .success(value)
+    }
+
     // MARK: - Productivity Rate Validation
 
     /// Validate productivity rate input string

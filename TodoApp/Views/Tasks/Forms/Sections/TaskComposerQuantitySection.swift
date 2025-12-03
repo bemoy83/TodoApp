@@ -593,7 +593,7 @@ struct TaskComposerQuantitySection: View {
 
     // MARK: - Helper Methods
 
-    /// Validate quantity input in real-time
+    /// Validate quantity input in real-time with task-type-specific limits
     private func validateQuantityInput(_ input: String) {
         // Empty input is valid (allows user to clear and retype)
         guard !input.isEmpty else {
@@ -601,8 +601,18 @@ struct TaskComposerQuantitySection: View {
             return
         }
 
-        // Validate using InputValidator
-        let validation = InputValidator.validateQuantity(input, unit: unit.displayName)
+        // Find current template to get task-type-specific limits
+        let currentTemplate = templates.first { $0.name == taskType }
+        let minQuantity = currentTemplate?.minQuantity
+        let maxQuantity = currentTemplate?.maxQuantity
+
+        // Validate using task-type-specific limits
+        let validation = InputValidator.validateQuantity(
+            input,
+            unit: unit.displayName,
+            minQuantity: minQuantity,
+            maxQuantity: maxQuantity
+        )
 
         // Update error message
         if let error = validation.error {
