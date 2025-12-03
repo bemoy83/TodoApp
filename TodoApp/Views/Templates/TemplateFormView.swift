@@ -13,6 +13,8 @@ struct TemplateFormView: View {
     @State private var name: String
     @State private var defaultUnit: UnitType
     @State private var defaultProductivityRate: String
+    @State private var minQuantity: String
+    @State private var maxQuantity: String
     @State private var showDuplicateAlert = false
 
     init(template: TaskTemplate?) {
@@ -27,6 +29,19 @@ struct TemplateFormView: View {
             _defaultProductivityRate = State(initialValue: String(format: "%.1f", rate))
         } else {
             _defaultProductivityRate = State(initialValue: "")
+        }
+
+        // Initialize quantity limits as strings for TextField
+        if let min = template?.minQuantity {
+            _minQuantity = State(initialValue: String(format: "%.0f", min))
+        } else {
+            _minQuantity = State(initialValue: "")
+        }
+
+        if let max = template?.maxQuantity {
+            _maxQuantity = State(initialValue: String(format: "%.0f", max))
+        } else {
+            _maxQuantity = State(initialValue: "")
         }
     }
 
@@ -99,6 +114,39 @@ struct TemplateFormView: View {
                     } footer: {
                         Text("Optional. Set your expected productivity rate. This will be used until you build historical data from completed tasks. Leave empty to use system default.")
                     }
+
+                    // Quantity Limits (only for quantifiable units)
+                    Section {
+                        HStack {
+                            Text("Min")
+                                .foregroundStyle(.secondary)
+                                .frame(width: 40, alignment: .leading)
+
+                            TextField("e.g., 1", text: $minQuantity)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+
+                            Text(defaultUnit.displayName)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack {
+                            Text("Max")
+                                .foregroundStyle(.secondary)
+                                .frame(width: 40, alignment: .leading)
+
+                            TextField("e.g., 1000", text: $maxQuantity)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+
+                            Text(defaultUnit.displayName)
+                                .foregroundStyle(.secondary)
+                        }
+                    } header: {
+                        Text("Quantity Limits")
+                    } footer: {
+                        Text("Optional. Set realistic minimum and maximum quantity bounds for this task type. Helps catch data entry errors and guides users with meaningful validation messages.")
+                    }
                 }
             }
             .navigationTitle(isEditing ? "Edit Template" : "New Template")
@@ -147,17 +195,39 @@ struct TemplateFormView: View {
             return value
         }()
 
+        // Parse min quantity (optional)
+        let parsedMinQuantity: Double? = {
+            let trimmed = minQuantity.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, let value = Double(trimmed), value > 0 else {
+                return nil
+            }
+            return value
+        }()
+
+        // Parse max quantity (optional)
+        let parsedMaxQuantity: Double? = {
+            let trimmed = maxQuantity.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, let value = Double(trimmed), value > 0 else {
+                return nil
+            }
+            return value
+        }()
+
         if let existing = template {
             // Update existing template
             existing.name = trimmedName
             existing.defaultUnit = defaultUnit
             existing.defaultProductivityRate = productivityRate
+            existing.minQuantity = parsedMinQuantity
+            existing.maxQuantity = parsedMaxQuantity
         } else {
             // Create new template
             let newTemplate = TaskTemplate(
                 name: trimmedName,
                 defaultUnit: defaultUnit,
-                defaultProductivityRate: productivityRate
+                defaultProductivityRate: productivityRate,
+                minQuantity: parsedMinQuantity,
+                maxQuantity: parsedMaxQuantity
             )
             modelContext.insert(newTemplate)
         }
