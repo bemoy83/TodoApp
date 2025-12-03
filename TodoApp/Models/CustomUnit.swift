@@ -4,7 +4,7 @@ import SwiftData
 /// Custom unit type for quantity tracking
 /// Allows users to define their own units beyond predefined options
 @Model
-final class CustomUnit {
+final class CustomUnit: Hashable {
     var id: UUID
     var name: String // Display name (e.g., "orders", "m²", "pieces")
     var icon: String // SF Symbol name
@@ -36,6 +36,16 @@ final class CustomUnit {
         self.isSystem = isSystem
         self.createdDate = createdDate
         self.order = order
+    }
+
+    // MARK: - Hashable Conformance
+
+    static func == (lhs: CustomUnit, rhs: CustomUnit) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 
     // MARK: - Computed Properties

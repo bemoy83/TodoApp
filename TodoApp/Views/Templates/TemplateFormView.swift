@@ -84,20 +84,42 @@ struct TemplateFormView: View {
 
                 // Unit Section
                 Section {
-                    Picker("Unit Type", selection: $selectedUnit) {
-                        ForEach(availableUnits) { unit in
-                            HStack {
-                                Image(systemName: unit.icon)
-                                Text(unit.name)
-                            }
-                            .tag(unit as CustomUnit?)
+                    if availableUnits.isEmpty {
+                        Text("No units available")
+                            .foregroundStyle(.secondary)
+
+                        NavigationLink {
+                            UnitsListView()
+                        } label: {
+                            Label("Create Units", systemImage: "plus.circle")
+                                .foregroundStyle(.blue)
                         }
+                    } else {
+                        Picker("Unit Type", selection: $selectedUnit) {
+                            ForEach(availableUnits) { unit in
+                                HStack {
+                                    Image(systemName: unit.icon)
+                                    Text(unit.name)
+                                }
+                                .tag(unit as CustomUnit?)
+                            }
+                        }
+                        .pickerStyle(.menu)
                     }
-                    .pickerStyle(.menu)
                 } header: {
                     Text("Unit")
                 } footer: {
-                    Text("The unit of measurement for quantity tracking. Each name + unit combination must be unique. Create custom units in Settings → Custom Units.")
+                    if availableUnits.isEmpty {
+                        Text("No units found. System units should have been seeded automatically. Go to Settings → Custom Units to create units.")
+                    } else {
+                        Text("The unit of measurement for quantity tracking. Each name + unit combination must be unique. Create custom units in Settings → Custom Units.")
+                    }
+                }
+                .onAppear {
+                    print("🔍 TemplateFormView: Available units count: \(availableUnits.count)")
+                    for unit in availableUnits {
+                        print("  - \(unit.name) (\(unit.isSystem ? "system" : "custom"))")
+                    }
                 }
 
                 // Expected Productivity Rate (only for quantifiable units)
