@@ -7,12 +7,15 @@ import SwiftData
 final class TaskTemplate {
     var id: UUID
     var name: String
-    var defaultUnit: UnitType
+    var defaultUnit: UnitType // Legacy: kept for migration compatibility
     var defaultProductivityRate: Double? // Expected/target productivity rate (units/person-hr)
     var minQuantity: Double? // Minimum realistic quantity for this task type
     var maxQuantity: Double? // Maximum realistic quantity for this task type
     var createdDate: Date
     var order: Int?
+
+    // New: Custom unit relationship
+    var customUnit: CustomUnit?
 
     init(
         id: UUID = UUID(),
@@ -22,7 +25,8 @@ final class TaskTemplate {
         minQuantity: Double? = nil,
         maxQuantity: Double? = nil,
         createdDate: Date = Date(),
-        order: Int? = nil
+        order: Int? = nil,
+        customUnit: CustomUnit? = nil
     ) {
         self.id = id
         self.name = name
@@ -32,6 +36,7 @@ final class TaskTemplate {
         self.maxQuantity = maxQuantity
         self.createdDate = createdDate
         self.order = order
+        self.customUnit = customUnit
     }
 
     // MARK: - Computed Properties
@@ -39,6 +44,30 @@ final class TaskTemplate {
     @Transient
     var orderValue: Int {
         order ?? 0
+    }
+
+    /// Active unit: CustomUnit if set, otherwise legacy UnitType
+    @Transient
+    var unit: CustomUnit? {
+        customUnit
+    }
+
+    /// Unit display name (for UI)
+    @Transient
+    var unitDisplayName: String {
+        customUnit?.displayName ?? defaultUnit.displayName
+    }
+
+    /// Whether the unit is quantifiable
+    @Transient
+    var isQuantifiable: Bool {
+        customUnit?.isQuantifiable ?? defaultUnit.isQuantifiable
+    }
+
+    /// Unit icon
+    @Transient
+    var unitIcon: String {
+        customUnit?.icon ?? defaultUnit.icon
     }
 }
 
