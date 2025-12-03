@@ -81,11 +81,24 @@ struct TaskComposerQuantitySection: View {
         self._productivityViewModel = State(initialValue: prodVM)
     }
 
+    // MARK: - Computed Properties
+
+    /// Check if current unit is quantifiable (uses CustomUnit from template if available)
+    private var isCurrentUnitQuantifiable: Bool {
+        // Try to get quantifiable status from template's CustomUnit
+        if let currentTaskType = taskType,
+           let template = templates.first(where: { $0.name == currentTaskType }) {
+            return template.isQuantifiable
+        }
+        // Fallback to legacy UnitType check
+        return unit.isQuantifiable
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             taskTypePickerView
 
-            if unit.isQuantifiable {
+            if isCurrentUnitQuantifiable {
                 quantifiableContent
             } else if taskType != nil {
                 TaskInlineInfoRow(
