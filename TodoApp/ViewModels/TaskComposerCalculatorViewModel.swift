@@ -86,8 +86,7 @@ class TaskComposerCalculatorViewModel {
 
         // Store historical productivity separately for comparison
         historicalProductivity = TemplateManager.getHistoricalProductivity(
-            for: template.name,
-            unit: template.defaultUnit,
+            for: template,
             from: tasks
         )
 

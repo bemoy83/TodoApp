@@ -125,8 +125,7 @@ final class QuantityCalculationViewModel {
 
         // Store historical and expected productivity separately
         historicalProductivity = TemplateManager.getHistoricalProductivity(
-            for: selectedTaskType,
-            unit: template.defaultUnit,
+            for: template,
             from: allTasks
         )
         expectedProductivity = template.defaultProductivityRate
