@@ -164,6 +164,7 @@ struct TaskComposerEstimateSection: View {
                 estimateMinutes: $estimation.estimateMinutes,
                 hasPersonnel: $estimation.hasPersonnel,
                 expectedPersonnelCount: $estimation.expectedPersonnelCount,
+                taskTemplate: $estimation.taskTemplate,
                 schedule: schedule,
                 templates: templates,
                 allTasks: allTasks,

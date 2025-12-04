@@ -14,6 +14,7 @@ struct TaskComposerQuantitySection: View {
     @Binding var estimateMinutes: Int
     @Binding var hasPersonnel: Bool
     @Binding var expectedPersonnelCount: Int?
+    @Binding var taskTemplate: TaskTemplate?
 
     // Schedule context (for personnel recommendations)
     let schedule: ScheduleContext
@@ -54,6 +55,7 @@ struct TaskComposerQuantitySection: View {
         estimateMinutes: Binding<Int>,
         hasPersonnel: Binding<Bool>,
         expectedPersonnelCount: Binding<Int?>,
+        taskTemplate: Binding<TaskTemplate?>,
         schedule: ScheduleContext,
         templates: [TaskTemplate],
         allTasks: [Task],
@@ -69,6 +71,7 @@ struct TaskComposerQuantitySection: View {
         self._estimateMinutes = estimateMinutes
         self._hasPersonnel = hasPersonnel
         self._expectedPersonnelCount = expectedPersonnelCount
+        self._taskTemplate = taskTemplate
         self.schedule = schedule
         self.templates = templates
         self.allTasks = allTasks
@@ -340,11 +343,11 @@ struct TaskComposerQuantitySection: View {
             calculationViewModel.taskType = newValue
             calculationViewModel.handleTaskTypeChange(newValue)
 
-            // Set template reference in estimation state
+            // Set template reference
             if let selectedTaskType = newValue {
-                estimation.taskTemplate = templates.first(where: { $0.name == selectedTaskType })
+                taskTemplate = templates.first(where: { $0.name == selectedTaskType })
             } else {
-                estimation.taskTemplate = nil
+                taskTemplate = nil
             }
 
             // Sync with bindings
