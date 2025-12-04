@@ -93,7 +93,8 @@ struct TemplateManager {
         Task(
             title: "",  // User will fill this in
             unit: template.defaultUnit,
-            taskType: template.name
+            taskType: template.name,
+            taskTemplate: template
         )
     }
 
@@ -101,6 +102,7 @@ struct TemplateManager {
     static func applyTemplate(_ template: TaskTemplate, to task: Task) {
         task.unit = template.defaultUnit
         task.taskType = template.name
+        task.taskTemplate = template
     }
 
     /// Check if default templates have been created
