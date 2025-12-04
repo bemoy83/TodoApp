@@ -332,39 +332,45 @@ struct TaskComposerQuantitySection: View {
     // MARK: - Subviews
 
     private var taskTypePickerView: some View {
-        Picker("Task Type", selection: $taskType) {
-            Text("None").tag(nil as String?)
+        Picker("Task Type", selection: $taskTemplate) {
+            Text("None").tag(nil as TaskTemplate?)
             ForEach(templates) { template in
                 HStack {
                     Image(systemName: template.unitIcon)
                     Text("\(template.name) (\(template.unitDisplayName))")
                 }
-                .tag(template.name as String?)
+                .tag(template as TaskTemplate?)
             }
         }
         .pickerStyle(.menu)
-        .onChange(of: taskType) { _, newValue in
-            calculationViewModel.taskType = newValue
-            calculationViewModel.handleTaskTypeChange(newValue)
+        .onChange(of: taskTemplate) { _, selectedTemplate in
+            // Derive taskType from selected template (for backward compatibility)
+            taskType = selectedTemplate?.name
 
-            // Set template reference
-            if let selectedTaskType = newValue {
-                taskTemplate = templates.first(where: { $0.name == selectedTaskType })
+            // Update ViewModels with selected template
+            if let template = selectedTemplate {
+                calculationViewModel.taskType = template.name
+                calculationViewModel.handleTaskTypeChange(template.name)
+
+                // Sync with bindings
+                unit = calculationViewModel.unit
+                productivityRate = calculationViewModel.productivityRate
+
+                // Update productivity ViewModel
+                productivityViewModel.loadProductivityRates(
+                    expected: calculationViewModel.expectedProductivity,
+                    historical: calculationViewModel.historicalProductivity,
+                    existingCustom: nil
+                )
+                productivityViewModel.currentProductivity = calculationViewModel.productivityRate
             } else {
-                taskTemplate = nil
+                // Clear everything when "None" is selected
+                calculationViewModel.taskType = nil
+                calculationViewModel.handleTaskTypeChange(nil)
+                taskType = nil
+                unit = .none
+                productivityRate = nil
             }
-
-            // Sync with bindings
-            unit = calculationViewModel.unit
-            productivityRate = calculationViewModel.productivityRate
-
-            // Update productivity ViewModel
-            productivityViewModel.loadProductivityRates(
-                expected: calculationViewModel.expectedProductivity,
-                historical: calculationViewModel.historicalProductivity,
-                existingCustom: nil
-            )
-            productivityViewModel.currentProductivity = calculationViewModel.productivityRate
         }
     }
 
