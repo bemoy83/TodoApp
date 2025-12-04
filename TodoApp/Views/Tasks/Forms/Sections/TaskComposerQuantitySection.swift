@@ -329,7 +329,7 @@ struct TaskComposerQuantitySection: View {
             Text("None").tag(nil as String?)
             ForEach(templates) { template in
                 HStack {
-                    Image(systemName: template.defaultUnit.icon)
+                    Image(systemName: template.unitIcon)
                     Text(template.name)
                 }
                 .tag(template.name as String?)

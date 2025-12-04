@@ -128,7 +128,7 @@ extension TemplateManager {
         let template: TaskTemplate
         let historicalTaskCount: Int
         let averageProductivity: Double?
-        let unit: UnitType
+        let unitDisplayName: String
 
         var hasHistoricalData: Bool {
             historicalTaskCount > 0
@@ -136,7 +136,7 @@ extension TemplateManager {
 
         var formattedProductivity: String? {
             guard let avg = averageProductivity else { return nil }
-            return String(format: "%.1f %@/person-hr", avg, unit.displayName)
+            return String(format: "%.1f %@/person-hr", avg, unitDisplayName)
         }
     }
 
@@ -157,7 +157,7 @@ extension TemplateManager {
             template: template,
             historicalTaskCount: count,
             averageProductivity: avgProductivity,
-            unit: unit
+            unitDisplayName: template.unitDisplayName
         )
     }
 }

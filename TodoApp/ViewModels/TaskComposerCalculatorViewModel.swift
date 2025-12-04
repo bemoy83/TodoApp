@@ -94,9 +94,10 @@ class TaskComposerCalculatorViewModel {
         // Priority order (goal-oriented approach):
         // 1. Template's expected productivity rate (if set) - the goal
         // 2. Historical data (if available) - fallback
-        // 3. Unit's default productivity rate (fallback)
+        // 3. CustomUnit's default productivity rate (fallback)
         productivityRate = template.defaultProductivityRate
             ?? historicalProductivity
+            ?? template.customUnit?.defaultProductivityRate
             ?? template.defaultUnit.defaultProductivityRate
     }
 
