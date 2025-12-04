@@ -18,6 +18,9 @@ struct TodoApp: App {
             // Optionally migrate existing templates (safe to run multiple times)
             DataSeeder.migrateTemplatesToCustomUnits(context: modelContainer.mainContext)
 
+            // Link existing tasks to templates (safe to run multiple times)
+            DataSeeder.linkTasksToTemplates(context: modelContainer.mainContext)
+
         } catch {
             fatalError("Failed to initialize ModelContainer: \(error)")
         }
