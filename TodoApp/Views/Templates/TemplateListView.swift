@@ -141,9 +141,9 @@ private struct TemplateRow: View {
         Button(action: onTap) {
             HStack(spacing: DesignSystem.Spacing.md) {
                 // Unit icon
-                Image(systemName: template.defaultUnit.icon)
+                Image(systemName: template.unitIcon)
                     .font(.title2)
-                    .foregroundStyle(template.defaultUnit.isQuantifiable ? DesignSystem.Colors.info : .secondary)
+                    .foregroundStyle(template.isQuantifiable ? DesignSystem.Colors.info : .secondary)
                     .frame(width: 40)
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -153,7 +153,7 @@ private struct TemplateRow: View {
                         .foregroundStyle(.primary)
 
                     // Details
-                    Label(template.defaultUnit.displayName, systemImage: template.defaultUnit.icon)
+                    Label(template.unitDisplayName, systemImage: template.unitIcon)
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -162,7 +162,7 @@ private struct TemplateRow: View {
                         HStack(spacing: 4) {
                             Image(systemName: "target")
                                 .font(.caption2)
-                            Text("Expected: \(String(format: "%.1f", expectedRate)) \(template.defaultUnit.displayName)/person-hr")
+                            Text("Expected: \(String(format: "%.1f", expectedRate)) \(template.unitDisplayName)/person-hr")
                                 .font(.caption)
                         }
                         .foregroundStyle(DesignSystem.Colors.info)
