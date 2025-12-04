@@ -330,7 +330,7 @@ struct TaskComposerQuantitySection: View {
             ForEach(templates) { template in
                 HStack {
                     Image(systemName: template.unitIcon)
-                    Text(template.name)
+                    Text("\(template.name) (\(template.unitDisplayName))")
                 }
                 .tag(template.name as String?)
             }

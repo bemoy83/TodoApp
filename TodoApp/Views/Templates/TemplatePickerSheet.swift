@@ -131,15 +131,10 @@ private struct TemplatePickerRow: View {
                 .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 4) {
-                // Template name
-                Text(template.name)
+                // Template name with unit
+                Text("\(template.name) (\(template.unitDisplayName))")
                     .font(.headline)
                     .foregroundStyle(.primary)
-
-                // Quick stats
-                Label(template.unitDisplayName, systemImage: template.unitIcon)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
 
                 // Historical productivity hint
                 if let productivity = analytics.formattedProductivity {
