@@ -10,7 +10,6 @@ struct UnitFormView: View {
 
     @State private var name: String
     @State private var icon: String
-    @State private var defaultProductivityRate: String
     @State private var isQuantifiable: Bool
     @State private var showingIconPicker = false
 
@@ -21,13 +20,6 @@ struct UnitFormView: View {
         _name = State(initialValue: unit?.name ?? "")
         _icon = State(initialValue: unit?.icon ?? "cube.box")
         _isQuantifiable = State(initialValue: unit?.isQuantifiable ?? true)
-
-        // Initialize productivity rate as string for TextField
-        if let rate = unit?.defaultProductivityRate {
-            _defaultProductivityRate = State(initialValue: String(format: "%.1f", rate))
-        } else {
-            _defaultProductivityRate = State(initialValue: "")
-        }
     }
 
     private var isEditing: Bool {
@@ -83,23 +75,6 @@ struct UnitFormView: View {
                 } footer: {
                     Text("Enable if this unit requires quantity input (e.g., orders, pieces). Disable for time-only tasks.")
                 }
-
-                // Default Productivity Rate (only for quantifiable units)
-                if isQuantifiable {
-                    Section {
-                        HStack {
-                            TextField("e.g., 2.0", text: $defaultProductivityRate)
-                                .keyboardType(.decimalPad)
-
-                            Text("\(name.isEmpty ? "unit" : name)/person-hr")
-                                .foregroundStyle(.secondary)
-                        }
-                    } header: {
-                        Text("Default Productivity Rate")
-                    } footer: {
-                        Text("Optional. Set a default productivity rate for templates using this unit.")
-                    }
-                }
             }
             .navigationTitle(isEditing ? "Edit Unit" : "New Unit")
             .navigationBarTitleDisplayMode(.inline)
@@ -129,27 +104,16 @@ struct UnitFormView: View {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         guard !trimmedName.isEmpty else { return }
 
-        // Parse productivity rate (optional)
-        let productivityRate: Double? = {
-            let trimmed = defaultProductivityRate.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty, let value = Double(trimmed), value > 0 else {
-                return nil
-            }
-            return value
-        }()
-
         if let existing = unit {
             // Update existing unit
             existing.name = trimmedName
             existing.icon = icon
             existing.isQuantifiable = isQuantifiable
-            existing.defaultProductivityRate = productivityRate
         } else {
             // Create new unit
             let newUnit = CustomUnit(
                 name: trimmedName,
                 icon: icon,
-                defaultProductivityRate: productivityRate,
                 isQuantifiable: isQuantifiable,
                 isSystem: false
             )
@@ -232,8 +196,7 @@ struct IconPickerView: View {
 
     let unit = CustomUnit(
         name: "orders",
-        icon: "cart",
-        defaultProductivityRate: 2.0
+        icon: "cart"
     )
     container.mainContext.insert(unit)
 
