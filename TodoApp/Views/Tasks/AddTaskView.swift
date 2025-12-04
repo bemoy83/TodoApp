@@ -133,7 +133,8 @@ struct AddTaskView: View {
             effortHours: estimate.effortHours,
             quantity: parsedQuantity,
             unit: hasQuantity ? estimation.unit : UnitType.none,
-            taskType: hasQuantity ? estimation.taskType : nil
+            taskType: hasQuantity ? estimation.taskType : nil,
+            taskTemplate: hasQuantity ? estimation.taskTemplate : nil
         )
         modelContext.insert(task)
         onAdded?(task)

@@ -30,6 +30,7 @@ struct TaskEstimator {
         var quantity: String = ""
         var quantityCalculationMode: QuantityCalculationMode = .calculateDuration
         var productivityRate: Double? = nil
+        var taskTemplate: TaskTemplate? = nil
 
         // MARK: - Computed Properties
 
@@ -74,6 +75,7 @@ struct TaskEstimator {
             self.quantity = task.quantity.map { String($0) } ?? ""
             // Prioritize custom productivity rate over calculated historical rate
             self.productivityRate = task.customProductivityRate ?? task.unitsPerHour
+            self.taskTemplate = task.taskTemplate
         }
     }
 

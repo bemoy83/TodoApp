@@ -340,6 +340,13 @@ struct TaskComposerQuantitySection: View {
             calculationViewModel.taskType = newValue
             calculationViewModel.handleTaskTypeChange(newValue)
 
+            // Set template reference in estimation state
+            if let selectedTaskType = newValue {
+                estimation.taskTemplate = templates.first(where: { $0.name == selectedTaskType })
+            } else {
+                estimation.taskTemplate = nil
+            }
+
             // Sync with bindings
             unit = calculationViewModel.unit
             productivityRate = calculationViewModel.productivityRate
