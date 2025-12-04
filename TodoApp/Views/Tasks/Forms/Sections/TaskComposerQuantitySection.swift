@@ -88,12 +88,16 @@ struct TaskComposerQuantitySection: View {
 
     /// Check if current unit is quantifiable (uses CustomUnit from template if available)
     private var isCurrentUnitQuantifiable: Bool {
-        // Try to get quantifiable status from template's CustomUnit
+        // Prefer using taskTemplate reference if available (supports multiple templates with same name)
+        if let template = taskTemplate {
+            return template.isQuantifiable
+        }
+        // Fallback: Try to find template by name (legacy behavior)
         if let currentTaskType = taskType,
            let template = templates.first(where: { $0.name == currentTaskType }) {
             return template.isQuantifiable
         }
-        // Fallback to legacy UnitType check
+        // Final fallback to legacy UnitType check
         return unit.isQuantifiable
     }
 
@@ -624,10 +628,9 @@ struct TaskComposerQuantitySection: View {
             return
         }
 
-        // Find current template to get task-type-specific limits
-        let currentTemplate = templates.first { $0.name == taskType }
-        let minQuantity = currentTemplate?.minQuantity
-        let maxQuantity = currentTemplate?.maxQuantity
+        // Use taskTemplate reference for accurate limits (supports multiple templates with same name)
+        let minQuantity = taskTemplate?.minQuantity
+        let maxQuantity = taskTemplate?.maxQuantity
 
         // Validate using task-type-specific limits
         let validation = InputValidator.validateQuantity(
