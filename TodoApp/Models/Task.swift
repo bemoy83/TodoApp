@@ -142,6 +142,10 @@ final class Task: TitledItem {
     // Relationship to project
     @Relationship(deleteRule: .nullify)
     var project: Project?
+
+    // Relationship to template (for accurate productivity tracking)
+    @Relationship(deleteRule: .nullify)
+    var taskTemplate: TaskTemplate?
     
     // Parent-child subtask relationship
     @Relationship(deleteRule: .nullify)
@@ -180,7 +184,8 @@ final class Task: TitledItem {
         effortHours: Double? = nil,
         quantity: Double? = nil,
         unit: UnitType = UnitType.none,
-        taskType: String? = nil
+        taskType: String? = nil,
+        taskTemplate: TaskTemplate? = nil
     ) {
         self.id = id
         self.title = title
@@ -201,6 +206,7 @@ final class Task: TitledItem {
         self.quantity = quantity
         self.unit = unit
         self.taskType = taskType
+        self.taskTemplate = taskTemplate
         self.subtasks = nil
         self.timeEntries = nil
         self.dependsOn = nil

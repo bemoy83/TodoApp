@@ -17,6 +17,10 @@ final class TaskTemplate {
     // New: Custom unit relationship
     var customUnit: CustomUnit?
 
+    // Inverse relationship to tasks using this template
+    @Relationship(deleteRule: .nullify, inverse: \Task.taskTemplate)
+    var tasks: [Task]?
+
     init(
         id: UUID = UUID(),
         name: String,
