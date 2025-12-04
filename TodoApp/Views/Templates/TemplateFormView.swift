@@ -7,12 +7,15 @@ struct TemplateFormView: View {
     @Environment(\.dismiss) private var dismiss
 
     @Query(sort: \TaskTemplate.order) private var existingTemplates: [TaskTemplate]
+    @Query(sort: \CustomUnit.order) private var availableUnits: [CustomUnit]
 
     let template: TaskTemplate? // nil = creating new, non-nil = editing
 
     @State private var name: String
-    @State private var defaultUnit: UnitType
+    @State private var selectedUnit: CustomUnit?
     @State private var defaultProductivityRate: String
+    @State private var minQuantity: String
+    @State private var maxQuantity: String
     @State private var showDuplicateAlert = false
 
     init(template: TaskTemplate?) {
@@ -20,13 +23,26 @@ struct TemplateFormView: View {
 
         // Initialize state from template or defaults
         _name = State(initialValue: template?.name ?? "")
-        _defaultUnit = State(initialValue: template?.defaultUnit ?? .none)
+        _selectedUnit = State(initialValue: template?.customUnit)
 
         // Initialize productivity rate as string for TextField
         if let rate = template?.defaultProductivityRate {
             _defaultProductivityRate = State(initialValue: String(format: "%.1f", rate))
         } else {
             _defaultProductivityRate = State(initialValue: "")
+        }
+
+        // Initialize quantity limits as strings for TextField
+        if let min = template?.minQuantity {
+            _minQuantity = State(initialValue: String(format: "%.0f", min))
+        } else {
+            _minQuantity = State(initialValue: "")
+        }
+
+        if let max = template?.maxQuantity {
+            _maxQuantity = State(initialValue: String(format: "%.0f", max))
+        } else {
+            _maxQuantity = State(initialValue: "")
         }
     }
 
@@ -35,11 +51,11 @@ struct TemplateFormView: View {
     }
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
+        !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedUnit != nil
     }
 
     /// Check if a template with this name + unit combination already exists
-    private func isDuplicate(name: String, unit: UnitType) -> Bool {
+    private func isDuplicate(name: String, unit: CustomUnit) -> Bool {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
 
         return existingTemplates.contains { existing in
@@ -50,7 +66,7 @@ struct TemplateFormView: View {
 
             // Check for exact name + unit match
             return existing.name.lowercased() == trimmedName.lowercased() &&
-                   existing.defaultUnit == unit
+                   existing.customUnit?.id == unit.id
         }
     }
 
@@ -68,36 +84,91 @@ struct TemplateFormView: View {
 
                 // Unit Section
                 Section {
-                    Picker("Unit Type", selection: $defaultUnit) {
-                        ForEach(UnitType.allCases, id: \.self) { unit in
-                            HStack {
-                                Image(systemName: unit.icon)
-                                Text(unit.displayName)
-                            }
-                            .tag(unit)
+                    if availableUnits.isEmpty {
+                        Text("No units available")
+                            .foregroundStyle(.secondary)
+
+                        NavigationLink {
+                            UnitsListView()
+                        } label: {
+                            Label("Create Units", systemImage: "plus.circle")
+                                .foregroundStyle(.blue)
                         }
+                    } else {
+                        Picker("Unit Type", selection: $selectedUnit) {
+                            ForEach(availableUnits) { unit in
+                                HStack {
+                                    Image(systemName: unit.icon)
+                                    Text(unit.name)
+                                }
+                                .tag(unit as CustomUnit?)
+                            }
+                        }
+                        .pickerStyle(.menu)
                     }
-                    .pickerStyle(.menu)
                 } header: {
-                    Text("Default Unit")
+                    Text("Unit")
                 } footer: {
-                    Text("The unit of measurement for quantity tracking. Each name + unit combination must be unique for accurate productivity tracking.")
+                    if availableUnits.isEmpty {
+                        Text("No units found. System units should have been seeded automatically. Go to Settings → Custom Units to create units.")
+                    } else {
+                        Text("The unit of measurement for quantity tracking. Each name + unit combination must be unique. Create custom units in Settings → Custom Units.")
+                    }
+                }
+                .onAppear {
+                    print("🔍 TemplateFormView: Available units count: \(availableUnits.count)")
+                    for unit in availableUnits {
+                        print("  - \(unit.name) (\(unit.isSystem ? "system" : "custom"))")
+                    }
                 }
 
                 // Expected Productivity Rate (only for quantifiable units)
-                if defaultUnit.isQuantifiable {
+                if selectedUnit?.isQuantifiable == true {
                     Section {
                         HStack {
                             TextField("e.g., 10.0", text: $defaultProductivityRate)
                                 .keyboardType(.decimalPad)
 
-                            Text("\(defaultUnit.displayName)/person-hr")
+                            Text("\(selectedUnit?.name ?? "unit")/person-hr")
                                 .foregroundStyle(.secondary)
                         }
                     } header: {
                         Text("Expected Productivity Rate")
                     } footer: {
-                        Text("Optional. Set your expected productivity rate. This will be used until you build historical data from completed tasks. Leave empty to use system default.")
+                        Text("Optional. Set your expected productivity rate. This will be used until you build historical data from completed tasks.")
+                    }
+
+                    // Quantity Limits (only for quantifiable units)
+                    Section {
+                        HStack {
+                            Text("Min")
+                                .foregroundStyle(.secondary)
+                                .frame(width: 40, alignment: .leading)
+
+                            TextField("e.g., 1", text: $minQuantity)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+
+                            Text(selectedUnit?.name ?? "unit")
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack {
+                            Text("Max")
+                                .foregroundStyle(.secondary)
+                                .frame(width: 40, alignment: .leading)
+
+                            TextField("e.g., 1000", text: $maxQuantity)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+
+                            Text(selectedUnit?.name ?? "unit")
+                                .foregroundStyle(.secondary)
+                        }
+                    } header: {
+                        Text("Quantity Limits")
+                    } footer: {
+                        Text("Optional. Set realistic minimum and maximum quantity bounds for this task type. Helps catch data entry errors and guides users with meaningful validation messages.")
                     }
                 }
             }
@@ -120,7 +191,7 @@ struct TemplateFormView: View {
             .alert("Duplicate Template", isPresented: $showDuplicateAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("A template with the name \"\(name)\" and unit \"\(defaultUnit.displayName)\" already exists. Each template must have a unique name + unit combination for accurate productivity tracking.")
+                Text("A template with the name \"\(name)\" and unit \"\(selectedUnit?.name ?? "")\" already exists. Each template must have a unique name + unit combination for accurate productivity tracking.")
             }
         }
     }
@@ -129,10 +200,10 @@ struct TemplateFormView: View {
 
     private func saveTemplate() {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        guard !trimmedName.isEmpty else { return }
+        guard !trimmedName.isEmpty, let unit = selectedUnit else { return }
 
         // Check for duplicate name + unit combination
-        if isDuplicate(name: trimmedName, unit: defaultUnit) {
+        if isDuplicate(name: trimmedName, unit: unit) {
             showDuplicateAlert = true
             HapticManager.error()
             return
@@ -147,17 +218,42 @@ struct TemplateFormView: View {
             return value
         }()
 
+        // Parse min quantity (optional)
+        let parsedMinQuantity: Double? = {
+            let trimmed = minQuantity.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, let value = Double(trimmed), value > 0 else {
+                return nil
+            }
+            return value
+        }()
+
+        // Parse max quantity (optional)
+        let parsedMaxQuantity: Double? = {
+            let trimmed = maxQuantity.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, let value = Double(trimmed), value > 0 else {
+                return nil
+            }
+            return value
+        }()
+
         if let existing = template {
             // Update existing template
             existing.name = trimmedName
-            existing.defaultUnit = defaultUnit
+            existing.customUnit = unit
+            // Keep defaultUnit for backward compatibility (set to .none as placeholder)
+            existing.defaultUnit = .none
             existing.defaultProductivityRate = productivityRate
+            existing.minQuantity = parsedMinQuantity
+            existing.maxQuantity = parsedMaxQuantity
         } else {
             // Create new template
             let newTemplate = TaskTemplate(
                 name: trimmedName,
-                defaultUnit: defaultUnit,
-                defaultProductivityRate: productivityRate
+                defaultUnit: .none, // Legacy field, set placeholder
+                defaultProductivityRate: productivityRate,
+                minQuantity: parsedMinQuantity,
+                maxQuantity: parsedMaxQuantity,
+                customUnit: unit
             )
             modelContext.insert(newTemplate)
         }

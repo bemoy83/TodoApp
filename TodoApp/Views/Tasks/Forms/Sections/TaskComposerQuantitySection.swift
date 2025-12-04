@@ -81,11 +81,24 @@ struct TaskComposerQuantitySection: View {
         self._productivityViewModel = State(initialValue: prodVM)
     }
 
+    // MARK: - Computed Properties
+
+    /// Check if current unit is quantifiable (uses CustomUnit from template if available)
+    private var isCurrentUnitQuantifiable: Bool {
+        // Try to get quantifiable status from template's CustomUnit
+        if let currentTaskType = taskType,
+           let template = templates.first(where: { $0.name == currentTaskType }) {
+            return template.isQuantifiable
+        }
+        // Fallback to legacy UnitType check
+        return unit.isQuantifiable
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             taskTypePickerView
 
-            if unit.isQuantifiable {
+            if isCurrentUnitQuantifiable {
                 quantifiableContent
             } else if taskType != nil {
                 TaskInlineInfoRow(
@@ -316,7 +329,7 @@ struct TaskComposerQuantitySection: View {
             Text("None").tag(nil as String?)
             ForEach(templates) { template in
                 HStack {
-                    Image(systemName: template.defaultUnit.icon)
+                    Image(systemName: template.unitIcon)
                     Text(template.name)
                 }
                 .tag(template.name as String?)
@@ -593,7 +606,7 @@ struct TaskComposerQuantitySection: View {
 
     // MARK: - Helper Methods
 
-    /// Validate quantity input in real-time
+    /// Validate quantity input in real-time with task-type-specific limits
     private func validateQuantityInput(_ input: String) {
         // Empty input is valid (allows user to clear and retype)
         guard !input.isEmpty else {
@@ -601,8 +614,18 @@ struct TaskComposerQuantitySection: View {
             return
         }
 
-        // Validate using InputValidator
-        let validation = InputValidator.validateQuantity(input, unit: unit.displayName)
+        // Find current template to get task-type-specific limits
+        let currentTemplate = templates.first { $0.name == taskType }
+        let minQuantity = currentTemplate?.minQuantity
+        let maxQuantity = currentTemplate?.maxQuantity
+
+        // Validate using task-type-specific limits
+        let validation = InputValidator.validateQuantity(
+            input,
+            unit: unit.displayName,
+            minQuantity: minQuantity,
+            maxQuantity: maxQuantity
+        )
 
         // Update error message
         if let error = validation.error {

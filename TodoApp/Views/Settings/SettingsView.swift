@@ -112,6 +112,25 @@ struct SettingsView: View {
                         .font(DesignSystem.Typography.caption)
                 }
 
+                // Units Section
+                Section {
+                    NavigationLink {
+                        UnitsListView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "cube.box")
+                                .foregroundStyle(.purple)
+                            Text("Custom Units")
+                                .foregroundStyle(DesignSystem.Colors.primary)
+                        }
+                    }
+                } header: {
+                    Label("Units", systemImage: "cube.box")
+                } footer: {
+                    Text("Create custom unit types like \"orders\", \"booths\", or \"pallets\"")
+                        .font(DesignSystem.Typography.caption)
+                }
+
                 DataManagementSection(
                     isClearing: isClearing,
                     isFixingOrder: isFixingOrder,

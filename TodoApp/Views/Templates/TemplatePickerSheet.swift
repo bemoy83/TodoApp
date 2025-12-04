@@ -125,9 +125,9 @@ private struct TemplatePickerRow: View {
     var body: some View {
         HStack(spacing: DesignSystem.Spacing.md) {
             // Unit icon
-            Image(systemName: template.defaultUnit.icon)
+            Image(systemName: template.unitIcon)
                 .font(.title3)
-                .foregroundStyle(template.defaultUnit.isQuantifiable ? DesignSystem.Colors.info : .secondary)
+                .foregroundStyle(template.isQuantifiable ? DesignSystem.Colors.info : .secondary)
                 .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 4) {
@@ -137,7 +137,7 @@ private struct TemplatePickerRow: View {
                     .foregroundStyle(.primary)
 
                 // Quick stats
-                Label(template.defaultUnit.displayName, systemImage: template.defaultUnit.icon)
+                Label(template.unitDisplayName, systemImage: template.unitIcon)
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
