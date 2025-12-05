@@ -127,11 +127,13 @@ struct TaskEditView: View {
             task.unit = estimation.unit
             task.quantity = !estimation.quantity.isEmpty ? Double(estimation.quantity) : nil
             task.taskType = estimation.taskType
+            task.taskTemplate = estimation.taskTemplate // Link to template for custom unit support
             task.customProductivityRate = estimation.productivityRate // Save custom productivity rate
         } else {
             task.unit = UnitType.none
             task.quantity = nil
             task.taskType = nil
+            task.taskTemplate = nil
             task.customProductivityRate = nil
         }
 
