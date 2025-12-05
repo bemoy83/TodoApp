@@ -231,6 +231,29 @@ final class Task: TitledItem {
         return entries.contains { $0.endTime == nil }
     }
 
+    // MARK: - Unit Information (Backward Compatible)
+
+    /// Unit display name with automatic fallback
+    /// Prioritizes template's custom unit, falls back to legacy UnitType
+    @Transient
+    var unitDisplayName: String {
+        taskTemplate?.unitDisplayName ?? unit.displayName
+    }
+
+    /// Unit icon with automatic fallback
+    /// Prioritizes template's custom unit, falls back to legacy UnitType
+    @Transient
+    var unitIcon: String {
+        taskTemplate?.unitIcon ?? unit.icon
+    }
+
+    /// Whether the unit is quantifiable with automatic fallback
+    /// Prioritizes template's custom unit, falls back to legacy UnitType
+    @Transient
+    var isUnitQuantifiable: Bool {
+        taskTemplate?.isQuantifiable ?? unit.isQuantifiable
+    }
+
     // MARK: - Working Window (Start/End Dates)
 
     /// The working window for crew planning: when work actually happens

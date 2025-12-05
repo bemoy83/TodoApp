@@ -53,7 +53,7 @@ struct TaskEditView: View {
         var estimationState = TaskEstimator.EstimationState(from: task)
 
         // Determine initial mode based on existing task data
-        if task.unit.isQuantifiable {
+        if task.isUnitQuantifiable {
             estimationState.mode = .quantity
         } else if task.effortHours != nil {
             estimationState.mode = .effort

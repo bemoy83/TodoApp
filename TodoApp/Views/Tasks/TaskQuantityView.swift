@@ -47,7 +47,7 @@ struct TaskQuantityView: View {
                 }
 
                 // Current quantity and unit display
-                if task.unit.isQuantifiable, let quantity = task.quantity {
+                if task.isUnitQuantifiable, let quantity = task.quantity {
                     // Has quantity set
                     Button {
                         editedQuantity = String(format: "%.1f", quantity)
@@ -56,13 +56,13 @@ struct TaskQuantityView: View {
                         HapticManager.selection()
                     } label: {
                         HStack {
-                            Image(systemName: task.unit.icon)
+                            Image(systemName: task.unitIcon)
                                 .font(.body)
                                 .foregroundStyle(DesignSystem.Colors.info)
                                 .frame(width: 28)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("\(formatQuantity(quantity)) \(task.unit.displayName)")
+                                Text("\(formatQuantity(quantity)) \(task.unitDisplayName)")
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(.primary)
@@ -85,7 +85,7 @@ struct TaskQuantityView: View {
 
                     Divider()
                         .padding(.horizontal)
-                } else if task.unit.isQuantifiable {
+                } else if task.isUnitQuantifiable {
                     // Unit set but no quantity
                     Button {
                         editedQuantity = ""
@@ -94,13 +94,13 @@ struct TaskQuantityView: View {
                         HapticManager.selection()
                     } label: {
                         HStack {
-                            Image(systemName: task.unit.icon)
+                            Image(systemName: task.unitIcon)
                                 .font(.body)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 28)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("\(task.unit.displayName)")
+                                Text("\(task.unitDisplayName)")
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(.primary)
@@ -176,7 +176,7 @@ struct TaskQuantityView: View {
 
                     ProductivitySection(
                         productivity: productivity,
-                        unit: task.unit,
+                        unitDisplayName: task.unitDisplayName,
                         personHours: task.totalPersonHours
                     )
                 }
@@ -329,7 +329,7 @@ private struct QuantityPickerSheet: View {
 
 private struct ProductivitySection: View {
     let productivity: Double
-    let unit: UnitType
+    let unitDisplayName: String
     let personHours: Double?
 
     private var formattedProductivity: String {
@@ -356,7 +356,7 @@ private struct ProductivitySection: View {
                     .frame(width: 28)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(formattedProductivity) \(unit.displayName)/person-hr")
+                    Text("\(formattedProductivity) \(unitDisplayName)/person-hr")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(DesignSystem.Colors.success)
