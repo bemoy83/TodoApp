@@ -6,7 +6,7 @@ import SwiftUI
 struct ProductivityRateEditorView: View {
     @Binding var isPresented: Bool
     let viewModel: ProductivityRateViewModel
-    let unit: UnitType
+    let unitDisplayName: String
     let onUpdate: () -> Void
 
     @State private var productivityValidationError: String?
@@ -103,7 +103,7 @@ struct ProductivityRateEditorView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text("\(String(format: "%.1f", expected)) \(unit.displayName)/person-hr")
+                    Text("\(String(format: "%.1f", expected)) \(unitDisplayName)/person-hr")
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
@@ -119,7 +119,7 @@ struct ProductivityRateEditorView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text("\(String(format: "%.1f", historical)) \(unit.displayName)/person-hr")
+                    Text("\(String(format: "%.1f", historical)) \(unitDisplayName)/person-hr")
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
@@ -150,7 +150,7 @@ struct ProductivityRateEditorView: View {
                     .focused($isCustomProductivityFocused)
                     .frame(maxWidth: 200)
 
-                Text("\(unit.displayName)/person-hr")
+                Text("\(unitDisplayName)/person-hr")
                     .font(.headline)
                     .foregroundStyle(.secondary)
             }
@@ -189,7 +189,7 @@ struct ProductivityRateEditorView: View {
         }
 
         // Validate using InputValidator
-        let validation = InputValidator.validateProductivityRate(input, unit: unit.displayName)
+        let validation = InputValidator.validateProductivityRate(input, unit: unitDisplayName)
 
         // Update error message
         if let error = validation.error {

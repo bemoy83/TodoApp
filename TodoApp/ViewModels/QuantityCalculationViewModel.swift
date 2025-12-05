@@ -15,6 +15,7 @@ final class QuantityCalculationViewModel {
     var estimateHours: Int = 0
     var estimateMinutes: Int = 0
     var expectedPersonnelCount: Int?
+    var currentTemplate: TaskTemplate? // Current selected template (for custom unit display)
 
     // MARK: - Internal State
 
@@ -79,7 +80,9 @@ final class QuantityCalculationViewModel {
         if quantity.isEmpty || quantity == "0" {
             return "Not set"
         }
-        return "\(quantity) \(unit.displayName)"
+        // Use template's unit display name for custom units, fallback to UnitType
+        let unitName = currentTemplate?.unitDisplayName ?? unit.displayName
+        return "\(quantity) \(unitName)"
     }
 
     // MARK: - Business Logic
@@ -114,19 +117,26 @@ final class QuantityCalculationViewModel {
         return max(1, personnel)
     }
 
-    /// Handle task type change - load productivity rates
-    func handleTaskTypeChange(_ newTaskType: String?) {
-        guard let selectedTaskType = newTaskType,
-              let template = templates.first(where: { $0.name == selectedTaskType }) else {
+    /// Handle template selection - load productivity rates
+    /// Accepts actual template object to support multiple templates with same name
+    func handleTemplateChange(_ template: TaskTemplate?) {
+        guard let template = template else {
+            taskType = nil
+            unit = .none
+            currentTemplate = nil
+            historicalProductivity = nil
+            expectedProductivity = nil
+            productivityRate = nil
             return
         }
 
+        taskType = template.name
         unit = template.defaultUnit
+        currentTemplate = template // Store for custom unit display
 
         // Store historical and expected productivity separately
         historicalProductivity = TemplateManager.getHistoricalProductivity(
-            for: selectedTaskType,
-            unit: template.defaultUnit,
+            for: template,
             from: allTasks
         )
         expectedProductivity = template.defaultProductivityRate
@@ -138,11 +148,26 @@ final class QuantityCalculationViewModel {
         // Priority order (goal-oriented approach):
         // 1. Template's expected productivity rate (if set) - the goal
         // 2. Historical data (if available) - fallback
-        // 3. CustomUnit's default productivity rate (fallback)
+        // 3. Unit's default productivity rate (legacy fallback)
         productivityRate = template.defaultProductivityRate
             ?? historicalProductivity
-            ?? template.customUnit?.defaultProductivityRate
             ?? template.defaultUnit.defaultProductivityRate
+    }
+
+    /// Handle task type change - load productivity rates
+    /// Legacy method for backward compatibility
+    func handleTaskTypeChange(_ newTaskType: String?) {
+        guard let selectedTaskType = newTaskType,
+              let template = templates.first(where: { $0.name == selectedTaskType }) else {
+            taskType = nil
+            unit = .none
+            historicalProductivity = nil
+            expectedProductivity = nil
+            productivityRate = nil
+            return
+        }
+
+        handleTemplateChange(template)
     }
 
     /// Initialize from existing task data
@@ -209,7 +234,8 @@ final class QuantityCalculationViewModel {
 
     /// Validate quantity input
     func validateQuantity() -> ValidationResult<Double> {
-        InputValidator.validateQuantity(quantity, unit: unit.displayName)
+        let unitName = currentTemplate?.unitDisplayName ?? unit.displayName
+        return InputValidator.validateQuantity(quantity, unit: unitName)
     }
 
     /// Validate productivity rate input
@@ -217,7 +243,8 @@ final class QuantityCalculationViewModel {
         guard let rate = productivityRate else {
             return .failure(.emptyValue("Productivity rate not set"))
         }
-        return InputValidator.validateProductivityRate(String(rate), unit: unit.displayName)
+        let unitName = currentTemplate?.unitDisplayName ?? unit.displayName
+        return InputValidator.validateProductivityRate(String(rate), unit: unitName)
     }
 }
 

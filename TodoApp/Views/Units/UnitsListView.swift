@@ -135,12 +135,6 @@ struct UnitRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(unit.name)
                     .font(.body)
-
-                if let rate = unit.defaultProductivityRate {
-                    Text("\(String(format: "%.1f", rate)) \(unit.name)/person-hr")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
 
             Spacer()

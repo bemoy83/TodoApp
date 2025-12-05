@@ -72,4 +72,50 @@ struct DataSeeder {
             print("❌ Error migrating templates: \(error)")
         }
     }
+
+    /// Links existing tasks to templates based on taskType and unit matching
+    /// Should be called after template migration to CustomUnits
+    static func linkTasksToTemplates(context: ModelContext) {
+        let taskDescriptor = FetchDescriptor<Task>()
+
+        do {
+            let tasks = try context.fetch(taskDescriptor)
+
+            // Get all templates for lookup
+            let templateDescriptor = FetchDescriptor<TaskTemplate>()
+            let templates = try context.fetch(templateDescriptor)
+
+            var linkedCount = 0
+
+            for task in tasks {
+                // Skip if already linked
+                guard task.taskTemplate == nil else { continue }
+
+                // Skip if no taskType set
+                guard let taskTypeName = task.taskType else { continue }
+
+                // Try to find matching template by name and unit
+                // This handles the case where multiple templates have the same name
+                let matchingTemplate = templates.first { template in
+                    template.name == taskTypeName &&
+                    template.defaultUnit == task.unit
+                }
+
+                if let template = matchingTemplate {
+                    task.taskTemplate = template
+                    linkedCount += 1
+                }
+            }
+
+            if linkedCount > 0 {
+                try context.save()
+                print("✅ Linked \(linkedCount) tasks to templates")
+            } else {
+                print("✅ No tasks need template linking")
+            }
+
+        } catch {
+            print("❌ Error linking tasks to templates: \(error)")
+        }
+    }
 }

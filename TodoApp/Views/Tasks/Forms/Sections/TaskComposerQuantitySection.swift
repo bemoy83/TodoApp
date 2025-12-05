@@ -14,6 +14,7 @@ struct TaskComposerQuantitySection: View {
     @Binding var estimateMinutes: Int
     @Binding var hasPersonnel: Bool
     @Binding var expectedPersonnelCount: Int?
+    @Binding var taskTemplate: TaskTemplate?
 
     // Schedule context (for personnel recommendations)
     let schedule: ScheduleContext
@@ -54,6 +55,7 @@ struct TaskComposerQuantitySection: View {
         estimateMinutes: Binding<Int>,
         hasPersonnel: Binding<Bool>,
         expectedPersonnelCount: Binding<Int?>,
+        taskTemplate: Binding<TaskTemplate?>,
         schedule: ScheduleContext,
         templates: [TaskTemplate],
         allTasks: [Task],
@@ -69,6 +71,7 @@ struct TaskComposerQuantitySection: View {
         self._estimateMinutes = estimateMinutes
         self._hasPersonnel = hasPersonnel
         self._expectedPersonnelCount = expectedPersonnelCount
+        self._taskTemplate = taskTemplate
         self.schedule = schedule
         self.templates = templates
         self.allTasks = allTasks
@@ -83,14 +86,28 @@ struct TaskComposerQuantitySection: View {
 
     // MARK: - Computed Properties
 
+    /// Get unit display name with automatic fallback to support custom units
+    private var currentUnitDisplayName: String {
+        taskTemplate?.unitDisplayName ?? unit.displayName
+    }
+
+    /// Get unit icon with automatic fallback to support custom units
+    private var currentUnitIcon: String {
+        taskTemplate?.unitIcon ?? unit.icon
+    }
+
     /// Check if current unit is quantifiable (uses CustomUnit from template if available)
     private var isCurrentUnitQuantifiable: Bool {
-        // Try to get quantifiable status from template's CustomUnit
+        // Prefer using taskTemplate reference if available (supports multiple templates with same name)
+        if let template = taskTemplate {
+            return template.isQuantifiable
+        }
+        // Fallback: Try to find template by name (legacy behavior)
         if let currentTaskType = taskType,
            let template = templates.first(where: { $0.name == currentTaskType }) {
             return template.isQuantifiable
         }
-        // Fallback to legacy UnitType check
+        // Final fallback to legacy UnitType check
         return unit.isQuantifiable
     }
 
@@ -186,9 +203,13 @@ struct TaskComposerQuantitySection: View {
                 performCalculation()
             }
         }
-        .onChange(of: unit) { oldUnit, newUnit in
-            // When unit changes (e.g., m² → meters), clear quantity to prevent confusion
-            guard oldUnit != newUnit, !quantity.isEmpty else { return }
+        .onChange(of: taskTemplate) { oldTemplate, newTemplate in
+            // Detect if the unit actually changed (supports custom units)
+            let oldUnitName = oldTemplate?.unitDisplayName ?? UnitType.none.displayName
+            let newUnitName = newTemplate?.unitDisplayName ?? unit.displayName
+
+            // When unit changes (e.g., "orders" → "pieces", or m² → meters), clear quantity to prevent confusion
+            guard oldUnitName != newUnitName, !quantity.isEmpty else { return }
 
             // Clear quantity and calculated values
             quantity = ""
@@ -200,8 +221,8 @@ struct TaskComposerQuantitySection: View {
             expectedPersonnelCount = 1 // Reset to default instead of nil
 
             // Show error prompting re-entry (persists until user starts typing)
-            calculationError = "Please re-enter quantity for \(newUnit.displayName)"
-            unitChangeWarning = "Unit changed from \(oldUnit.displayName) to \(newUnit.displayName) - please re-enter quantity"
+            calculationError = "Please re-enter quantity for \(currentUnitDisplayName)"
+            unitChangeWarning = "Unit changed - please re-enter quantity"
         }
         .confirmationDialog("Switch Calculation", isPresented: $showCalculationModeMenu) {
             Button("Calculate Duration") {
@@ -251,7 +272,7 @@ struct TaskComposerQuantitySection: View {
             if productivityViewModel.historicalProductivity != nil, taskType != nil {
                 HistoricalProductivityBadge(
                     viewModel: productivityViewModel,
-                    unit: unit
+                    unitDisplayName: currentUnitDisplayName
                 )
             }
 
@@ -325,20 +346,23 @@ struct TaskComposerQuantitySection: View {
     // MARK: - Subviews
 
     private var taskTypePickerView: some View {
-        Picker("Task Type", selection: $taskType) {
-            Text("None").tag(nil as String?)
+        Picker("Task Type", selection: $taskTemplate) {
+            Text("None").tag(nil as TaskTemplate?)
             ForEach(templates) { template in
                 HStack {
                     Image(systemName: template.unitIcon)
-                    Text(template.name)
+                    Text("\(template.name) (\(template.unitDisplayName))")
                 }
-                .tag(template.name as String?)
+                .tag(template as TaskTemplate?)
             }
         }
         .pickerStyle(.menu)
-        .onChange(of: taskType) { _, newValue in
-            calculationViewModel.taskType = newValue
-            calculationViewModel.handleTaskTypeChange(newValue)
+        .onChange(of: taskTemplate) { _, selectedTemplate in
+            // Derive taskType from selected template (for backward compatibility)
+            taskType = selectedTemplate?.name
+
+            // Update ViewModel with actual template object (not just name)
+            calculationViewModel.handleTemplateChange(selectedTemplate)
 
             // Sync with bindings
             unit = calculationViewModel.unit
@@ -378,7 +402,7 @@ struct TaskComposerQuantitySection: View {
         return CalculationInputRow(
             icon: "chart.line.uptrend.xyaxis",
             label: "Productivity",
-            value: isCalculated ? "Auto-calculated" : "\(String(format: "%.1f", rate)) \(unit.displayName)/person-hr",
+            value: isCalculated ? "Auto-calculated" : "\(String(format: "%.1f", rate)) \(currentUnitDisplayName)/person-hr",
             isCalculated: isCalculated,
             calculatedColor: .orange
         ) {
@@ -392,7 +416,7 @@ struct TaskComposerQuantitySection: View {
             ProductivityRateEditorView(
                 isPresented: $showProductivityRateEditor,
                 viewModel: productivityViewModel,
-                unit: unit
+                unitDisplayName: currentUnitDisplayName
             ) {
                 // Update binding when productivity changes
                 productivityRate = productivityViewModel.currentProductivity
@@ -464,7 +488,7 @@ struct TaskComposerQuantitySection: View {
                     .padding(.top, DesignSystem.Spacing.md)
 
                 VStack(spacing: DesignSystem.Spacing.sm) {
-                    Text("Unit type: \(unit.displayName)")
+                    Text("Unit type: \(currentUnitDisplayName)")
                         .font(.headline)
                         .foregroundStyle(.secondary)
 
@@ -614,15 +638,14 @@ struct TaskComposerQuantitySection: View {
             return
         }
 
-        // Find current template to get task-type-specific limits
-        let currentTemplate = templates.first { $0.name == taskType }
-        let minQuantity = currentTemplate?.minQuantity
-        let maxQuantity = currentTemplate?.maxQuantity
+        // Use taskTemplate reference for accurate limits (supports multiple templates with same name)
+        let minQuantity = taskTemplate?.minQuantity
+        let maxQuantity = taskTemplate?.maxQuantity
 
         // Validate using task-type-specific limits
         let validation = InputValidator.validateQuantity(
             input,
-            unit: unit.displayName,
+            unit: currentUnitDisplayName,
             minQuantity: minQuantity,
             maxQuantity: maxQuantity
         )

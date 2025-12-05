@@ -142,6 +142,10 @@ final class Task: TitledItem {
     // Relationship to project
     @Relationship(deleteRule: .nullify)
     var project: Project?
+
+    // Relationship to template (for accurate productivity tracking)
+    @Relationship(deleteRule: .nullify)
+    var taskTemplate: TaskTemplate?
     
     // Parent-child subtask relationship
     @Relationship(deleteRule: .nullify)
@@ -180,7 +184,8 @@ final class Task: TitledItem {
         effortHours: Double? = nil,
         quantity: Double? = nil,
         unit: UnitType = UnitType.none,
-        taskType: String? = nil
+        taskType: String? = nil,
+        taskTemplate: TaskTemplate? = nil
     ) {
         self.id = id
         self.title = title
@@ -201,6 +206,7 @@ final class Task: TitledItem {
         self.quantity = quantity
         self.unit = unit
         self.taskType = taskType
+        self.taskTemplate = taskTemplate
         self.subtasks = nil
         self.timeEntries = nil
         self.dependsOn = nil
@@ -223,6 +229,29 @@ final class Task: TitledItem {
     var hasActiveTimer: Bool {
         guard let entries = timeEntries else { return false }
         return entries.contains { $0.endTime == nil }
+    }
+
+    // MARK: - Unit Information (Backward Compatible)
+
+    /// Unit display name with automatic fallback
+    /// Prioritizes template's custom unit, falls back to legacy UnitType
+    @Transient
+    var unitDisplayName: String {
+        taskTemplate?.unitDisplayName ?? unit.displayName
+    }
+
+    /// Unit icon with automatic fallback
+    /// Prioritizes template's custom unit, falls back to legacy UnitType
+    @Transient
+    var unitIcon: String {
+        taskTemplate?.unitIcon ?? unit.icon
+    }
+
+    /// Whether the unit is quantifiable with automatic fallback
+    /// Prioritizes template's custom unit, falls back to legacy UnitType
+    @Transient
+    var isUnitQuantifiable: Bool {
+        taskTemplate?.isQuantifiable ?? unit.isQuantifiable
     }
 
     // MARK: - Working Window (Start/End Dates)

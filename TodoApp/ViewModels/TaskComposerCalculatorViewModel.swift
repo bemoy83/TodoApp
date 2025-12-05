@@ -86,18 +86,16 @@ class TaskComposerCalculatorViewModel {
 
         // Store historical productivity separately for comparison
         historicalProductivity = TemplateManager.getHistoricalProductivity(
-            for: template.name,
-            unit: template.defaultUnit,
+            for: template,
             from: tasks
         )
 
         // Priority order (goal-oriented approach):
         // 1. Template's expected productivity rate (if set) - the goal
         // 2. Historical data (if available) - fallback
-        // 3. CustomUnit's default productivity rate (fallback)
+        // 3. Unit's default productivity rate (legacy fallback)
         productivityRate = template.defaultProductivityRate
             ?? historicalProductivity
-            ?? template.customUnit?.defaultProductivityRate
             ?? template.defaultUnit.defaultProductivityRate
     }
 

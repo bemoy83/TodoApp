@@ -147,15 +147,10 @@ private struct TemplateRow: View {
                     .frame(width: 40)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    // Template name
-                    Text(template.name)
+                    // Template name with unit
+                    Text("\(template.name) (\(template.unitDisplayName))")
                         .font(.headline)
                         .foregroundStyle(.primary)
-
-                    // Details
-                    Label(template.unitDisplayName, systemImage: template.unitIcon)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
 
                     // Expected productivity rate (if set)
                     if let expectedRate = template.defaultProductivityRate {

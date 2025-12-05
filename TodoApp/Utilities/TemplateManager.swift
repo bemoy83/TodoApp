@@ -88,12 +88,70 @@ struct TemplateManager {
         }.count
     }
 
+    // MARK: - Template-Based Productivity (New)
+
+    /// Calculate historical average productivity for a specific template
+    /// Uses template reference for accurate matching (supports multiple templates with same name)
+    /// Falls back to name+unit matching for tasks created before template relationship was added
+    /// Returns nil if no historical data available
+    static func getHistoricalProductivity(
+        for template: TaskTemplate,
+        from tasks: [Task]
+    ) -> Double? {
+        guard template.isQuantifiable else { return nil }
+
+        // Filter to completed tasks with productivity data for this template
+        let relevantTasks = tasks.filter { task in
+            // Prefer template reference matching (new way)
+            if task.taskTemplate?.id == template.id {
+                return task.hasProductivityData && task.isCompleted
+            }
+            // Fallback to name+unit matching (legacy tasks)
+            return task.taskType == template.name &&
+                   task.unit == template.defaultUnit &&
+                   task.hasProductivityData &&
+                   task.isCompleted
+        }
+
+        guard !relevantTasks.isEmpty else { return nil }
+
+        // Calculate average
+        let productivityValues = relevantTasks.compactMap { $0.unitsPerHour }
+        guard !productivityValues.isEmpty else { return nil }
+
+        let sum = productivityValues.reduce(0.0, +)
+        return sum / Double(productivityValues.count)
+    }
+
+    /// Get count of historical tasks for a specific template
+    /// Uses template reference for accurate matching (supports multiple templates with same name)
+    /// Falls back to name+unit matching for tasks created before template relationship was added
+    static func getHistoricalTaskCount(
+        for template: TaskTemplate,
+        from tasks: [Task]
+    ) -> Int {
+        guard template.isQuantifiable else { return 0 }
+
+        return tasks.filter { task in
+            // Prefer template reference matching (new way)
+            if task.taskTemplate?.id == template.id {
+                return task.hasProductivityData && task.isCompleted
+            }
+            // Fallback to name+unit matching (legacy tasks)
+            return task.taskType == template.name &&
+                   task.unit == template.defaultUnit &&
+                   task.hasProductivityData &&
+                   task.isCompleted
+        }.count
+    }
+
     /// Create a task from a template with pre-filled defaults
     static func createTask(from template: TaskTemplate) -> Task {
         Task(
             title: "",  // User will fill this in
             unit: template.defaultUnit,
-            taskType: template.name
+            taskType: template.name,
+            taskTemplate: template
         )
     }
 
@@ -101,6 +159,7 @@ struct TemplateManager {
     static func applyTemplate(_ template: TaskTemplate, to task: Task) {
         task.unit = template.defaultUnit
         task.taskType = template.name
+        task.taskTemplate = template
     }
 
     /// Check if default templates have been created
@@ -141,17 +200,14 @@ extension TemplateManager {
     }
 
     /// Calculate analytics for a template based on historical task data
-    /// Uses taskType + unit combination for accurate productivity tracking
+    /// Uses template reference for accurate productivity tracking (supports multiple templates with same name)
     static func calculateAnalytics(
         for template: TaskTemplate,
         from tasks: [Task]
     ) -> TemplateAnalytics {
-        let taskType = template.name
-        let unit = template.defaultUnit
-
-        // Use taskType-specific methods to get accurate data
-        let count = getHistoricalTaskCount(for: taskType, unit: unit, from: tasks)
-        let avgProductivity = getHistoricalProductivity(for: taskType, unit: unit, from: tasks)
+        // Use new template-based methods for accurate matching
+        let count = getHistoricalTaskCount(for: template, from: tasks)
+        let avgProductivity = getHistoricalProductivity(for: template, from: tasks)
 
         return TemplateAnalytics(
             template: template,

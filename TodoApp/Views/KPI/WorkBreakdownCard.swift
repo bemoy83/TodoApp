@@ -14,7 +14,7 @@ struct WorkBreakdownCard: View {
     struct TaskTypeBreakdown: Identifiable {
         let id = UUID()
         let taskType: String
-        let unit: UnitType
+        let unitDisplayName: String
         let icon: String
         let totalQuantity: Double
         let taskCount: Int
@@ -73,7 +73,7 @@ struct WorkBreakdownCard: View {
         // Group by task type and unit
         var grouped: [String: [Task]] = [:]
         for task in completedTasks {
-            let key = "\(task.taskType ?? "Unknown")_\(task.unit.displayName)"
+            let key = "\(task.taskType ?? "Unknown")_\(task.unitDisplayName)"
             if grouped[key] != nil {
                 grouped[key]?.append(task)
             } else {
@@ -84,8 +84,8 @@ struct WorkBreakdownCard: View {
         // Create breakdowns
         return grouped.map { key, typeTasks in
             let taskType = typeTasks.first?.taskType ?? "Unknown"
-            let unit = typeTasks.first?.unit ?? .none
-            let icon = unit.icon
+            let unitDisplayName = typeTasks.first?.unitDisplayName ?? "None"
+            let icon = typeTasks.first?.unitIcon ?? "minus.circle"
 
             let totalQuantity = typeTasks.reduce(0.0) { $0 + ($1.quantity ?? 0) }
             let taskCount = typeTasks.count
@@ -107,7 +107,7 @@ struct WorkBreakdownCard: View {
 
             return TaskTypeBreakdown(
                 taskType: taskType,
-                unit: unit,
+                unitDisplayName: unitDisplayName,
                 icon: icon,
                 totalQuantity: totalQuantity,
                 taskCount: taskCount,
@@ -260,7 +260,7 @@ struct WorkBreakdownCard: View {
 
             // Quantity and task count
             HStack(spacing: 4) {
-                Text(formatQuantity(breakdown.totalQuantity, unit: breakdown.unit))
+                Text(formatQuantity(breakdown.totalQuantity, unit: breakdown))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -315,9 +315,9 @@ struct WorkBreakdownCard: View {
 
     // MARK: - Formatting Helpers
 
-    private func formatQuantity(_ value: Double, unit: UnitType) -> String {
+    private func formatQuantity(_ value: Double, unit: TaskTypeBreakdown) -> String {
         let formatted = String(format: "%.1f", value)
-        return "\(formatted) \(unit.displayName)"
+        return "\(formatted) \(unit.unitDisplayName)"
     }
 
     private func formatHours(_ value: Double) -> String {

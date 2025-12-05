@@ -8,7 +8,6 @@ final class CustomUnit: Hashable {
     var id: UUID
     var name: String // Display name (e.g., "orders", "m²", "pieces")
     var icon: String // SF Symbol name
-    var defaultProductivityRate: Double? // Optional default productivity
     var isQuantifiable: Bool // Whether this unit requires quantity input
     var isSystem: Bool // System-provided units (can't be deleted)
     var createdDate: Date
@@ -22,7 +21,6 @@ final class CustomUnit: Hashable {
         id: UUID = UUID(),
         name: String,
         icon: String,
-        defaultProductivityRate: Double? = nil,
         isQuantifiable: Bool = true,
         isSystem: Bool = false,
         createdDate: Date = Date(),
@@ -31,7 +29,6 @@ final class CustomUnit: Hashable {
         self.id = id
         self.name = name
         self.icon = icon
-        self.defaultProductivityRate = defaultProductivityRate
         self.isQuantifiable = isQuantifiable
         self.isSystem = isSystem
         self.createdDate = createdDate
@@ -69,7 +66,6 @@ extension CustomUnit {
         CustomUnit(
             name: "None",
             icon: "minus.circle",
-            defaultProductivityRate: nil,
             isQuantifiable: false,
             isSystem: true,
             order: 0
@@ -77,7 +73,6 @@ extension CustomUnit {
         CustomUnit(
             name: "m²",
             icon: "square.grid.2x2",
-            defaultProductivityRate: 10.0,
             isQuantifiable: true,
             isSystem: true,
             order: 1
@@ -85,7 +80,6 @@ extension CustomUnit {
         CustomUnit(
             name: "m",
             icon: "ruler",
-            defaultProductivityRate: 5.0,
             isQuantifiable: true,
             isSystem: true,
             order: 2
@@ -93,7 +87,6 @@ extension CustomUnit {
         CustomUnit(
             name: "pcs",
             icon: "cube.box",
-            defaultProductivityRate: 2.0,
             isQuantifiable: true,
             isSystem: true,
             order: 3
@@ -101,7 +94,6 @@ extension CustomUnit {
         CustomUnit(
             name: "kg",
             icon: "scalemass",
-            defaultProductivityRate: 50.0,
             isQuantifiable: true,
             isSystem: true,
             order: 4
@@ -109,7 +101,6 @@ extension CustomUnit {
         CustomUnit(
             name: "L",
             icon: "drop",
-            defaultProductivityRate: 100.0,
             isQuantifiable: true,
             isSystem: true,
             order: 5
