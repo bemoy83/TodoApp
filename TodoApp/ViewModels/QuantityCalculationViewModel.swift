@@ -114,13 +114,19 @@ final class QuantityCalculationViewModel {
         return max(1, personnel)
     }
 
-    /// Handle task type change - load productivity rates
-    func handleTaskTypeChange(_ newTaskType: String?) {
-        guard let selectedTaskType = newTaskType,
-              let template = templates.first(where: { $0.name == selectedTaskType }) else {
+    /// Handle template selection - load productivity rates
+    /// Accepts actual template object to support multiple templates with same name
+    func handleTemplateChange(_ template: TaskTemplate?) {
+        guard let template = template else {
+            taskType = nil
+            unit = .none
+            historicalProductivity = nil
+            expectedProductivity = nil
+            productivityRate = nil
             return
         }
 
+        taskType = template.name
         unit = template.defaultUnit
 
         // Store historical and expected productivity separately
@@ -141,6 +147,22 @@ final class QuantityCalculationViewModel {
         productivityRate = template.defaultProductivityRate
             ?? historicalProductivity
             ?? template.defaultUnit.defaultProductivityRate
+    }
+
+    /// Handle task type change - load productivity rates
+    /// Legacy method for backward compatibility
+    func handleTaskTypeChange(_ newTaskType: String?) {
+        guard let selectedTaskType = newTaskType,
+              let template = templates.first(where: { $0.name == selectedTaskType }) else {
+            taskType = nil
+            unit = .none
+            historicalProductivity = nil
+            expectedProductivity = nil
+            productivityRate = nil
+            return
+        }
+
+        handleTemplateChange(template)
     }
 
     /// Initialize from existing task data

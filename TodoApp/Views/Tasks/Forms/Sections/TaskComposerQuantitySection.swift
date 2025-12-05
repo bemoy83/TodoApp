@@ -347,30 +347,20 @@ struct TaskComposerQuantitySection: View {
             // Derive taskType from selected template (for backward compatibility)
             taskType = selectedTemplate?.name
 
-            // Update ViewModels with selected template
-            if let template = selectedTemplate {
-                calculationViewModel.taskType = template.name
-                calculationViewModel.handleTaskTypeChange(template.name)
+            // Update ViewModel with actual template object (not just name)
+            calculationViewModel.handleTemplateChange(selectedTemplate)
 
-                // Sync with bindings
-                unit = calculationViewModel.unit
-                productivityRate = calculationViewModel.productivityRate
+            // Sync with bindings
+            unit = calculationViewModel.unit
+            productivityRate = calculationViewModel.productivityRate
 
-                // Update productivity ViewModel
-                productivityViewModel.loadProductivityRates(
-                    expected: calculationViewModel.expectedProductivity,
-                    historical: calculationViewModel.historicalProductivity,
-                    existingCustom: nil
-                )
-                productivityViewModel.currentProductivity = calculationViewModel.productivityRate
-            } else {
-                // Clear everything when "None" is selected
-                calculationViewModel.taskType = nil
-                calculationViewModel.handleTaskTypeChange(nil)
-                taskType = nil
-                unit = .none
-                productivityRate = nil
-            }
+            // Update productivity ViewModel
+            productivityViewModel.loadProductivityRates(
+                expected: calculationViewModel.expectedProductivity,
+                historical: calculationViewModel.historicalProductivity,
+                existingCustom: nil
+            )
+            productivityViewModel.currentProductivity = calculationViewModel.productivityRate
         }
     }
 
