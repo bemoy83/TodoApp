@@ -260,7 +260,7 @@ struct WorkBreakdownCard: View {
 
             // Quantity and task count
             HStack(spacing: 4) {
-                Text(formatQuantity(breakdown.totalQuantity, unit: breakdown.unit))
+                Text(formatQuantity(breakdown.totalQuantity, unit: breakdown))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
