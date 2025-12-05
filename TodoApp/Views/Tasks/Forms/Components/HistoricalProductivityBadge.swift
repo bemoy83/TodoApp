@@ -4,7 +4,7 @@ import SwiftUI
 /// Used to display performance comparison for event tasks (carpet, walls, furniture, etc.)
 struct HistoricalProductivityBadge: View {
     let viewModel: ProductivityRateViewModel
-    let unit: UnitType
+    let unitDisplayName: String
 
     var body: some View {
         let variance = viewModel.calculateVariance()
@@ -20,7 +20,7 @@ struct HistoricalProductivityBadge: View {
                 .foregroundStyle(.secondary)
 
             if let historical = viewModel.historicalProductivity {
-                Text("\(String(format: "%.1f", historical)) \(unit.displayName)/person-hr")
+                Text("\(String(format: "%.1f", historical)) \(unitDisplayName)/person-hr")
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(.primary)

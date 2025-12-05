@@ -258,7 +258,7 @@ struct TaskComposerQuantitySection: View {
             if productivityViewModel.historicalProductivity != nil, taskType != nil {
                 HistoricalProductivityBadge(
                     viewModel: productivityViewModel,
-                    unit: unit
+                    unitDisplayName: taskTemplate?.unitDisplayName ?? unit.displayName
                 )
             }
 
@@ -402,7 +402,7 @@ struct TaskComposerQuantitySection: View {
             ProductivityRateEditorView(
                 isPresented: $showProductivityRateEditor,
                 viewModel: productivityViewModel,
-                unit: unit
+                unitDisplayName: taskTemplate?.unitDisplayName ?? unit.displayName
             ) {
                 // Update binding when productivity changes
                 productivityRate = productivityViewModel.currentProductivity
