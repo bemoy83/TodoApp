@@ -203,9 +203,13 @@ struct TaskComposerQuantitySection: View {
                 performCalculation()
             }
         }
-        .onChange(of: unit) { oldUnit, newUnit in
-            // When unit changes (e.g., m² → meters), clear quantity to prevent confusion
-            guard oldUnit != newUnit, !quantity.isEmpty else { return }
+        .onChange(of: taskTemplate) { oldTemplate, newTemplate in
+            // Detect if the unit actually changed (supports custom units)
+            let oldUnitName = oldTemplate?.unitDisplayName ?? UnitType.none.displayName
+            let newUnitName = newTemplate?.unitDisplayName ?? unit.displayName
+
+            // When unit changes (e.g., "orders" → "pieces", or m² → meters), clear quantity to prevent confusion
+            guard oldUnitName != newUnitName, !quantity.isEmpty else { return }
 
             // Clear quantity and calculated values
             quantity = ""
