@@ -15,6 +15,7 @@ final class QuantityCalculationViewModel {
     var estimateHours: Int = 0
     var estimateMinutes: Int = 0
     var expectedPersonnelCount: Int?
+    var currentTemplate: TaskTemplate? // Current selected template (for custom unit display)
 
     // MARK: - Internal State
 
@@ -79,7 +80,9 @@ final class QuantityCalculationViewModel {
         if quantity.isEmpty || quantity == "0" {
             return "Not set"
         }
-        return "\(quantity) \(unit.displayName)"
+        // Use template's unit display name for custom units, fallback to UnitType
+        let unitName = currentTemplate?.unitDisplayName ?? unit.displayName
+        return "\(quantity) \(unitName)"
     }
 
     // MARK: - Business Logic
@@ -120,6 +123,7 @@ final class QuantityCalculationViewModel {
         guard let template = template else {
             taskType = nil
             unit = .none
+            currentTemplate = nil
             historicalProductivity = nil
             expectedProductivity = nil
             productivityRate = nil
@@ -128,6 +132,7 @@ final class QuantityCalculationViewModel {
 
         taskType = template.name
         unit = template.defaultUnit
+        currentTemplate = template // Store for custom unit display
 
         // Store historical and expected productivity separately
         historicalProductivity = TemplateManager.getHistoricalProductivity(
@@ -229,7 +234,8 @@ final class QuantityCalculationViewModel {
 
     /// Validate quantity input
     func validateQuantity() -> ValidationResult<Double> {
-        InputValidator.validateQuantity(quantity, unit: unit.displayName)
+        let unitName = currentTemplate?.unitDisplayName ?? unit.displayName
+        return InputValidator.validateQuantity(quantity, unit: unitName)
     }
 
     /// Validate productivity rate input
@@ -237,7 +243,8 @@ final class QuantityCalculationViewModel {
         guard let rate = productivityRate else {
             return .failure(.emptyValue("Productivity rate not set"))
         }
-        return InputValidator.validateProductivityRate(String(rate), unit: unit.displayName)
+        let unitName = currentTemplate?.unitDisplayName ?? unit.displayName
+        return InputValidator.validateProductivityRate(String(rate), unit: unitName)
     }
 }
 
