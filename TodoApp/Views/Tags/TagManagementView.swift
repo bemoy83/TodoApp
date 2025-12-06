@@ -5,7 +5,7 @@ import SwiftData
 struct TagManagementView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Query(sort: \Tag.category) private var allTags: [Tag]
+    @Query(sort: \Tag.order) private var allTags: [Tag]
     @Query private var allTasks: [Task]
 
     @State private var showingAddTag = false
@@ -236,7 +236,7 @@ struct TagRow: View {
     container.mainContext.insert(setupTag)
     container.mainContext.insert(hallATag)
 
-    return NavigationStack {
+    NavigationStack {
         TagManagementView()
             .modelContainer(container)
     }
