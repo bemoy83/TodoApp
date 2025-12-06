@@ -7,13 +7,18 @@ struct TaskListView: View {
     @Query(filter: #Predicate<Task> { task in
         !task.isArchived
     }) private var tasks: [Task]
-    
+    @Query(sort: \Tag.order) private var allTags: [Tag]
+
     @State private var searchText = ""
     @State private var selectedFilter: TaskFilter = .all
     @State private var showingAddTask = false
     @State private var selectedTask: Task?
     @State private var editMode: EditMode = .inactive
     @State private var isSearchPresented = false
+
+    // Tag filtering state
+    @State private var selectedTagIds: Set<UUID> = []
+    @State private var showingTagFilter = false
 
     // Bulk archive state
     @State private var selectedTasksForArchive: Set<Task.ID> = []
@@ -24,11 +29,11 @@ struct TaskListView: View {
     // MARK: - Filtering (top-level tasks only)
     private var filteredTasks: [Task] {
         var result = tasks.filter { $0.parentTask == nil }
-        
+
         if !searchText.isEmpty {
             result = result.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
         }
-        
+
         switch selectedFilter {
         case .all:
             break
@@ -39,7 +44,20 @@ struct TaskListView: View {
         case .blocked:
             result = result.filter { $0.status == .blocked }
         }
+
+        // Tag filtering (show tasks with ANY of the selected tags)
+        if !selectedTagIds.isEmpty {
+            result = result.filter { task in
+                guard let taskTags = task.tags else { return false }
+                return taskTags.contains { selectedTagIds.contains($0.id) }
+            }
+        }
+
         return result
+    }
+
+    private var selectedTags: [Tag] {
+        allTags.filter { selectedTagIds.contains($0.id) }
     }
     
     private var activeTasks: [Task] {
@@ -124,9 +142,33 @@ struct TaskListView: View {
                     bulkArchiveToolbar
                 }
             }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if !selectedTagIds.isEmpty {
+                    tagFilterChips
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    TaskFilterMenu(selectedFilter: $selectedFilter)
+                    HStack(spacing: DesignSystem.Spacing.sm) {
+                        TaskFilterMenu(selectedFilter: $selectedFilter)
+
+                        // Tag filter button
+                        Button {
+                            showingTagFilter = true
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "tag.fill")
+                                    .foregroundStyle(selectedTagIds.isEmpty ? .primary : .blue)
+
+                                if !selectedTagIds.isEmpty {
+                                    Circle()
+                                        .fill(.blue)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 2, y: -2)
+                                }
+                            }
+                        }
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: DesignSystem.Spacing.sm) {
@@ -136,7 +178,7 @@ struct TaskListView: View {
                         } label: {
                             Image(systemName: "magnifyingglass")
                         }
-                        
+
                         Button {
                             withAnimation(DesignSystem.Animation.standard) {
                                 editMode = editMode == .active ? .inactive : .active
@@ -155,6 +197,12 @@ struct TaskListView: View {
                 }
             }
             .sheet(isPresented: $showingAddTask) { AddTaskView() }
+            .sheet(isPresented: $showingTagFilter) {
+                TagFilterSheet(
+                    selectedTagIds: $selectedTagIds,
+                    allTags: allTags
+                )
+            }
             .navigationDestination(item: $selectedTask) { task in
                 TaskDetailView(task: task)
             }
@@ -225,6 +273,49 @@ struct TaskListView: View {
             }
             .padding()
             .background(.ultraThinMaterial)
+        }
+    }
+
+    @ViewBuilder
+    private var tagFilterChips: some View {
+        VStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(selectedTags) { tag in
+                        TagFilterChip(
+                            tag: tag,
+                            onRemove: {
+                                selectedTagIds.remove(tag.id)
+                                HapticManager.light()
+                            }
+                        )
+                    }
+
+                    // Clear all button
+                    Button {
+                        selectedTagIds.removeAll()
+                        HapticManager.light()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption)
+                            Text("Clear All")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.secondary.opacity(0.15))
+                        .foregroundStyle(.secondary)
+                        .clipShape(Capsule())
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+            .background(.ultraThinMaterial)
+
+            Divider()
         }
     }
 
