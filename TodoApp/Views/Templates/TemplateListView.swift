@@ -32,19 +32,17 @@ struct TemplateListView: View {
             }
             .navigationTitle("Task Templates")
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingAddTemplate = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                }
-
-                ToolbarItem(placement: .secondaryAction) {
+                ToolbarItemGroup(placement: .primaryAction) {
                     Button {
                         showingMoreActions = true
                     } label: {
                         Image(systemName: "ellipsis.circle")
+                    }
+
+                    Button {
+                        showingAddTemplate = true
+                    } label: {
+                        Image(systemName: "plus")
                     }
                 }
             }
