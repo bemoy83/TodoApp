@@ -8,6 +8,7 @@ struct TemplateMoreActionsSheet: View {
     let onExport: () -> Void
     let onImport: () -> Void
     let onManageUnits: () -> Void
+    let onRestoreDefaults: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -43,6 +44,17 @@ struct TemplateMoreActionsSheet: View {
                     }
                     .accessibilityLabel("Manage Custom Units")
                 }
+
+                Section("Quick Actions") {
+                    // Restore Default Templates
+                    Button {
+                        dismiss()
+                        onRestoreDefaults()
+                    } label: {
+                        Label("Restore Default Templates", systemImage: "arrow.counterclockwise")
+                    }
+                    .accessibilityLabel("Restore Default Templates")
+                }
             }
             .listStyle(.insetGrouped)
             .navigationTitle("More Actions")
@@ -58,6 +70,7 @@ struct TemplateMoreActionsSheet: View {
         hasTemplates: true,
         onExport: { print("Export") },
         onImport: { print("Import") },
-        onManageUnits: { print("Manage Units") }
+        onManageUnits: { print("Manage Units") },
+        onRestoreDefaults: { print("Restore Defaults") }
     )
 }

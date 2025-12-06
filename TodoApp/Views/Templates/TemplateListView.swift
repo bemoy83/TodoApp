@@ -21,6 +21,8 @@ struct TemplateListView: View {
     @State private var importResult: TemplateImporter.ImportResult?
     @State private var showingResultAlert = false
     @State private var exportError: Error?
+    @State private var restoreResult: String?
+    @State private var showingRestoreAlert = false
 
     var body: some View {
         NavigationStack {
@@ -64,6 +66,9 @@ struct TemplateListView: View {
                     },
                     onManageUnits: {
                         showingUnitsManagement = true
+                    },
+                    onRestoreDefaults: {
+                        restoreDefaultTemplates()
                     }
                 )
             }
@@ -111,6 +116,15 @@ struct TemplateListView: View {
             } message: {
                 if let error = exportError {
                     Text(error.localizedDescription)
+                }
+            }
+            .alert("Restore Complete", isPresented: $showingRestoreAlert) {
+                Button("OK") {
+                    restoreResult = nil
+                }
+            } message: {
+                if let result = restoreResult {
+                    Text(result)
                 }
             }
         }
@@ -213,6 +227,20 @@ struct TemplateListView: View {
     private func insertDefaultTemplates() {
         TemplateManager.insertDefaultTemplates(into: modelContext)
         HapticManager.success()
+    }
+
+    private func restoreDefaultTemplates() {
+        let addedCount = TemplateManager.restoreDefaultTemplates(into: modelContext)
+
+        if addedCount > 0 {
+            restoreResult = "Added \(addedCount) default template\(addedCount == 1 ? "" : "s")"
+            HapticManager.success()
+        } else {
+            restoreResult = "All default templates are already present"
+            HapticManager.light()
+        }
+
+        showingRestoreAlert = true
     }
 
     // MARK: - Import/Export Handlers

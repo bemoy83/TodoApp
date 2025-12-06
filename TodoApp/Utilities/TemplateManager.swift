@@ -177,6 +177,49 @@ struct TemplateManager {
 
         try? context.save()
     }
+
+    /// Restore missing default templates (smart restore)
+    /// Only inserts default templates that don't already exist
+    /// Returns the number of templates that were added
+    static func restoreDefaultTemplates(into context: ModelContext) -> Int {
+        // Fetch existing templates
+        let descriptor = FetchDescriptor<TaskTemplate>()
+        let existingTemplates = (try? context.fetch(descriptor)) ?? []
+
+        var addedCount = 0
+
+        // Check each default template
+        for defaultTemplate in TaskTemplate.defaultTemplates {
+            // Check if this template already exists (by name and unit)
+            let exists = existingTemplates.contains { existing in
+                existing.name == defaultTemplate.name &&
+                existing.defaultUnit == defaultTemplate.defaultUnit &&
+                existing.customUnit == nil // Default templates don't use custom units
+            }
+
+            // Only insert if it doesn't exist
+            if !exists {
+                // Get next order value
+                let maxOrder = existingTemplates.compactMap { $0.order }.max() ?? -1
+                let newTemplate = TaskTemplate(
+                    name: defaultTemplate.name,
+                    defaultUnit: defaultTemplate.defaultUnit,
+                    defaultProductivityRate: defaultTemplate.defaultProductivityRate,
+                    minQuantity: defaultTemplate.minQuantity,
+                    maxQuantity: defaultTemplate.maxQuantity,
+                    order: maxOrder + addedCount + 1
+                )
+                context.insert(newTemplate)
+                addedCount += 1
+            }
+        }
+
+        if addedCount > 0 {
+            try? context.save()
+        }
+
+        return addedCount
+    }
 }
 
 // MARK: - Template Analytics
