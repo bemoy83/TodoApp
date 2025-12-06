@@ -149,51 +149,10 @@ struct TaskListView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        TaskFilterMenu(selectedFilter: $selectedFilter)
-
-                        // Tag filter button
-                        Button {
-                            showingTagFilter = true
-                        } label: {
-                            ZStack(alignment: .topTrailing) {
-                                Image(systemName: "tag.fill")
-                                    .foregroundStyle(selectedTagIds.isEmpty ? .primary : .blue)
-
-                                if !selectedTagIds.isEmpty {
-                                    Circle()
-                                        .fill(.blue)
-                                        .frame(width: 8, height: 8)
-                                        .offset(x: 2, y: -2)
-                                }
-                            }
-                        }
-                    }
+                    leadingToolbarItems
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        // Search button
-                        Button {
-                            isSearchPresented = true
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                        }
-
-                        Button {
-                            withAnimation(DesignSystem.Animation.standard) {
-                                editMode = editMode == .active ? .inactive : .active
-                                HapticManager.selection()
-                            }
-                        } label: {
-                            Label(
-                                editMode == .active ? "Done" : "Reorder",
-                                systemImage: editMode == .active ? "checkmark" : "line.3.horizontal"
-                            )
-                        }
-                        Button { showingAddTask = true } label: {
-                            Image(systemName: "plus")
-                        }
-                    }
+                    trailingToolbarItems
                 }
             }
             .sheet(isPresented: $showingAddTask) { AddTaskView() }
@@ -316,6 +275,62 @@ struct TaskListView: View {
             .background(.ultraThinMaterial)
 
             Divider()
+        }
+    }
+
+    @ViewBuilder
+    private var leadingToolbarItems: some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            TaskFilterMenu(selectedFilter: $selectedFilter)
+            tagFilterButton
+        }
+    }
+
+    @ViewBuilder
+    private var tagFilterButton: some View {
+        Button {
+            showingTagFilter = true
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "tag.fill")
+                    .foregroundStyle(selectedTagIds.isEmpty ? .primary : .blue)
+
+                if !selectedTagIds.isEmpty {
+                    Circle()
+                        .fill(.blue)
+                        .frame(width: 8, height: 8)
+                        .offset(x: 2, y: -2)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var trailingToolbarItems: some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            Button {
+                isSearchPresented = true
+            } label: {
+                Image(systemName: "magnifyingglass")
+            }
+
+            Button {
+                withAnimation(DesignSystem.Animation.standard) {
+                    editMode = editMode == .active ? .inactive : .active
+                    HapticManager.selection()
+                }
+            } label: {
+                Label(
+                    editMode == .active ? "Done" : "Reorder",
+                    systemImage: editMode == .active ? "checkmark" : "line.3.horizontal"
+                )
+            }
+
+            Button {
+                showingAddTask = true
+            } label: {
+                Image(systemName: "plus")
+            }
         }
     }
 
