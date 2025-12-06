@@ -224,17 +224,21 @@ struct TagRow: View {
 // MARK: - Preview
 
 #Preview("Tag Management") {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Tag.self, Task.self, configurations: config)
+    @Previewable @State var container: ModelContainer = {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try! ModelContainer(for: Tag.self, Task.self, configurations: config)
 
-    // Create sample tags
-    let carpetTag = Tag(name: "Carpet", icon: "square.grid.2x2", color: "blue", category: .resource)
-    let setupTag = Tag(name: "Setup", icon: "wrench.and.screwdriver", color: "green", category: .phase)
-    let hallATag = Tag(name: "Hall A", icon: "building.fill", color: "cyan", category: .location)
+        // Create sample tags
+        let carpetTag = Tag(name: "Carpet", icon: "square.grid.2x2", color: "blue", category: .resource)
+        let setupTag = Tag(name: "Setup", icon: "wrench.and.screwdriver", color: "green", category: .phase)
+        let hallATag = Tag(name: "Hall A", icon: "building.fill", color: "cyan", category: .location)
 
-    container.mainContext.insert(carpetTag)
-    container.mainContext.insert(setupTag)
-    container.mainContext.insert(hallATag)
+        container.mainContext.insert(carpetTag)
+        container.mainContext.insert(setupTag)
+        container.mainContext.insert(hallATag)
+
+        return container
+    }()
 
     NavigationStack {
         TagManagementView()
