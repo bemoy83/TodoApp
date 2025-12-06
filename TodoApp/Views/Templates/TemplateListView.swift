@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 /// Management view for task templates
 struct TemplateListView: View {
@@ -9,6 +10,15 @@ struct TemplateListView: View {
 
     @State private var showingAddTemplate = false
     @State private var editingTemplate: TaskTemplate?
+
+    // Import/Export states
+    @State private var showingExportPicker = false
+    @State private var showingImportPicker = false
+    @State private var showingConflictResolution = false
+    @State private var importPreview: TemplateImporter.ImportPreview?
+    @State private var importResult: TemplateImporter.ImportResult?
+    @State private var showingResultAlert = false
+    @State private var exportError: Error?
 
     var body: some View {
         NavigationStack {
@@ -28,12 +38,72 @@ struct TemplateListView: View {
                         Image(systemName: "plus")
                     }
                 }
+
+                ToolbarItem(placement: .secondaryAction) {
+                    Menu {
+                        Button {
+                            showingExportPicker = true
+                        } label: {
+                            Label("Export Templates", systemImage: "square.and.arrow.up")
+                        }
+                        .disabled(templates.isEmpty)
+
+                        Button {
+                            showingImportPicker = true
+                        } label: {
+                            Label("Import Templates", systemImage: "square.and.arrow.down")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
             }
             .sheet(isPresented: $showingAddTemplate) {
                 TemplateFormView(template: nil)
             }
             .sheet(item: $editingTemplate) { template in
                 TemplateFormView(template: template)
+            }
+            .sheet(isPresented: $showingConflictResolution) {
+                if let preview = importPreview {
+                    TemplateImportConflictView(preview: preview) { result in
+                        importResult = result
+                        showingResultAlert = true
+                    }
+                }
+            }
+            .fileExporter(
+                isPresented: $showingExportPicker,
+                document: TemplateExportDocument(templates: templates),
+                contentType: .json,
+                defaultFilename: TemplateExporter.suggestedFilename()
+            ) { result in
+                handleExportResult(result)
+            }
+            .fileImporter(
+                isPresented: $showingImportPicker,
+                allowedContentTypes: [.json, UTType(filenameExtension: "todotemplate") ?? .json],
+                allowsMultipleSelection: false
+            ) { result in
+                handleImportResult(result)
+            }
+            .alert("Import Result", isPresented: $showingResultAlert) {
+                Button("OK") {
+                    importResult = nil
+                }
+            } message: {
+                if let result = importResult {
+                    Text(result.message)
+                }
+            }
+            .alert("Export Error", isPresented: .constant(exportError != nil)) {
+                Button("OK") {
+                    exportError = nil
+                }
+            } message: {
+                if let error = exportError {
+                    Text(error.localizedDescription)
+                }
             }
         }
     }
@@ -96,6 +166,14 @@ struct TemplateListView: View {
                         .font(.subheadline)
                 }
                 .buttonStyle(.bordered)
+
+                Button {
+                    showingImportPicker = true
+                } label: {
+                    Text("Import Templates")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.bordered)
             }
             .padding(.top, DesignSystem.Spacing.md)
         }
@@ -127,6 +205,65 @@ struct TemplateListView: View {
     private func insertDefaultTemplates() {
         TemplateManager.insertDefaultTemplates(into: modelContext)
         HapticManager.success()
+    }
+
+    // MARK: - Import/Export Handlers
+
+    private func handleExportResult(_ result: Result<URL, Error>) {
+        switch result {
+        case .success:
+            HapticManager.success()
+        case .failure(let error):
+            exportError = error
+        }
+    }
+
+    private func handleImportResult(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+
+            do {
+                // Preview import and check for conflicts
+                let preview = try TemplateImporter.previewImport(from: url, context: modelContext)
+
+                if preview.hasConflicts {
+                    // Show conflict resolution UI
+                    importPreview = preview
+                    showingConflictResolution = true
+                } else {
+                    // No conflicts - import directly
+                    let result = TemplateImporter.executeImport(
+                        preview: preview,
+                        conflicts: [],
+                        context: modelContext
+                    )
+                    importResult = result
+                    showingResultAlert = true
+
+                    if result.success {
+                        HapticManager.success()
+                    }
+                }
+            } catch {
+                importResult = TemplateImporter.ImportResult(
+                    imported: 0,
+                    skipped: 0,
+                    replaced: 0,
+                    errors: [error.localizedDescription]
+                )
+                showingResultAlert = true
+            }
+
+        case .failure(let error):
+            importResult = TemplateImporter.ImportResult(
+                imported: 0,
+                skipped: 0,
+                replaced: 0,
+                errors: [error.localizedDescription]
+            )
+            showingResultAlert = true
+        }
     }
 }
 
