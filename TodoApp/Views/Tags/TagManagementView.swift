@@ -163,7 +163,7 @@ struct TagManagementView: View {
 
 // MARK: - Tag Row
 
-struct TagRow: View {
+private struct TagRow: View {
     let tag: Tag
     let taskCount: Int
 
