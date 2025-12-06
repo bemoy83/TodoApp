@@ -293,11 +293,11 @@ struct TaskListView: View {
         } label: {
             ZStack(alignment: .topTrailing) {
                 Image(systemName: "tag.fill")
-                    .foregroundStyle(selectedTagIds.isEmpty ? .primary : .blue)
+                    .foregroundStyle(selectedTagIds.isEmpty ? Color.primary : Color.blue)
 
                 if !selectedTagIds.isEmpty {
                     Circle()
-                        .fill(.blue)
+                        .fill(Color.blue)
                         .frame(width: 8, height: 8)
                         .offset(x: 2, y: -2)
                 }
