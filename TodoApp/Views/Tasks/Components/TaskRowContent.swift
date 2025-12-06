@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - Title Section
 struct TaskRowTitleSection: View {
@@ -30,10 +31,27 @@ struct TaskRowMetadataSection: View {
     let shouldShowDueDate: Bool
     let effectiveDueDate: Date?
     let isDueDateInherited: Bool
-    
+
+    @Query(sort: \Tag.order) private var allTags: [Tag]
+
+    // Get task tags using @Query pattern for fresh data
+    private var taskTags: [Tag] {
+        guard let taskTagIds = task.tags?.map({ $0.id }) else { return [] }
+        return allTags.filter { taskTagIds.contains($0.id) }
+    }
+
+    // Show first 3 tags max (mobile-friendly)
+    private var displayTags: [Tag] {
+        Array(taskTags.prefix(3))
+    }
+
+    private var hasMoreTags: Bool {
+        taskTags.count > 3
+    }
+
     // Check if there's any content to show
     var hasContent: Bool {
-        (shouldShowDueDate && effectiveDueDate != nil) || task.effectiveEstimate != nil || task.hasDateConflicts
+        (shouldShowDueDate && effectiveDueDate != nil) || task.effectiveEstimate != nil || task.hasDateConflicts || !taskTags.isEmpty
     }
 
     var body: some View {
@@ -64,6 +82,24 @@ struct TaskRowMetadataSection: View {
                     // Date conflict badge (Improvement #1)
                     if task.hasDateConflicts {
                         DateConflictBadge()
+                    }
+
+                    // Tags (show first 3)
+                    ForEach(displayTags) { tag in
+                        TagBadge(tag: tag)
+                    }
+
+                    // Overflow indicator
+                    if hasMoreTags {
+                        HStack(spacing: 4) {
+                            Text("+\(taskTags.count - 3)")
+                                .font(.caption)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.15))
+                        .foregroundStyle(.secondary)
+                        .clipShape(Capsule())
                     }
                 }
             }

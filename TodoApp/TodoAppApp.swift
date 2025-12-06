@@ -9,11 +9,14 @@ struct TodoApp: App {
         do {
             // Create model container
             modelContainer = try ModelContainer(
-                for: Task.self, Project.self, TimeEntry.self, TaskTemplate.self, CustomUnit.self
+                for: Task.self, Project.self, TimeEntry.self, TaskTemplate.self, CustomUnit.self, Tag.self
             )
 
             // Seed system units on first launch
             DataSeeder.seedSystemUnitsIfNeeded(context: modelContainer.mainContext)
+
+            // Seed system tags on first launch
+            DataSeeder.seedSystemTagsIfNeeded(context: modelContainer.mainContext)
 
             // Optionally migrate existing templates (safe to run multiple times)
             DataSeeder.migrateTemplatesToCustomUnits(context: modelContainer.mainContext)

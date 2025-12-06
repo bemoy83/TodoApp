@@ -35,6 +35,37 @@ struct DataSeeder {
         }
     }
 
+    /// Seeds system tags if they don't exist
+    /// Should be called once on app launch
+    static func seedSystemTagsIfNeeded(context: ModelContext) {
+        // Check if system tags already exist
+        let descriptor = FetchDescriptor<Tag>(
+            predicate: #Predicate { $0.isSystem == true }
+        )
+
+        do {
+            let existingTags = try context.fetch(descriptor)
+
+            // If system tags already exist, skip seeding
+            guard existingTags.isEmpty else {
+                print("✅ System tags already seeded (\(existingTags.count) tags)")
+                return
+            }
+
+            // Seed system tags
+            print("🌱 Seeding system tags...")
+            for systemTag in Tag.systemTags {
+                context.insert(systemTag)
+            }
+
+            try context.save()
+            print("✅ Successfully seeded \(Tag.systemTags.count) system tags")
+
+        } catch {
+            print("❌ Error seeding system tags: \(error)")
+        }
+    }
+
     /// Migrates existing templates from UnitType enum to CustomUnit
     /// Optional: Can be run manually or automatically
     static func migrateTemplatesToCustomUnits(context: ModelContext) {
