@@ -9,6 +9,7 @@ struct TemplateMoreActionsSheet: View {
     let onExport: () -> Void
     let onImport: () -> Void
     let onManageUnits: () -> Void
+    let onViewStatistics: () -> Void
     let onRestoreDefaults: () -> Void
     let onDeleteUnused: () -> Void
     let onClearAll: () -> Void
@@ -46,6 +47,16 @@ struct TemplateMoreActionsSheet: View {
                         Label("Manage Custom Units", systemImage: "ruler")
                     }
                     .accessibilityLabel("Manage Custom Units")
+
+                    // View Template Statistics
+                    Button {
+                        dismiss()
+                        onViewStatistics()
+                    } label: {
+                        Label("View Template Statistics", systemImage: "chart.bar.fill")
+                    }
+                    .disabled(!hasTemplates)
+                    .accessibilityLabel("View Template Statistics")
                 }
 
                 Section("Quick Actions") {
@@ -117,6 +128,7 @@ struct TemplateMoreActionsSheet: View {
         onExport: { print("Export") },
         onImport: { print("Import") },
         onManageUnits: { print("Manage Units") },
+        onViewStatistics: { print("View Statistics") },
         onRestoreDefaults: { print("Restore Defaults") },
         onDeleteUnused: { print("Delete Unused") },
         onClearAll: { print("Clear All") }

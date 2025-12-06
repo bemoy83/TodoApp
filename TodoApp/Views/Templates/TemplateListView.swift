@@ -17,6 +17,7 @@ struct TemplateListView: View {
     @State private var showingImportPicker = false
     @State private var showingConflictResolution = false
     @State private var showingUnitsManagement = false
+    @State private var showingStatistics = false
     @State private var importPreview: TemplateImporter.ImportPreview?
     @State private var importResult: TemplateImporter.ImportResult?
     @State private var showingResultAlert = false
@@ -75,6 +76,9 @@ struct TemplateListView: View {
                     onManageUnits: {
                         showingUnitsManagement = true
                     },
+                    onViewStatistics: {
+                        showingStatistics = true
+                    },
                     onRestoreDefaults: {
                         restoreDefaultTemplates()
                     },
@@ -90,6 +94,9 @@ struct TemplateListView: View {
                 NavigationStack {
                     UnitsListView(showDismissButton: true)
                 }
+            }
+            .sheet(isPresented: $showingStatistics) {
+                TemplateStatisticsView()
             }
             .sheet(isPresented: $showingConflictResolution) {
                 if let preview = importPreview {
