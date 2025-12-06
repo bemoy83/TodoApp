@@ -5,10 +5,13 @@ struct TemplateMoreActionsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let hasTemplates: Bool
+    let statistics: TemplateManager.TemplateStatistics
     let onExport: () -> Void
     let onImport: () -> Void
     let onManageUnits: () -> Void
     let onRestoreDefaults: () -> Void
+    let onDeleteUnused: () -> Void
+    let onClearAll: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -55,6 +58,42 @@ struct TemplateMoreActionsSheet: View {
                     }
                     .accessibilityLabel("Restore Default Templates")
                 }
+
+                // Destructive Actions
+                if hasTemplates {
+                    Section {
+                        // Delete Unused Templates
+                        Button(role: .destructive) {
+                            dismiss()
+                            onDeleteUnused()
+                        } label: {
+                            HStack {
+                                Label("Delete Unused Templates", systemImage: "trash")
+                                Spacer()
+                                if statistics.hasUnusedTemplates {
+                                    Text("\(statistics.unusedTemplates)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.secondary.opacity(0.1))
+                                        .cornerRadius(8)
+                                }
+                            }
+                        }
+                        .disabled(!statistics.hasUnusedTemplates)
+                        .accessibilityLabel("Delete Unused Templates")
+
+                        // Clear All Templates
+                        Button(role: .destructive) {
+                            dismiss()
+                            onClearAll()
+                        } label: {
+                            Label("Clear All Templates", systemImage: "trash.fill")
+                        }
+                        .accessibilityLabel("Clear All Templates")
+                    }
+                }
             }
             .listStyle(.insetGrouped)
             .navigationTitle("More Actions")
@@ -66,11 +105,20 @@ struct TemplateMoreActionsSheet: View {
 // MARK: - Preview
 
 #Preview {
-    TemplateMoreActionsSheet(
+    let stats = TemplateManager.TemplateStatistics(
+        totalTemplates: 10,
+        usedTemplates: 7,
+        unusedTemplates: 3
+    )
+
+    return TemplateMoreActionsSheet(
         hasTemplates: true,
+        statistics: stats,
         onExport: { print("Export") },
         onImport: { print("Import") },
         onManageUnits: { print("Manage Units") },
-        onRestoreDefaults: { print("Restore Defaults") }
+        onRestoreDefaults: { print("Restore Defaults") },
+        onDeleteUnused: { print("Delete Unused") },
+        onClearAll: { print("Clear All") }
     )
 }
