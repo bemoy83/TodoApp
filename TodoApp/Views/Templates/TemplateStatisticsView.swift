@@ -90,97 +90,110 @@ private struct OverviewCard: View {
     let statistics: TemplateManager.TemplateStatistics
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 0) {
             // Total Templates
-            HStack {
-                Image(systemName: "doc.text.fill")
-                    .foregroundStyle(.blue)
-                    .font(.title2)
-                    .frame(width: 40)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Total Templates")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text("\(statistics.totalTemplates)")
-                        .font(.title)
-                        .fontWeight(.semibold)
-                }
-
-                Spacer()
-            }
+            StatisticRow(
+                icon: "doc.text.fill",
+                iconColor: .blue,
+                label: "Total Templates",
+                value: "\(statistics.totalTemplates)"
+            )
 
             Divider()
+                .padding(.leading, 56)
 
-            // Used vs Unused
-            HStack(spacing: 24) {
-                // Used
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                            .font(.caption)
-                        Text("In Use")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text("\(statistics.usedTemplates)")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                }
+            // Used Templates
+            StatisticRow(
+                icon: "checkmark.circle.fill",
+                iconColor: .green,
+                label: "In Use",
+                value: "\(statistics.usedTemplates)"
+            )
 
-                // Unused
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "circle")
-                            .foregroundStyle(.orange)
-                            .font(.caption)
-                        Text("Unused")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text("\(statistics.unusedTemplates)")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                }
+            Divider()
+                .padding(.leading, 56)
 
-                Spacer()
-            }
+            // Unused Templates
+            StatisticRow(
+                icon: "circle",
+                iconColor: .orange,
+                label: "Unused",
+                value: "\(statistics.unusedTemplates)"
+            )
 
             // Usage Percentage
             if statistics.totalTemplates > 0 {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Usage Rate")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(Int((Double(statistics.usedTemplates) / Double(statistics.totalTemplates)) * 100))%")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                Divider()
+                    .padding(.leading, 56)
 
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.2))
-                                .frame(height: 8)
-                                .cornerRadius(4)
+                HStack(spacing: 16) {
+                    Image(systemName: "chart.bar.fill")
+                        .foregroundStyle(.purple)
+                        .font(.title2)
+                        .frame(width: 40)
 
-                            Rectangle()
-                                .fill(Color.green)
-                                .frame(
-                                    width: geometry.size.width * (Double(statistics.usedTemplates) / Double(statistics.totalTemplates)),
-                                    height: 8
-                                )
-                                .cornerRadius(4)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Usage Rate")
+                                .font(.body)
+                            Spacer()
+                            Text("\(Int((Double(statistics.usedTemplates) / Double(statistics.totalTemplates)) * 100))%")
+                                .font(.title3)
+                                .fontWeight(.semibold)
                         }
+
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(height: 8)
+                                    .cornerRadius(4)
+
+                                Rectangle()
+                                    .fill(Color.purple)
+                                    .frame(
+                                        width: geometry.size.width * (Double(statistics.usedTemplates) / Double(statistics.totalTemplates)),
+                                        height: 8
+                                    )
+                                    .cornerRadius(4)
+                            }
+                        }
+                        .frame(height: 8)
                     }
-                    .frame(height: 8)
                 }
+                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
             }
         }
-        .padding(.vertical, 8)
+    }
+}
+
+// MARK: - Statistic Row
+
+private struct StatisticRow: View {
+    let icon: String
+    let iconColor: Color
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .foregroundStyle(iconColor)
+                .font(.title2)
+                .frame(width: 40)
+
+            Text(label)
+                .font(.body)
+
+            Spacer()
+
+            Text(value)
+                .font(.title3)
+                .fontWeight(.semibold)
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
     }
 }
 
