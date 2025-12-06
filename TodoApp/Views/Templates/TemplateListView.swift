@@ -223,6 +223,23 @@ struct TemplateListView: View {
         case .success(let urls):
             guard let url = urls.first else { return }
 
+            // Request access to security-scoped resource (required for file picker on iOS)
+            guard url.startAccessingSecurityScopedResource() else {
+                importResult = TemplateImporter.ImportResult(
+                    imported: 0,
+                    skipped: 0,
+                    replaced: 0,
+                    errors: ["Failed to access file. Please try again."]
+                )
+                showingResultAlert = true
+                return
+            }
+
+            // Ensure we stop accessing when done
+            defer {
+                url.stopAccessingSecurityScopedResource()
+            }
+
             do {
                 // Preview import and check for conflicts
                 let preview = try TemplateImporter.previewImport(from: url, context: modelContext)
