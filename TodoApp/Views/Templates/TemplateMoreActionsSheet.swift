@@ -7,6 +7,7 @@ struct TemplateMoreActionsSheet: View {
     let hasTemplates: Bool
     let onExport: () -> Void
     let onImport: () -> Void
+    let onManageUnits: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -31,6 +32,17 @@ struct TemplateMoreActionsSheet: View {
                     }
                     .accessibilityLabel("Import Templates")
                 }
+
+                Section("Management") {
+                    // Manage Custom Units
+                    Button {
+                        dismiss()
+                        onManageUnits()
+                    } label: {
+                        Label("Manage Custom Units", systemImage: "ruler")
+                    }
+                    .accessibilityLabel("Manage Custom Units")
+                }
             }
             .listStyle(.insetGrouped)
             .navigationTitle("More Actions")
@@ -45,6 +57,7 @@ struct TemplateMoreActionsSheet: View {
     TemplateMoreActionsSheet(
         hasTemplates: true,
         onExport: { print("Export") },
-        onImport: { print("Import") }
+        onImport: { print("Import") },
+        onManageUnits: { print("Manage Units") }
     )
 }
