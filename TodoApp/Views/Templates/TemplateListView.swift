@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 /// Management view for task templates
 struct TemplateListView: View {
@@ -9,6 +10,26 @@ struct TemplateListView: View {
 
     @State private var showingAddTemplate = false
     @State private var editingTemplate: TaskTemplate?
+
+    // Import/Export states
+    @State private var showingMoreActions = false
+    @State private var showingExportPicker = false
+    @State private var showingImportPicker = false
+    @State private var showingConflictResolution = false
+    @State private var showingUnitsManagement = false
+    @State private var showingStatistics = false
+    @State private var importPreview: TemplateImporter.ImportPreview?
+    @State private var importResult: TemplateImporter.ImportResult?
+    @State private var showingResultAlert = false
+    @State private var exportError: Error?
+    @State private var restoreResult: String?
+    @State private var showingRestoreAlert = false
+
+    // Destructive action states
+    @State private var showingDeleteUnusedAlert = false
+    @State private var showingClearAllAlert = false
+    @State private var deleteResult: String?
+    @State private var showingDeleteResultAlert = false
 
     var body: some View {
         NavigationStack {
@@ -21,7 +42,13 @@ struct TemplateListView: View {
             }
             .navigationTitle("Task Templates")
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItemGroup(placement: .primaryAction) {
+                    Button {
+                        showingMoreActions = true
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+
                     Button {
                         showingAddTemplate = true
                     } label: {
@@ -34,6 +61,118 @@ struct TemplateListView: View {
             }
             .sheet(item: $editingTemplate) { template in
                 TemplateFormView(template: template)
+            }
+            .sheet(isPresented: $showingMoreActions) {
+                let stats = TemplateManager.calculateStatistics(for: templates)
+                TemplateMoreActionsSheet(
+                    hasTemplates: !templates.isEmpty,
+                    statistics: stats,
+                    onExport: {
+                        showingExportPicker = true
+                    },
+                    onImport: {
+                        showingImportPicker = true
+                    },
+                    onManageUnits: {
+                        showingUnitsManagement = true
+                    },
+                    onViewStatistics: {
+                        showingStatistics = true
+                    },
+                    onRestoreDefaults: {
+                        restoreDefaultTemplates()
+                    },
+                    onDeleteUnused: {
+                        showingDeleteUnusedAlert = true
+                    },
+                    onClearAll: {
+                        showingClearAllAlert = true
+                    }
+                )
+            }
+            .sheet(isPresented: $showingUnitsManagement) {
+                NavigationStack {
+                    UnitsListView(showDismissButton: true)
+                }
+            }
+            .sheet(isPresented: $showingStatistics) {
+                TemplateStatisticsView()
+            }
+            .sheet(isPresented: $showingConflictResolution) {
+                if let preview = importPreview {
+                    TemplateImportConflictView(preview: preview) { result in
+                        importResult = result
+                        showingResultAlert = true
+                    }
+                }
+            }
+            .fileExporter(
+                isPresented: $showingExportPicker,
+                document: TemplateExportDocument(templates: templates),
+                contentType: .json,
+                defaultFilename: TemplateExporter.suggestedFilename()
+            ) { result in
+                handleExportResult(result)
+            }
+            .fileImporter(
+                isPresented: $showingImportPicker,
+                allowedContentTypes: [.json, UTType(filenameExtension: "todotemplate") ?? .json],
+                allowsMultipleSelection: false
+            ) { result in
+                handleImportResult(result)
+            }
+            .alert("Import Result", isPresented: $showingResultAlert) {
+                Button("OK") {
+                    importResult = nil
+                }
+            } message: {
+                if let result = importResult {
+                    Text(result.message)
+                }
+            }
+            .alert("Export Error", isPresented: .constant(exportError != nil)) {
+                Button("OK") {
+                    exportError = nil
+                }
+            } message: {
+                if let error = exportError {
+                    Text(error.localizedDescription)
+                }
+            }
+            .alert("Restore Complete", isPresented: $showingRestoreAlert) {
+                Button("OK") {
+                    restoreResult = nil
+                }
+            } message: {
+                if let result = restoreResult {
+                    Text(result)
+                }
+            }
+            .alert("Delete Unused Templates?", isPresented: $showingDeleteUnusedAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    deleteUnusedTemplates()
+                }
+            } message: {
+                let stats = TemplateManager.calculateStatistics(for: templates)
+                Text("This will permanently delete \(stats.unusedTemplates) template\(stats.unusedTemplates == 1 ? "" : "s") that have no associated tasks. This action cannot be undone.")
+            }
+            .alert("Clear All Templates?", isPresented: $showingClearAllAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete All", role: .destructive) {
+                    clearAllTemplates()
+                }
+            } message: {
+                Text("This will permanently delete all \(templates.count) template\(templates.count == 1 ? "" : "s"). This action cannot be undone.")
+            }
+            .alert("Delete Complete", isPresented: $showingDeleteResultAlert) {
+                Button("OK") {
+                    deleteResult = nil
+                }
+            } message: {
+                if let result = deleteResult {
+                    Text(result)
+                }
             }
         }
     }
@@ -96,6 +235,14 @@ struct TemplateListView: View {
                         .font(.subheadline)
                 }
                 .buttonStyle(.bordered)
+
+                Button {
+                    showingImportPicker = true
+                } label: {
+                    Text("Import Templates")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.bordered)
             }
             .padding(.top, DesignSystem.Spacing.md)
         }
@@ -127,6 +274,121 @@ struct TemplateListView: View {
     private func insertDefaultTemplates() {
         TemplateManager.insertDefaultTemplates(into: modelContext)
         HapticManager.success()
+    }
+
+    private func restoreDefaultTemplates() {
+        let addedCount = TemplateManager.restoreDefaultTemplates(into: modelContext)
+
+        if addedCount > 0 {
+            restoreResult = "Added \(addedCount) default template\(addedCount == 1 ? "" : "s")"
+            HapticManager.success()
+        } else {
+            restoreResult = "All default templates are already present"
+            HapticManager.light()
+        }
+
+        showingRestoreAlert = true
+    }
+
+    private func deleteUnusedTemplates() {
+        let deletedCount = TemplateManager.deleteUnusedTemplates(from: templates, context: modelContext)
+
+        if deletedCount > 0 {
+            deleteResult = "Deleted \(deletedCount) unused template\(deletedCount == 1 ? "" : "s")"
+            HapticManager.success()
+        } else {
+            deleteResult = "No unused templates found"
+            HapticManager.light()
+        }
+
+        showingDeleteResultAlert = true
+    }
+
+    private func clearAllTemplates() {
+        let deletedCount = TemplateManager.deleteAllTemplates(from: templates, context: modelContext)
+
+        if deletedCount > 0 {
+            deleteResult = "Deleted all \(deletedCount) template\(deletedCount == 1 ? "" : "s")"
+            HapticManager.warning()
+        }
+
+        showingDeleteResultAlert = true
+    }
+
+    // MARK: - Import/Export Handlers
+
+    private func handleExportResult(_ result: Result<URL, Error>) {
+        switch result {
+        case .success:
+            HapticManager.success()
+        case .failure(let error):
+            exportError = error
+        }
+    }
+
+    private func handleImportResult(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+
+            // Request access to security-scoped resource (required for file picker on iOS)
+            guard url.startAccessingSecurityScopedResource() else {
+                importResult = TemplateImporter.ImportResult(
+                    imported: 0,
+                    skipped: 0,
+                    replaced: 0,
+                    errors: ["Failed to access file. Please try again."]
+                )
+                showingResultAlert = true
+                return
+            }
+
+            // Ensure we stop accessing when done
+            defer {
+                url.stopAccessingSecurityScopedResource()
+            }
+
+            do {
+                // Preview import and check for conflicts
+                let preview = try TemplateImporter.previewImport(from: url, context: modelContext)
+
+                if preview.hasConflicts {
+                    // Show conflict resolution UI
+                    importPreview = preview
+                    showingConflictResolution = true
+                } else {
+                    // No conflicts - import directly
+                    let result = TemplateImporter.executeImport(
+                        preview: preview,
+                        conflicts: [],
+                        context: modelContext
+                    )
+                    importResult = result
+                    showingResultAlert = true
+
+                    if result.success {
+                        HapticManager.success()
+                    }
+                }
+            } catch {
+                importResult = TemplateImporter.ImportResult(
+                    imported: 0,
+                    skipped: 0,
+                    replaced: 0,
+                    errors: [error.localizedDescription]
+                )
+                showingResultAlert = true
+            }
+
+        case .failure(let error):
+            importResult = TemplateImporter.ImportResult(
+                imported: 0,
+                skipped: 0,
+                replaced: 0,
+                errors: [error.localizedDescription]
+            )
+            showingResultAlert = true
+        }
     }
 }
 

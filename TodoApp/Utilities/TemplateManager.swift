@@ -177,6 +177,49 @@ struct TemplateManager {
 
         try? context.save()
     }
+
+    /// Restore missing default templates (smart restore)
+    /// Only inserts default templates that don't already exist
+    /// Returns the number of templates that were added
+    static func restoreDefaultTemplates(into context: ModelContext) -> Int {
+        // Fetch existing templates
+        let descriptor = FetchDescriptor<TaskTemplate>()
+        let existingTemplates = (try? context.fetch(descriptor)) ?? []
+
+        var addedCount = 0
+
+        // Check each default template
+        for defaultTemplate in TaskTemplate.defaultTemplates {
+            // Check if this template already exists (by name and unit)
+            let exists = existingTemplates.contains { existing in
+                existing.name == defaultTemplate.name &&
+                existing.defaultUnit == defaultTemplate.defaultUnit &&
+                existing.customUnit == nil // Default templates don't use custom units
+            }
+
+            // Only insert if it doesn't exist
+            if !exists {
+                // Get next order value
+                let maxOrder = existingTemplates.compactMap { $0.order }.max() ?? -1
+                let newTemplate = TaskTemplate(
+                    name: defaultTemplate.name,
+                    defaultUnit: defaultTemplate.defaultUnit,
+                    defaultProductivityRate: defaultTemplate.defaultProductivityRate,
+                    minQuantity: defaultTemplate.minQuantity,
+                    maxQuantity: defaultTemplate.maxQuantity,
+                    order: maxOrder + addedCount + 1
+                )
+                context.insert(newTemplate)
+                addedCount += 1
+            }
+        }
+
+        if addedCount > 0 {
+            try? context.save()
+        }
+
+        return addedCount
+    }
 }
 
 // MARK: - Template Analytics
@@ -215,5 +258,83 @@ extension TemplateManager {
             averageProductivity: avgProductivity,
             unitDisplayName: template.unitDisplayName
         )
+    }
+}
+
+// MARK: - Template Statistics
+
+extension TemplateManager {
+    /// Statistics about template usage
+    struct TemplateStatistics {
+        let totalTemplates: Int
+        let usedTemplates: Int
+        let unusedTemplates: Int
+
+        var hasUnusedTemplates: Bool {
+            unusedTemplates > 0
+        }
+
+        var unusedPercentage: Double {
+            guard totalTemplates > 0 else { return 0.0 }
+            return Double(unusedTemplates) / Double(totalTemplates) * 100.0
+        }
+    }
+
+    /// Calculate statistics about template usage
+    static func calculateStatistics(for templates: [TaskTemplate]) -> TemplateStatistics {
+        let total = templates.count
+        let unused = templates.filter { template in
+            guard let tasks = template.tasks else { return true }
+            return tasks.isEmpty
+        }.count
+        let used = total - unused
+
+        return TemplateStatistics(
+            totalTemplates: total,
+            usedTemplates: used,
+            unusedTemplates: unused
+        )
+    }
+
+    /// Get all templates that have no associated tasks
+    static func getUnusedTemplates(from templates: [TaskTemplate]) -> [TaskTemplate] {
+        return templates.filter { template in
+            guard let tasks = template.tasks else { return true }
+            return tasks.isEmpty
+        }
+    }
+
+    /// Delete unused templates from the model context
+    /// Returns the number of templates deleted
+    @discardableResult
+    static func deleteUnusedTemplates(from templates: [TaskTemplate], context: ModelContext) -> Int {
+        let unusedTemplates = getUnusedTemplates(from: templates)
+
+        for template in unusedTemplates {
+            context.delete(template)
+        }
+
+        if !unusedTemplates.isEmpty {
+            try? context.save()
+        }
+
+        return unusedTemplates.count
+    }
+
+    /// Delete all templates from the model context
+    /// Returns the number of templates deleted
+    @discardableResult
+    static func deleteAllTemplates(from templates: [TaskTemplate], context: ModelContext) -> Int {
+        let count = templates.count
+
+        for template in templates {
+            context.delete(template)
+        }
+
+        if count > 0 {
+            try? context.save()
+        }
+
+        return count
     }
 }

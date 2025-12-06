@@ -4,12 +4,15 @@ import SwiftData
 /// List view for managing custom units
 struct UnitsListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @Query(sort: \CustomUnit.order) private var units: [CustomUnit]
 
     @State private var showingAddUnit = false
     @State private var unitToEdit: CustomUnit?
     @State private var unitToDelete: CustomUnit?
     @State private var showingDeleteAlert = false
+
+    var showDismissButton: Bool = false
 
     var body: some View {
         List {
@@ -68,11 +71,17 @@ struct UnitsListView: View {
         }
         .navigationTitle("Units")
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .primaryAction) {
+                if showDismissButton {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+
                 Button {
                     showingAddUnit = true
                 } label: {
-                    Label("Add Unit", systemImage: "plus")
+                    Image(systemName: "plus")
                 }
             }
         }
