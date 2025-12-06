@@ -216,6 +216,11 @@ private struct TagRow: View {
         case "teal": return .teal
         case "brown": return .brown
         case "indigo": return .indigo
+        case "pink": return .pink
+        case "mint": return .mint
+        case "gray": return .gray
+        case "black": return .black
+        case "white": return .white
         default: return .gray
         }
     }

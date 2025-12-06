@@ -14,7 +14,7 @@ struct TagFormView: View {
     @State private var category: TagCategory
     @State private var showingIconPicker = false
 
-    // Color options for tags
+    // Color options for tags (15 colors)
     private let colorOptions: [(name: String, value: String)] = [
         ("Blue", "blue"),
         ("Purple", "purple"),
@@ -25,7 +25,12 @@ struct TagFormView: View {
         ("Cyan", "cyan"),
         ("Teal", "teal"),
         ("Brown", "brown"),
-        ("Indigo", "indigo")
+        ("Indigo", "indigo"),
+        ("Pink", "pink"),
+        ("Mint", "mint"),
+        ("Gray", "gray"),
+        ("Black", "black"),
+        ("White", "white")
     ]
 
     init(tag: Tag?) {
@@ -176,6 +181,11 @@ struct TagFormView: View {
         case "teal": return .teal
         case "brown": return .brown
         case "indigo": return .indigo
+        case "pink": return .pink
+        case "mint": return .mint
+        case "gray": return .gray
+        case "black": return .black
+        case "white": return .white
         default: return .gray
         }
     }
