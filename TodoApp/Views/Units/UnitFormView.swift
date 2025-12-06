@@ -150,6 +150,18 @@ struct IconPickerView: View {
 
         var id: String { rawValue }
 
+        var emoji: String {
+            switch self {
+            case .all: return "🔄"
+            case .tools: return "🔨"
+            case .materials: return "📦"
+            case .transport: return "🚚"
+            case .shapes: return "⬡"
+            case .measurement: return "📏"
+            case .misc: return "📂"
+            }
+        }
+
         var icons: [String] {
             switch self {
             case .all:
@@ -243,14 +255,23 @@ struct IconPickerView: View {
                 .cornerRadius(10)
                 .padding()
 
-                // Category picker
-                Picker("Category", selection: $selectedCategory) {
-                    ForEach(IconCategory.allCases) { category in
-                        Text(category.rawValue).tag(category)
+                // Category pills
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(IconCategory.allCases) { category in
+                            CategoryPill(
+                                category: category,
+                                isSelected: selectedCategory == category,
+                                onTap: {
+                                    selectedCategory = category
+                                    HapticManager.light()
+                                }
+                            )
+                        }
                     }
+                    .padding(.horizontal)
                 }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
+                .padding(.vertical, 8)
 
                 // Icon grid
                 ScrollView {
@@ -302,6 +323,35 @@ struct IconPickerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+    }
+}
+
+// MARK: - Category Pill
+
+private struct CategoryPill: View {
+    let category: IconPickerView.IconCategory
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 6) {
+                Text(category.emoji)
+                    .font(.body)
+
+                Text(category.rawValue)
+                    .font(.subheadline)
+                    .fontWeight(isSelected ? .semibold : .regular)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color.purple : Color(.systemGray6))
+            )
+            .foregroundStyle(isSelected ? .white : .primary)
+        }
+        .buttonStyle(.plain)
     }
 }
 
