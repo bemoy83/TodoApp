@@ -12,6 +12,7 @@ struct TemplateListView: View {
     @State private var editingTemplate: TaskTemplate?
 
     // Import/Export states
+    @State private var showingMoreActions = false
     @State private var showingExportPicker = false
     @State private var showingImportPicker = false
     @State private var showingConflictResolution = false
@@ -40,19 +41,8 @@ struct TemplateListView: View {
                 }
 
                 ToolbarItem(placement: .secondaryAction) {
-                    Menu {
-                        Button {
-                            showingExportPicker = true
-                        } label: {
-                            Label("Export Templates", systemImage: "square.and.arrow.up")
-                        }
-                        .disabled(templates.isEmpty)
-
-                        Button {
-                            showingImportPicker = true
-                        } label: {
-                            Label("Import Templates", systemImage: "square.and.arrow.down")
-                        }
+                    Button {
+                        showingMoreActions = true
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
@@ -63,6 +53,17 @@ struct TemplateListView: View {
             }
             .sheet(item: $editingTemplate) { template in
                 TemplateFormView(template: template)
+            }
+            .sheet(isPresented: $showingMoreActions) {
+                TemplateMoreActionsSheet(
+                    hasTemplates: !templates.isEmpty,
+                    onExport: {
+                        showingExportPicker = true
+                    },
+                    onImport: {
+                        showingImportPicker = true
+                    }
+                )
             }
             .sheet(isPresented: $showingConflictResolution) {
                 if let preview = importPreview {
