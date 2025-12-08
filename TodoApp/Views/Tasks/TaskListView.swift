@@ -157,10 +157,7 @@ struct TaskListView: View {
             }
             .sheet(isPresented: $showingAddTask) { AddTaskView() }
             .sheet(isPresented: $showingTagFilter) {
-                TagFilterSheet(
-                    selectedTagIds: $selectedTagIds,
-                    allTags: allTags
-                )
+                TagPickerView(selectedTagIds: $selectedTagIds)
             }
             .navigationDestination(item: $selectedTask) { task in
                 TaskDetailView(task: task)
