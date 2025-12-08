@@ -12,6 +12,7 @@ struct TagPickerView: View {
     @State private var selectedTagIds: Set<UUID>
     @State private var searchText = ""
     @State private var showingNewTagForm = false
+    @State private var selectedCategory: TagCategory?
 
     init(task: Task) {
         self.task = task
@@ -20,12 +21,19 @@ struct TagPickerView: View {
     }
 
     private var filteredTags: [Tag] {
-        if searchText.isEmpty {
-            return allTags
+        var tags = allTags
+
+        // Filter by category if selected
+        if let category = selectedCategory {
+            tags = tags.filter { $0.category == category }
         }
-        return allTags.filter { tag in
-            tag.name.localizedCaseInsensitiveContains(searchText)
+
+        // Filter by search text
+        if !searchText.isEmpty {
+            tags = tags.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
         }
+
+        return tags
     }
 
     // Group tags by category for better organization
@@ -62,6 +70,35 @@ struct TagPickerView: View {
                 .background(Color(.systemGray6))
                 .cornerRadius(10)
                 .padding()
+
+                // Category filter pills
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        // "All" pill
+                        CategoryPill(
+                            category: nil,
+                            isSelected: selectedCategory == nil,
+                            onTap: {
+                                selectedCategory = nil
+                                HapticManager.light()
+                            }
+                        )
+
+                        // Category pills
+                        ForEach(TagCategory.allCases, id: \.self) { category in
+                            CategoryPill(
+                                category: category,
+                                isSelected: selectedCategory == category,
+                                onTap: {
+                                    selectedCategory = category
+                                    HapticManager.light()
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .padding(.vertical, 8)
 
                 // Tag list
                 if filteredTags.isEmpty {
@@ -224,8 +261,42 @@ private struct TagRow: View {
         case "teal": return .teal
         case "brown": return .brown
         case "indigo": return .indigo
+        case "pink": return .pink
+        case "mint": return .mint
+        case "gray": return .gray
+        case "black": return .black
+        case "white": return .white
         default: return .gray
         }
+    }
+}
+
+// MARK: - Category Pill
+
+private struct CategoryPill: View {
+    let category: TagCategory?
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 6) {
+                Image(systemName: category?.icon ?? "circle.grid.3x3")
+                    .font(.caption)
+
+                Text(category?.displayName ?? "All")
+                    .font(.subheadline)
+                    .fontWeight(isSelected ? .semibold : .regular)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color.blue : Color(.systemGray6))
+            )
+            .foregroundStyle(isSelected ? .white : .primary)
+        }
+        .buttonStyle(.plain)
     }
 }
 
