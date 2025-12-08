@@ -122,6 +122,7 @@ struct TagFormView: View {
                         }
                         .padding(.vertical, 8)
                     }
+                    .frame(height: 56)
                 } header: {
                     Text("Color")
                 }
