@@ -16,6 +16,7 @@ struct TaskComposerForm: View {
     @Binding var hasEndDate: Bool
     @Binding var endDate: Date
     @Binding var priority: Int
+    @Binding var selectedTagIds: Set<UUID>
 
     // Grouped estimation state (replaces 13 individual bindings)
     @Binding var estimation: TaskEstimator.EstimationState
@@ -33,8 +34,10 @@ struct TaskComposerForm: View {
     // Query projects and templates to pass to child views
     @Query(sort: \Project.title) private var projects: [Project]
     @Query(sort: \TaskTemplate.order) private var templates: [TaskTemplate]
+    @Query(sort: \Tag.order) private var allTags: [Tag]
 
     @State private var showingDateValidationAlert = false
+    @State private var showingTagPicker = false
     @State private var showingEstimateValidationAlert = false
     @State private var estimateValidationMessage = ""
 
@@ -42,6 +45,10 @@ struct TaskComposerForm: View {
 
     private var inheritedProject: Project? {
         parentTask?.project
+    }
+
+    private var selectedTags: [Tag] {
+        allTags.filter { selectedTagIds.contains($0.id) }
     }
 
     /// Schedule context consolidating 6 date-related parameters
@@ -104,6 +111,12 @@ struct TaskComposerForm: View {
                 dueDateSection
                 prioritySection
                 projectSection
+
+                // Only show tags section in creation mode (not editing)
+                if editingTask == nil {
+                    tagsSection
+                }
+
                 personnelSection
                 estimateSection
                     .id("estimateSection")
@@ -138,6 +151,9 @@ struct TaskComposerForm: View {
                 if newValue && !oldValue {
                     proxy.scrollTo("estimateSection", anchor: .top)
                 }
+            }
+            .sheet(isPresented: $showingTagPicker) {
+                TagPickerView(selectedTagIds: $selectedTagIds)
             }
         }
     }
@@ -234,6 +250,50 @@ struct TaskComposerForm: View {
                 }
             }
             .pickerStyle(.menu)
+        }
+    }
+
+    private var tagsSection: some View {
+        Section("Tags") {
+            if selectedTags.isEmpty {
+                Button {
+                    showingTagPicker = true
+                } label: {
+                    HStack {
+                        Image(systemName: "tag")
+                            .foregroundStyle(.blue)
+                        Text("Add Tags")
+                            .foregroundStyle(.blue)
+                    }
+                }
+            } else {
+                // Show selected tags
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(selectedTags) { tag in
+                            TagChip(
+                                tag: tag,
+                                onRemove: {
+                                    selectedTagIds.remove(tag.id)
+                                    HapticManager.light()
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Add more button
+                Button {
+                    showingTagPicker = true
+                } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.blue)
+                        Text("Manage Tags")
+                            .foregroundStyle(.blue)
+                    }
+                }
+            }
         }
     }
 
@@ -338,6 +398,57 @@ struct TaskComposerForm: View {
         if roundedMinutes >= 60 {
             estimation.estimateHours += 1
             estimation.estimateMinutes = 0
+        }
+    }
+}
+
+// MARK: - Tag Chip
+
+private struct TagChip: View {
+    let tag: Tag
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: tag.icon)
+                .font(.caption2)
+            Text(tag.name)
+                .font(.caption)
+
+            Button {
+                onRemove()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(tagColor.opacity(0.15))
+        .foregroundStyle(tagColor)
+        .clipShape(Capsule())
+    }
+
+    private var tagColor: Color {
+        switch tag.color {
+        case "blue": return .blue
+        case "purple": return .purple
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "green": return .green
+        case "red": return .red
+        case "cyan": return .cyan
+        case "teal": return .teal
+        case "brown": return .brown
+        case "indigo": return .indigo
+        case "pink": return .pink
+        case "mint": return .mint
+        case "gray": return .gray
+        case "black": return .black
+        case "white": return .white
+        default: return .gray
         }
     }
 }

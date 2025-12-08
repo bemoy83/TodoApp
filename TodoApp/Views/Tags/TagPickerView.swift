@@ -8,16 +8,25 @@ struct TagPickerView: View {
 
     @Query(sort: \Tag.order) private var allTags: [Tag]
 
-    let task: Task
+    let task: Task?
+    let externalBinding: Binding<Set<UUID>>?
     @State private var selectedTagIds: Set<UUID>
     @State private var searchText = ""
     @State private var showingNewTagForm = false
     @State private var selectedCategory: TagCategory?
 
+    // Edit mode: bound to existing task
     init(task: Task) {
         self.task = task
-        // Initialize selected tags from task
+        self.externalBinding = nil
         _selectedTagIds = State(initialValue: Set(task.tags?.map { $0.id } ?? []))
+    }
+
+    // Creation mode: bound to Set<UUID>
+    init(selectedTagIds: Binding<Set<UUID>>) {
+        self.task = nil
+        self.externalBinding = selectedTagIds
+        _selectedTagIds = State(initialValue: selectedTagIds.wrappedValue)
     }
 
     private var filteredTags: [Tag] {
@@ -202,11 +211,16 @@ struct TagPickerView: View {
     }
 
     private func saveTags() {
-        // Update task tags
-        let selectedTags = allTags.filter { selectedTagIds.contains($0.id) }
-        task.tags = selectedTags
+        if let task = task {
+            // Edit mode: Update task tags
+            let selectedTags = allTags.filter { selectedTagIds.contains($0.id) }
+            task.tags = selectedTags
+            try? modelContext.save()
+        } else if let binding = externalBinding {
+            // Creation mode: Update binding
+            binding.wrappedValue = selectedTagIds
+        }
 
-        try? modelContext.save()
         HapticManager.success()
         dismiss()
     }

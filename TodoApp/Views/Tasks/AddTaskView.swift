@@ -24,6 +24,7 @@ struct AddTaskView: View {
     @State private var hasEndDate: Bool = false
     @State private var endDate: Date = .now
     @State private var priority: Int = 2  // Medium
+    @State private var selectedTagIds: Set<UUID> = []
 
     // Grouped estimation state (replaces 13 individual state properties)
     @State private var estimation = TaskEstimator.EstimationState()
@@ -32,6 +33,7 @@ struct AddTaskView: View {
     @Query(filter: #Predicate<Task> { task in
         !task.isArchived
     }) private var tasks: [Task]
+    @Query(sort: \Tag.order) private var allTags: [Tag]
     private var nextOrder: Int {
         // top-level order only (subtasks ordering could be handled by parent)
         let topLevel = tasks.filter { $0.parentTask == nil }
@@ -77,6 +79,7 @@ struct AddTaskView: View {
                 hasEndDate: $hasEndDate,
                 endDate: $endDate,
                 priority: $priority,
+                selectedTagIds: $selectedTagIds,
                 estimation: $estimation,
                 isSubtask: parentTask != nil,
                 parentTask: parentTask,
@@ -136,6 +139,11 @@ struct AddTaskView: View {
             taskType: hasQuantity ? estimation.taskType : nil,
             taskTemplate: hasQuantity ? estimation.taskTemplate : nil
         )
+
+        // Apply selected tags
+        let selectedTags = allTags.filter { selectedTagIds.contains($0.id) }
+        task.tags = selectedTags
+
         modelContext.insert(task)
         onAdded?(task)
         dismiss()
