@@ -107,22 +107,19 @@ struct TagFormView: View {
 
                 // Color Section
                 Section {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(colorOptions, id: \.value) { colorOption in
-                                ColorCircle(
-                                    colorName: colorOption.value,
-                                    isSelected: color == colorOption.value,
-                                    onTap: {
-                                        color = colorOption.value
-                                        HapticManager.light()
-                                    }
-                                )
-                            }
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
+                        ForEach(colorOptions, id: \.value) { colorOption in
+                            ColorCircle(
+                                colorName: colorOption.value,
+                                isSelected: color == colorOption.value,
+                                onTap: {
+                                    color = colorOption.value
+                                    HapticManager.light()
+                                }
+                            )
                         }
-                        .padding(.vertical, 8)
                     }
-                    .frame(height: 56)
+                    .padding(.vertical, 8)
                 } header: {
                     Text("Color")
                 }
