@@ -2,6 +2,27 @@ import SwiftUI
 import SwiftData
 internal import Combine
 
+// MARK: - Tag Filter Mode
+
+enum TagFilterMode: String, CaseIterable {
+    case any = "ANY"
+    case all = "ALL"
+
+    var systemImage: String {
+        switch self {
+        case .any: return "plus.circle"
+        case .all: return "multiply.circle"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .any: return "Match any tag (OR)"
+        case .all: return "Match all tags (AND)"
+        }
+    }
+}
+
 struct TaskListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<Task> { task in
@@ -19,6 +40,7 @@ struct TaskListView: View {
     // Tag filtering state
     @State private var selectedTagIds: Set<UUID> = []
     @State private var showingTagFilter = false
+    @State private var tagFilterMode: TagFilterMode = .any
 
     // Bulk archive state
     @State private var selectedTasksForArchive: Set<Task.ID> = []
@@ -45,11 +67,20 @@ struct TaskListView: View {
             result = result.filter { $0.status == .blocked }
         }
 
-        // Tag filtering (show tasks with ANY of the selected tags)
+        // Tag filtering with AND/OR logic
         if !selectedTagIds.isEmpty {
             result = result.filter { task in
                 guard let taskTags = task.tags else { return false }
-                return taskTags.contains { selectedTagIds.contains($0.id) }
+                let taskTagIds = Set(taskTags.map { $0.id })
+
+                switch tagFilterMode {
+                case .any:
+                    // OR logic: task has ANY of the selected tags
+                    return !selectedTagIds.isDisjoint(with: taskTagIds)
+                case .all:
+                    // AND logic: task has ALL selected tags
+                    return selectedTagIds.isSubset(of: taskTagIds)
+                }
             }
         }
 
@@ -237,6 +268,36 @@ struct TaskListView: View {
         VStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
+                    // Mode toggle button
+                    Menu {
+                        ForEach(TagFilterMode.allCases, id: \.self) { mode in
+                            Button {
+                                tagFilterMode = mode
+                                HapticManager.light()
+                            } label: {
+                                HStack {
+                                    Text(mode.description)
+                                    if tagFilterMode == mode {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(tagFilterMode.rawValue)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.blue.opacity(0.15))
+                        .foregroundStyle(.blue)
+                        .clipShape(Capsule())
+                    }
+
                     ForEach(selectedTags) { tag in
                         TagFilterChip(
                             tag: tag,
