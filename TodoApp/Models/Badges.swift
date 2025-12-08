@@ -352,10 +352,6 @@ struct CompactTagSummary: View {
                 .font(.caption)
                 .monospacedDigit()
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(Color.secondary.opacity(0.08))
         .foregroundStyle(.secondary)
-        .clipShape(Capsule())
     }
 }
