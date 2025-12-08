@@ -40,15 +40,6 @@ struct TaskRowMetadataSection: View {
         return allTags.filter { taskTagIds.contains($0.id) }
     }
 
-    // Show first 3 tags max (mobile-friendly)
-    private var displayTags: [Tag] {
-        Array(taskTags.prefix(3))
-    }
-
-    private var hasMoreTags: Bool {
-        taskTags.count > 3
-    }
-
     // Check if there's any content to show
     var hasContent: Bool {
         (shouldShowDueDate && effectiveDueDate != nil) || task.effectiveEstimate != nil || task.hasDateConflicts || !taskTags.isEmpty
@@ -84,22 +75,9 @@ struct TaskRowMetadataSection: View {
                         DateConflictBadge()
                     }
 
-                    // Tags (show first 3)
-                    ForEach(displayTags) { tag in
-                        TagBadge(tag: tag)
-                    }
-
-                    // Overflow indicator
-                    if hasMoreTags {
-                        HStack(spacing: 4) {
-                            Text("+\(taskTags.count - 3)")
-                                .font(.caption)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.15))
-                        .foregroundStyle(.secondary)
-                        .clipShape(Capsule())
+                    // Tags (compact summary with colored dots)
+                    if !taskTags.isEmpty {
+                        CompactTagSummary(tags: taskTags)
                     }
                 }
             }

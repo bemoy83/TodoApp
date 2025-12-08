@@ -336,3 +336,55 @@ struct TagBadge: View {
         }
     }
 }
+
+// MARK: - Compact Tag Summary
+
+/// Compact tag indicator showing colored dots with count
+/// Reduces visual clutter while maintaining categorization hints
+struct CompactTagSummary: View {
+    let tags: [Tag]
+    private let maxDots = 3
+
+    var body: some View {
+        HStack(spacing: 3) {
+            // Show first 3 tags as colored dots
+            ForEach(tags.prefix(maxDots)) { tag in
+                Circle()
+                    .fill(tagColor(for: tag))
+                    .frame(width: 6, height: 6)
+            }
+
+            // Show overflow count if more than maxDots
+            if tags.count > maxDots {
+                Text("+\(tags.count - maxDots)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(Color.secondary.opacity(0.08))
+        .clipShape(Capsule())
+    }
+
+    private func tagColor(for tag: Tag) -> Color {
+        switch tag.color {
+        case "blue": return .blue
+        case "purple": return .purple
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "green": return .green
+        case "red": return .red
+        case "cyan": return .cyan
+        case "teal": return .teal
+        case "brown": return .brown
+        case "indigo": return .indigo
+        case "pink": return .pink
+        case "mint": return .mint
+        case "gray": return .gray
+        case "black": return .black
+        case "white": return .white
+        default: return .gray
+        }
+    }
+}
