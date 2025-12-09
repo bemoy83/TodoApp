@@ -20,6 +20,7 @@ struct TaskEditView: View {
     @State private var selectedProject: Project?
     @State private var notesText: String
     @State private var hasNotes: Bool
+    @State private var selectedTagIds: Set<UUID> = [] // Not used in edit mode
 
     // Grouped estimation state (replaces 13 individual state properties)
     @State private var estimation: TaskEstimator.EstimationState
@@ -81,6 +82,7 @@ struct TaskEditView: View {
                 hasEndDate: $hasEndDate,
                 endDate: $endDate,
                 priority: $task.priority,
+                selectedTagIds: $selectedTagIds, // Not used in edit mode
                 estimation: $estimation,
                 isSubtask: isSubtask,
                 parentTask: task.parentTask,

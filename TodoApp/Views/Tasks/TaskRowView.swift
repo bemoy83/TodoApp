@@ -56,7 +56,7 @@ struct TaskRowView: View {
     }
     
     private var hasMetadata: Bool {
-        shouldShowDueDate || task.hasActiveTimer || calculations.hasSubtasks || task.effectiveEstimate != nil || task.hasDateConflicts
+        shouldShowDueDate || task.hasActiveTimer || calculations.hasSubtasks || task.effectiveEstimate != nil || task.hasDateConflicts || !(task.tags?.isEmpty ?? true)
     }
     
     private var isEditingList: Bool {

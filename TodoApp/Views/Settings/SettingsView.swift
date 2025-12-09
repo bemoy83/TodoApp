@@ -131,6 +131,25 @@ struct SettingsView: View {
                         .font(DesignSystem.Typography.caption)
                 }
 
+                // Tags Section
+                Section {
+                    NavigationLink {
+                        TagManagementView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "tag.fill")
+                                .foregroundStyle(.blue)
+                            Text("Tags")
+                                .foregroundStyle(DesignSystem.Colors.primary)
+                        }
+                    }
+                } header: {
+                    Label("Tags", systemImage: "tag.fill")
+                } footer: {
+                    Text("Organize and filter tasks by resource, phase, location, team, and more")
+                        .font(DesignSystem.Typography.caption)
+                }
+
                 DataManagementSection(
                     isClearing: isClearing,
                     isFixingOrder: isFixingOrder,

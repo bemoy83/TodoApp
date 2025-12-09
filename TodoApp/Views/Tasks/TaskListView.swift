@@ -2,18 +2,45 @@ import SwiftUI
 import SwiftData
 internal import Combine
 
+// MARK: - Tag Filter Mode
+
+enum TagFilterMode: String, CaseIterable {
+    case any = "ANY"
+    case all = "ALL"
+
+    var systemImage: String {
+        switch self {
+        case .any: return "plus.circle"
+        case .all: return "multiply.circle"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .any: return "Match any tag (OR)"
+        case .all: return "Match all tags (AND)"
+        }
+    }
+}
+
 struct TaskListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<Task> { task in
         !task.isArchived
     }) private var tasks: [Task]
-    
+    @Query(sort: \Tag.order) private var allTags: [Tag]
+
     @State private var searchText = ""
     @State private var selectedFilter: TaskFilter = .all
     @State private var showingAddTask = false
     @State private var selectedTask: Task?
     @State private var editMode: EditMode = .inactive
     @State private var isSearchPresented = false
+
+    // Tag filtering state
+    @State private var selectedTagIds: Set<UUID> = []
+    @State private var showingTagFilter = false
+    @State private var tagFilterMode: TagFilterMode = .any
 
     // Bulk archive state
     @State private var selectedTasksForArchive: Set<Task.ID> = []
@@ -24,11 +51,11 @@ struct TaskListView: View {
     // MARK: - Filtering (top-level tasks only)
     private var filteredTasks: [Task] {
         var result = tasks.filter { $0.parentTask == nil }
-        
+
         if !searchText.isEmpty {
             result = result.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
         }
-        
+
         switch selectedFilter {
         case .all:
             break
@@ -39,7 +66,29 @@ struct TaskListView: View {
         case .blocked:
             result = result.filter { $0.status == .blocked }
         }
+
+        // Tag filtering with AND/OR logic
+        if !selectedTagIds.isEmpty {
+            result = result.filter { task in
+                guard let taskTags = task.tags else { return false }
+                let taskTagIds = Set(taskTags.map { $0.id })
+
+                switch tagFilterMode {
+                case .any:
+                    // OR logic: task has ANY of the selected tags
+                    return !selectedTagIds.isDisjoint(with: taskTagIds)
+                case .all:
+                    // AND logic: task has ALL selected tags
+                    return selectedTagIds.isSubset(of: taskTagIds)
+                }
+            }
+        }
+
         return result
+    }
+
+    private var selectedTags: [Tag] {
+        allTags.filter { selectedTagIds.contains($0.id) }
     }
     
     private var activeTasks: [Task] {
@@ -124,37 +173,23 @@ struct TaskListView: View {
                     bulkArchiveToolbar
                 }
             }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if !selectedTagIds.isEmpty {
+                    tagFilterChips
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    TaskFilterMenu(selectedFilter: $selectedFilter)
+                    leadingToolbarItems
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        // Search button
-                        Button {
-                            isSearchPresented = true
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                        }
-                        
-                        Button {
-                            withAnimation(DesignSystem.Animation.standard) {
-                                editMode = editMode == .active ? .inactive : .active
-                                HapticManager.selection()
-                            }
-                        } label: {
-                            Label(
-                                editMode == .active ? "Done" : "Reorder",
-                                systemImage: editMode == .active ? "checkmark" : "line.3.horizontal"
-                            )
-                        }
-                        Button { showingAddTask = true } label: {
-                            Image(systemName: "plus")
-                        }
-                    }
+                    trailingToolbarItems
                 }
             }
             .sheet(isPresented: $showingAddTask) { AddTaskView() }
+            .sheet(isPresented: $showingTagFilter) {
+                TagPickerView(selectedTagIds: $selectedTagIds)
+            }
             .navigationDestination(item: $selectedTask) { task in
                 TaskDetailView(task: task)
             }
@@ -225,6 +260,135 @@ struct TaskListView: View {
             }
             .padding()
             .background(.ultraThinMaterial)
+        }
+    }
+
+    @ViewBuilder
+    private var tagFilterChips: some View {
+        VStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    // Mode toggle button
+                    Menu {
+                        ForEach(TagFilterMode.allCases, id: \.self) { mode in
+                            Button {
+                                tagFilterMode = mode
+                                HapticManager.light()
+                            } label: {
+                                HStack {
+                                    Text(mode.description)
+                                    if tagFilterMode == mode {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(tagFilterMode.rawValue)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.blue.opacity(0.15))
+                        .foregroundStyle(.blue)
+                        .clipShape(Capsule())
+                    }
+
+                    ForEach(selectedTags) { tag in
+                        TagFilterChip(
+                            tag: tag,
+                            onRemove: {
+                                selectedTagIds.remove(tag.id)
+                                HapticManager.light()
+                            }
+                        )
+                    }
+
+                    // Clear all button
+                    Button {
+                        selectedTagIds.removeAll()
+                        HapticManager.light()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption)
+                            Text("Clear All")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.secondary.opacity(0.15))
+                        .foregroundStyle(.secondary)
+                        .clipShape(Capsule())
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+            .background(.ultraThinMaterial)
+
+            Divider()
+        }
+    }
+
+    @ViewBuilder
+    private var leadingToolbarItems: some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            TaskFilterMenu(selectedFilter: $selectedFilter)
+            tagFilterButton
+        }
+    }
+
+    @ViewBuilder
+    private var tagFilterButton: some View {
+        Button {
+            showingTagFilter = true
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "tag.fill")
+                    .foregroundStyle(selectedTagIds.isEmpty ? Color.primary : Color.blue)
+
+                if !selectedTagIds.isEmpty {
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 8, height: 8)
+                        .offset(x: 2, y: -2)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var trailingToolbarItems: some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            Button {
+                isSearchPresented = true
+            } label: {
+                Image(systemName: "magnifyingglass")
+            }
+
+            Button {
+                withAnimation(DesignSystem.Animation.standard) {
+                    editMode = editMode == .active ? .inactive : .active
+                    HapticManager.selection()
+                }
+            } label: {
+                Label(
+                    editMode == .active ? "Done" : "Reorder",
+                    systemImage: editMode == .active ? "checkmark" : "line.3.horizontal"
+                )
+            }
+
+            Button {
+                showingAddTask = true
+            } label: {
+                Image(systemName: "plus")
+            }
         }
     }
 

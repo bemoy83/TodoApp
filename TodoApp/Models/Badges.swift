@@ -295,3 +295,63 @@ struct DateConflictBadge: View {
         .foregroundStyle(DesignSystem.Colors.warning)
     }
 }
+
+// MARK: - Tag Badge
+
+struct TagBadge: View {
+    let tag: Tag
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: tag.icon)
+                .font(.caption2)
+            Text(tag.name)
+                .font(.caption)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(tagColor.opacity(0.15))
+        .foregroundStyle(tagColor)
+        .clipShape(Capsule())
+    }
+
+    private var tagColor: Color {
+        switch tag.color {
+        case "blue": return .blue
+        case "purple": return .purple
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "green": return .green
+        case "red": return .red
+        case "cyan": return .cyan
+        case "teal": return .teal
+        case "brown": return .brown
+        case "indigo": return .indigo
+        case "pink": return .pink
+        case "mint": return .mint
+        case "gray": return .gray
+        case "black": return .black
+        case "white": return .white
+        default: return .gray
+        }
+    }
+}
+
+// MARK: - Compact Tag Summary
+
+/// Compact tag count badge - minimal visual noise
+/// Shows organizational context without competing with critical info
+struct CompactTagSummary: View {
+    let tags: [Tag]
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "tag.fill")
+                .font(.caption2)
+            Text("\(tags.count)")
+                .font(.caption)
+                .monospacedDigit()
+        }
+        .foregroundStyle(.secondary)
+    }
+}

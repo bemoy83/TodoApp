@@ -161,9 +161,13 @@ final class Task: TitledItem {
     // Task dependency relationships (many-to-many)
     @Relationship(deleteRule: .nullify)
     var dependsOn: [Task]?
-    
+
     @Relationship(deleteRule: .nullify)
     var blockedBy: [Task]?
+
+    // Tags relationship (many-to-many)
+    @Relationship(deleteRule: .nullify)
+    var tags: [Tag]?
     
     init(
         id: UUID = UUID(),
@@ -211,6 +215,7 @@ final class Task: TitledItem {
         self.timeEntries = nil
         self.dependsOn = nil
         self.blockedBy = nil
+        self.tags = nil
     }
     
     // MARK: - Computed Properties

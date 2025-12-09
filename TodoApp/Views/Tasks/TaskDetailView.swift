@@ -46,6 +46,9 @@ struct TaskDetailView: View {
                 // Quantity tracking for productivity measurement
                 TaskQuantityView(task: task)
 
+                // Tags for organization and filtering
+                TaskTagsView(task: task)
+
                 // Time entries management
                 TimeEntriesView(task: task)
 

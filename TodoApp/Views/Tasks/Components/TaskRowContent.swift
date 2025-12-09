@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - Title Section
 struct TaskRowTitleSection: View {
@@ -30,10 +31,18 @@ struct TaskRowMetadataSection: View {
     let shouldShowDueDate: Bool
     let effectiveDueDate: Date?
     let isDueDateInherited: Bool
-    
+
+    @Query(sort: \Tag.order) private var allTags: [Tag]
+
+    // Get task tags using @Query pattern for fresh data
+    private var taskTags: [Tag] {
+        guard let taskTagIds = task.tags?.map({ $0.id }) else { return [] }
+        return allTags.filter { taskTagIds.contains($0.id) }
+    }
+
     // Check if there's any content to show
     var hasContent: Bool {
-        (shouldShowDueDate && effectiveDueDate != nil) || task.effectiveEstimate != nil || task.hasDateConflicts
+        (shouldShowDueDate && effectiveDueDate != nil) || task.effectiveEstimate != nil || task.hasDateConflicts || !taskTags.isEmpty
     }
 
     var body: some View {
@@ -64,6 +73,11 @@ struct TaskRowMetadataSection: View {
                     // Date conflict badge (Improvement #1)
                     if task.hasDateConflicts {
                         DateConflictBadge()
+                    }
+
+                    // Tags (compact summary with colored dots)
+                    if !taskTags.isEmpty {
+                        CompactTagSummary(tags: taskTags)
                     }
                 }
             }
