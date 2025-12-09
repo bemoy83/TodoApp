@@ -5,6 +5,7 @@ import SwiftData
 struct TagManagementView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.editMode) private var editMode
     @Query(sort: \Tag.order) private var allTags: [Tag]
 
     @State private var showingAddTag = false
@@ -58,6 +59,9 @@ struct TagManagementView: View {
                                     }
                                 }
                         }
+                        .onMove { indices, newOffset in
+                            moveTag(in: category, from: indices, to: newOffset)
+                        }
                     } header: {
                         HStack(spacing: 6) {
                             Image(systemName: category.icon)
@@ -97,6 +101,12 @@ struct TagManagementView: View {
         }
         .navigationTitle("Tags")
         .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                if !allTags.isEmpty {
+                    EditButton()
+                }
+            }
+
             ToolbarItemGroup(placement: .primaryAction) {
                 if showDismissButton {
                     Button("Done") {
@@ -156,6 +166,27 @@ struct TagManagementView: View {
         modelContext.delete(tag)
         try? modelContext.save()
         HapticManager.success()
+    }
+
+    private func moveTag(in category: TagCategory, from source: IndexSet, to destination: Int) {
+        // Get mutable copy of tags in this category
+        var categoryTags = tags(for: category)
+
+        // Perform the move
+        categoryTags.move(fromOffsets: source, toOffset: destination)
+
+        // Update order values to reflect new positions
+        for (index, tag) in categoryTags.enumerated() {
+            tag.order = index
+        }
+
+        // Save changes
+        do {
+            try modelContext.save()
+            HapticManager.light()
+        } catch {
+            print("Error saving tag order: \(error)")
+        }
     }
 }
 
