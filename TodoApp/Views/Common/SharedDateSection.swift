@@ -67,6 +67,25 @@ struct SharedDateSection: View {
         return (hours, daysText)
     }
 
+    // MARK: - Parent-Subtask Date Conflict Detection
+    private var startsBeforeParent: Bool {
+        guard let context = validationContext,
+              context.isSubtask,
+              hasStartDate,
+              let parentStart = context.parentDueDate else { return false }
+        // For now, we only validate against parent's deadline (not parent's start)
+        // A more complete implementation would check against parent.startDate
+        return false
+    }
+
+    private var endsAfterParent: Bool {
+        guard let context = validationContext,
+              context.isSubtask,
+              hasEndDate,
+              let parentDue = context.parentDueDate else { return false }
+        return endDate > parentDue
+    }
+
     // MARK: - Project Date Conflict Detection
     private var startsBeforeProject: Bool {
         guard let project = selectedProject,
@@ -160,6 +179,18 @@ struct SharedDateSection: View {
         let smartValue = includeTime
             ? DateTimeHelper.smartDueDate(for: newValue)
             : newValue
+
+        // Validate against parent deadline (for subtasks)
+        if let context = validationContext,
+           context.isSubtask,
+           let parentDue = context.parentDueDate,
+           smartValue > parentDue {
+            // Show validation alert and don't update the date
+            showingValidationAlert = true
+            HapticManager.error()
+            return
+        }
+
         endDate = smartValue
         onEndDateChange?(smartValue)
 
@@ -231,20 +262,35 @@ struct SharedDateSection: View {
 
     private var endDateRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            DatePicker(
-                includeTime ? "Deadline" : "Due Date",
-                selection: Binding(
-                    get: { endDate },
-                    set: handleEndDateChange
-                ),
-                displayedComponents: dateComponents
-            )
+            // DatePicker with optional upper bound for subtasks
+            if let context = validationContext,
+               context.isSubtask,
+               let parentDue = context.parentDueDate {
+                DatePicker(
+                    includeTime ? "Deadline" : "Due Date",
+                    selection: Binding(
+                        get: { endDate },
+                        set: handleEndDateChange
+                    ),
+                    in: ...parentDue,
+                    displayedComponents: dateComponents
+                )
+            } else {
+                DatePicker(
+                    includeTime ? "Deadline" : "Due Date",
+                    selection: Binding(
+                        get: { endDate },
+                        set: handleEndDateChange
+                    ),
+                    displayedComponents: dateComponents
+                )
+            }
 
-            // Subtask validation warning
-            if let context = validationContext, context.isSubtask, context.parentDueDate != nil {
+            // Subtask validation warning (only show if actually invalid)
+            if endsAfterParent, let context = validationContext, let parentDue = context.parentDueDate {
                 TaskInlineInfoRow(
                     icon: "exclamationmark.triangle",
-                    message: "Must be on or before parent's deadline",
+                    message: "Ends after parent's deadline (\(parentDue.formatted(date: .abbreviated, time: .shortened)))",
                     style: .warning
                 )
             }
