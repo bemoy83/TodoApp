@@ -3,16 +3,18 @@ import SwiftData
 
 struct TaskDependenciesView: View {
     @Bindable var task: Task
-    let allTasks: [Task]
-    
+
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
+
     @State private var showingDependencyPicker = false
     @AppStorage private var enableDependencies: Bool // Changed to @AppStorage
     @State private var isEditingDependencies = false
-    
+
     // Use task ID as storage key for per-task persistence
-    init(task: Task, allTasks: [Task]) {
+    init(task: Task) {
         self.task = task
-        self.allTasks = allTasks
         self._enableDependencies = AppStorage(
             wrappedValue: false,
             "dependencies_enabled_\(task.id.uuidString)"
@@ -359,7 +361,7 @@ private struct SubtaskDependencyRow: View {
     
     return NavigationStack {
         ScrollView {
-            TaskDependenciesView(task: parent, allTasks: [parent, subtask1, subtask2, blocker, dep1, dep2])
+            TaskDependenciesView(task: parent)
         }
     }
     .modelContainer(container)
@@ -372,7 +374,7 @@ private struct SubtaskDependencyRow: View {
     // This should NOT be possible - parent shouldn't appear in available dependencies
     return NavigationStack {
         ScrollView {
-            TaskDependenciesView(task: subtask, allTasks: [parent, subtask])
+            TaskDependenciesView(task: subtask)
         }
     }
     .modelContainer(for: [Task.self, Project.self, TimeEntry.self])
