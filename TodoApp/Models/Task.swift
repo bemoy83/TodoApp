@@ -305,24 +305,32 @@ final class Task: TitledItem {
     var totalTimeSpent: Int {
         calculateTotalTime()
     }
-    
+
+    @Transient
+    var hasCompletedSubtasks: Bool {
+        guard let subtasks = subtasks, !subtasks.isEmpty else { return false }
+        return subtasks.contains { $0.isCompleted }
+    }
+
     @Transient
     var status: TaskStatus {
         // Completed takes highest priority
         if isCompleted {
             return .completed
         }
-        
+
         // Blocked if has incomplete dependencies (own or subtasks')
         if hasIncompleteDependencies {
             return .blocked
         }
-        
-        // In Progress if has time spent or active timer
-        if directTimeSpent > 0 || hasActiveTimer {
+
+        // In Progress if:
+        // - Has time spent or active timer
+        // - Has at least one completed subtask (shows progress on parent)
+        if directTimeSpent > 0 || hasActiveTimer || hasCompletedSubtasks {
             return .inProgress
         }
-        
+
         // Default to Ready
         return .ready
     }
