@@ -63,21 +63,8 @@ struct DateEditSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    // Date Picker with smart defaults
-                    DatePicker(
-                        dateType == .start ? "Start Date" : "Due Date",
-                        selection: Binding(
-                            get: { editedDate },
-                            set: { newValue in
-                                // Apply smart defaults based on date type
-                                editedDate = dateType == .start
-                                    ? DateTimeHelper.smartStartDate(for: newValue)
-                                    : DateTimeHelper.smartDueDate(for: newValue)
-                            }
-                        ),
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
-                    .datePickerStyle(.graphical)
+                    // Date Picker with smart defaults and parent-subtask constraints
+                    datePickerWithConstraints
 
                 } header: {
                     Label(
@@ -157,6 +144,141 @@ struct DateEditSheet: View {
 
     // MARK: - Helper Views
 
+    @ViewBuilder
+    private var datePickerWithConstraints: some View {
+        let parentTask = task.parentTask
+        let isSubtask = parentTask != nil
+
+        switch dateType {
+        case .start:
+            // Subtask start date: constrained by parent start...parent end
+            if isSubtask,
+               let parentStart = parentTask?.startDate,
+               let parentEnd = parentTask?.effectiveDeadline {
+                DatePicker(
+                    "Start Date",
+                    selection: Binding(
+                        get: { editedDate },
+                        set: { editedDate = DateTimeHelper.smartStartDate(for: $0) }
+                    ),
+                    in: parentStart...parentEnd,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .datePickerStyle(.graphical)
+            }
+            // Subtask with only parent start: constrained by parent start...task end
+            else if isSubtask,
+                    let parentStart = parentTask?.startDate,
+                    let taskEnd = task.endDate {
+                DatePicker(
+                    "Start Date",
+                    selection: Binding(
+                        get: { editedDate },
+                        set: { editedDate = DateTimeHelper.smartStartDate(for: $0) }
+                    ),
+                    in: parentStart...taskEnd,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .datePickerStyle(.graphical)
+            }
+            // Regular task or subtask without constraints: just constrained by task end
+            else if let taskEnd = task.endDate {
+                DatePicker(
+                    "Start Date",
+                    selection: Binding(
+                        get: { editedDate },
+                        set: { editedDate = DateTimeHelper.smartStartDate(for: $0) }
+                    ),
+                    in: ...taskEnd,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .datePickerStyle(.graphical)
+            }
+            // No constraints
+            else {
+                DatePicker(
+                    "Start Date",
+                    selection: Binding(
+                        get: { editedDate },
+                        set: { editedDate = DateTimeHelper.smartStartDate(for: $0) }
+                    ),
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .datePickerStyle(.graphical)
+            }
+
+        case .end:
+            // Subtask end date: constrained by parent start...parent end
+            if isSubtask,
+               let parentStart = parentTask?.startDate,
+               let parentEnd = parentTask?.effectiveDeadline {
+                DatePicker(
+                    "Due Date",
+                    selection: Binding(
+                        get: { editedDate },
+                        set: { editedDate = DateTimeHelper.smartDueDate(for: $0) }
+                    ),
+                    in: parentStart...parentEnd,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .datePickerStyle(.graphical)
+            }
+            // Subtask with only parent end: constrained by task start...parent end
+            else if isSubtask,
+                    let parentEnd = parentTask?.effectiveDeadline,
+                    let taskStart = task.startDate {
+                DatePicker(
+                    "Due Date",
+                    selection: Binding(
+                        get: { editedDate },
+                        set: { editedDate = DateTimeHelper.smartDueDate(for: $0) }
+                    ),
+                    in: taskStart...parentEnd,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .datePickerStyle(.graphical)
+            }
+            // Subtask with only parent end (no task start): constrained by parent end
+            else if isSubtask, let parentEnd = parentTask?.effectiveDeadline {
+                DatePicker(
+                    "Due Date",
+                    selection: Binding(
+                        get: { editedDate },
+                        set: { editedDate = DateTimeHelper.smartDueDate(for: $0) }
+                    ),
+                    in: ...parentEnd,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .datePickerStyle(.graphical)
+            }
+            // Regular task: constrained by task start if exists
+            else if let taskStart = task.startDate {
+                DatePicker(
+                    "Due Date",
+                    selection: Binding(
+                        get: { editedDate },
+                        set: { editedDate = DateTimeHelper.smartDueDate(for: $0) }
+                    ),
+                    in: taskStart...,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .datePickerStyle(.graphical)
+            }
+            // No constraints
+            else {
+                DatePicker(
+                    "Due Date",
+                    selection: Binding(
+                        get: { editedDate },
+                        set: { editedDate = DateTimeHelper.smartDueDate(for: $0) }
+                    ),
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .datePickerStyle(.graphical)
+            }
+        }
+    }
+
     private func quickActionButton(title: String, icon: String, date: Date) -> some View {
         Button {
             editedDate = date
@@ -208,6 +330,10 @@ struct DateEditSheet: View {
     private func validateDate() -> Bool {
         showValidationError = false
 
+        // Get parent task for subtask validation
+        let parentTask = task.parentTask
+        let isSubtask = parentTask != nil
+
         switch dateType {
         case .start:
             // If end date exists, start must be before it
@@ -216,10 +342,35 @@ struct DateEditSheet: View {
                 return false
             }
 
+            // SUBTASK VALIDATION: Start date must be on or after parent's start date
+            if isSubtask, let parentStart = parentTask?.startDate, editedDate < parentStart {
+                validationMessage = "Subtask cannot start before parent's start date (\(formatDate(parentStart)))"
+                return false
+            }
+
+            // SUBTASK VALIDATION: Start date must be on or before parent's end date
+            if isSubtask, let parentEnd = parentTask?.effectiveDeadline, editedDate > parentEnd {
+                validationMessage = "Subtask start must be before parent's deadline (\(formatDate(parentEnd)))"
+                return false
+            }
+
         case .end:
             // If start date exists, end must be after it
             if let startDate = task.startDate, editedDate <= startDate {
                 validationMessage = "Due date must be after start date"
+                return false
+            }
+
+            // SUBTASK VALIDATION: End date must be on or before parent's end date
+            if isSubtask, let parentEnd = parentTask?.effectiveDeadline, editedDate > parentEnd {
+                validationMessage = "Subtask cannot end after parent's deadline (\(formatDate(parentEnd)))"
+                return false
+            }
+
+            // CRITICAL SUBTASK VALIDATION: End date must be on or after parent's start date
+            // This prevents the fatal error when adding a start date later
+            if isSubtask, let parentStart = parentTask?.startDate, editedDate < parentStart {
+                validationMessage = "Subtask cannot end before parent's start date (\(formatDate(parentStart)))"
                 return false
             }
         }
