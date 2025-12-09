@@ -77,6 +77,14 @@ struct SharedDateSection: View {
         return startDate < parentStart
     }
 
+    private var endsBeforeParent: Bool {
+        guard let context = validationContext,
+              context.isSubtask,
+              hasEndDate,
+              let parentStart = context.parentStartDate else { return false }
+        return endDate < parentStart
+    }
+
     private var endsAfterParent: Bool {
         guard let context = validationContext,
               context.isSubtask,
@@ -188,6 +196,18 @@ struct SharedDateSection: View {
            context.isSubtask,
            let parentEnd = context.parentEndDate,
            smartValue > parentEnd {
+            // Show validation alert and don't update the date
+            showingValidationAlert = true
+            HapticManager.error()
+            return
+        }
+
+        // CRITICAL: Validate that end date is not before parent's start date
+        // This prevents fatal error when DatePicker tries to create invalid range (parentStart...endDate)
+        if let context = validationContext,
+           context.isSubtask,
+           let parentStart = context.parentStartDate,
+           smartValue < parentStart {
             // Show validation alert and don't update the date
             showingValidationAlert = true
             HapticManager.error()
@@ -328,10 +348,25 @@ struct SharedDateSection: View {
 
     private var endDateRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // DatePicker with optional upper bound for subtasks
+            // DatePicker with optional bounds for subtasks (parent start...parent end)
             if let context = validationContext,
                context.isSubtask,
+               let parentStart = context.parentStartDate,
                let parentEnd = context.parentEndDate {
+                // Full working window constraint
+                DatePicker(
+                    includeTime ? "Deadline" : "Due Date",
+                    selection: Binding(
+                        get: { endDate },
+                        set: handleEndDateChange
+                    ),
+                    in: parentStart...parentEnd,
+                    displayedComponents: dateComponents
+                )
+            } else if let context = validationContext,
+                      context.isSubtask,
+                      let parentEnd = context.parentEndDate {
+                // Only upper bound (no parent start date)
                 DatePicker(
                     includeTime ? "Deadline" : "Due Date",
                     selection: Binding(
@@ -342,6 +377,7 @@ struct SharedDateSection: View {
                     displayedComponents: dateComponents
                 )
             } else {
+                // No constraints
                 DatePicker(
                     includeTime ? "Deadline" : "Due Date",
                     selection: Binding(
@@ -352,7 +388,15 @@ struct SharedDateSection: View {
                 )
             }
 
-            // Subtask validation warning (only show if actually invalid)
+            // Subtask validation warnings (only show if actually invalid)
+            if endsBeforeParent, let context = validationContext, let parentStart = context.parentStartDate {
+                TaskInlineInfoRow(
+                    icon: "exclamationmark.triangle",
+                    message: "Ends before parent's start date (\(parentStart.formatted(date: .abbreviated, time: .shortened)))",
+                    style: .warning
+                )
+            }
+
             if endsAfterParent, let context = validationContext, let parentEnd = context.parentEndDate {
                 TaskInlineInfoRow(
                     icon: "exclamationmark.triangle",
