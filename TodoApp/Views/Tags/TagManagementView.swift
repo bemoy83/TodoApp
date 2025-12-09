@@ -6,7 +6,6 @@ struct TagManagementView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Tag.order) private var allTags: [Tag]
-    @Query private var allTasks: [Task]
 
     @State private var showingAddTag = false
     @State private var tagToEdit: Tag?
@@ -146,9 +145,8 @@ struct TagManagementView: View {
     }
 
     private func taskCount(for tag: Tag) -> Int {
-        allTasks.filter { task in
-            task.tags?.contains(where: { $0.id == tag.id }) ?? false
-        }.count
+        // Use SwiftData relationship for O(1) access instead of O(n) iteration
+        tag.tasks?.count ?? 0
     }
 
     // MARK: - Actions
