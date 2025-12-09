@@ -13,24 +13,27 @@ struct TaskExpandedSubtasksView: View {
     @Environment(\.editMode) private var editMode
     @Bindable var parentTask: Task
 
+    /// IDs of subtasks to highlight (e.g., matching a tag filter)
+    var highlightedSubtaskIds: Set<UUID> = []
+
     @Query(filter: #Predicate<Task> { task in
         !task.isArchived
     }, sort: \Task.order) private var allTasks: [Task]
-    
+
     @State private var currentAlert: TaskActionAlert?
-    
+
     private let router = TaskActionRouter()
-    
+
     private var context: TaskActionRouter.Context {
         TaskActionRouter.Context(modelContext: modelContext, hapticsEnabled: true)
     }
-    
+
     private var subtasks: [Task] {
         allTasks
             .filter { $0.parentTask?.id == parentTask.id }
             .sorted { ($0.order ?? Int.max) < ($1.order ?? Int.max) }
     }
-    
+
     private var isEditMode: Bool {
         editMode?.wrappedValue.isEditing ?? false
     }
@@ -47,7 +50,8 @@ struct TaskExpandedSubtasksView: View {
                     alert: $currentAlert,
                     isFirst: index == 0,
                     isLast: index == subtasks.count - 1,
-                    isEditMode: isEditMode
+                    isEditMode: isEditMode,
+                    isHighlighted: highlightedSubtaskIds.contains(subtask.id)
                 )
             }
             .buttonStyle(.plain)
@@ -103,14 +107,15 @@ struct TaskExpandedSubtasksView: View {
 private struct ExpandedSubtaskRow: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var subtask: Task
-    
+
     let router: TaskActionRouter
     let context: TaskActionRouter.Context
     @Binding var alert: TaskActionAlert?
     let isFirst: Bool
     let isLast: Bool
     let isEditMode: Bool
-    
+    var isHighlighted: Bool = false
+
     @State private var showingEditSheet = false
     @State private var showingMoreSheet = false
     
@@ -118,10 +123,19 @@ private struct ExpandedSubtaskRow: View {
         VStack(spacing: 0) {
             // Main content
             HStack(spacing: 0) {
-                // Left indent (no bar)
-                Color.clear
-                    .frame(width: DesignSystem.Spacing.xl)
-                
+                // Left indent with highlight indicator
+                if isHighlighted {
+                    Rectangle()
+                        .fill(.blue)
+                        .frame(width: 3)
+                        .padding(.leading, DesignSystem.Spacing.xl - 3)
+                    Color.clear
+                        .frame(width: 0)
+                } else {
+                    Color.clear
+                        .frame(width: DesignSystem.Spacing.xl)
+                }
+
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     // Status icon
                     SubtaskStatusButton(
@@ -134,17 +148,24 @@ private struct ExpandedSubtaskRow: View {
                         },
                         size: .compact
                     )
-                    
+
                     // Content
                     SubtaskRowContent(subtask: subtask, style: .compact)
-                    
+
                     Spacer()
-                    
+
                     if subtask.hasActiveTimer {
                         Image(systemName: "timer")
                             .font(.caption)
                             .foregroundStyle(DesignSystem.Colors.timerActive)
                             .pulsingAnimation(active: true)
+                    }
+
+                    // Tag filter match indicator
+                    if isHighlighted {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
                     }
                 }
                 .padding(.leading, DesignSystem.Spacing.sm)
