@@ -194,15 +194,38 @@ struct SharedDateSection: View {
             return
         }
 
-        endDate = smartValue
-        onEndDateChange?(smartValue)
-
-        // Auto-adjust start date if it's after end date
+        // Check if this change would require invalid start date adjustment
         if hasStartDate && startDate > smartValue {
-            startDate = includeTime
+            let proposedStartDate = includeTime
                 ? DateTimeHelper.smartStartDate(for: oneDayBefore(smartValue))
                 : oneDayBefore(smartValue)
+
+            // For subtasks, ensure auto-adjusted start date would respect parent's start date
+            if let context = validationContext,
+               context.isSubtask,
+               let parentStart = context.parentStartDate {
+                // Check if proposed start date would violate parent's start date
+                let clampedStartDate = max(proposedStartDate, parentStart)
+
+                // Verify the clamped start date would still be before end date
+                if clampedStartDate >= smartValue {
+                    // Can't fit within constraints - show error
+                    showingValidationAlert = true
+                    HapticManager.error()
+                    return
+                }
+
+                // Apply clamped start date
+                startDate = clampedStartDate
+            } else {
+                // No parent constraint, just apply proposed start date
+                startDate = proposedStartDate
+            }
         }
+
+        // All validations passed, update end date
+        endDate = smartValue
+        onEndDateChange?(smartValue)
     }
 
     /// Handles start date changes ensuring it stays before end date
