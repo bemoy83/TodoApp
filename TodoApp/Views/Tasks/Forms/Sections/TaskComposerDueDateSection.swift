@@ -12,7 +12,8 @@ struct TaskComposerDueDateSection: View {
     @Binding var showingValidationAlert: Bool
 
     let isSubtask: Bool
-    let parentDueDate: Date?
+    let parentStartDate: Date?
+    let parentEndDate: Date?
     let selectedProject: Project? // For project date conflict detection
     let onDateChange: (Date) -> Void
 
@@ -27,7 +28,8 @@ struct TaskComposerDueDateSection: View {
             showWorkingWindow: true,
             validationContext: .init(
                 isSubtask: isSubtask,
-                parentDueDate: parentDueDate,
+                parentStartDate: parentStartDate,
+                parentEndDate: parentEndDate,
                 selectedProject: selectedProject
             ),
             onEndDateChange: onDateChange

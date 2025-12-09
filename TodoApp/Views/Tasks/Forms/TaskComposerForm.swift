@@ -75,6 +75,10 @@ struct TaskComposerForm: View {
         }
     }
 
+    private var parentStartDate: Date? {
+        parentTask?.startDate
+    }
+
     private var parentDueDate: Date? {
         parentTask?.effectiveDeadline
     }
@@ -212,7 +216,8 @@ struct TaskComposerForm: View {
             endDate: $endDate,
             showingValidationAlert: $showingDateValidationAlert,
             isSubtask: isSubtask,
-            parentDueDate: parentDueDate,
+            parentStartDate: parentStartDate,
+            parentEndDate: parentDueDate,
             selectedProject: selectedProject, // Real-time project conflict detection
             onDateChange: validateSubtaskDueDate
         )
