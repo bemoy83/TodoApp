@@ -73,7 +73,7 @@ struct ScheduleContext {
         // Use endDate (new) with fallback to dueDate (legacy) for backwards compatibility
         let effectiveEnd = task.endDate ?? task.dueDate
 
-        ScheduleContext(
+        return ScheduleContext(
             hasDueDate: effectiveEnd != nil,
             dueDate: effectiveEnd ?? Date(),
             hasStartDate: task.startDate != nil,
