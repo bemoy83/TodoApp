@@ -30,6 +30,9 @@ struct TodoApp: App {
             // Link existing tasks to templates (safe to run multiple times)
             DataSeeder.linkTasksToTemplates(context: modelContainer.mainContext)
 
+            // Migrate legacy dueDate to endDate (safe to run multiple times)
+            DataSeeder.migrateDueDateToEndDate(context: modelContainer.mainContext)
+
         } catch {
             fatalError("Failed to initialize ModelContainer: \(error)")
         }

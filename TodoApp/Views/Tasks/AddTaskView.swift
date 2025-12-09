@@ -57,8 +57,11 @@ struct AddTaskView: View {
                 _startDate = State(initialValue: projectStart)
             }
 
-            // Inherit due date from project
+            // Inherit end date from project (sync both endDate and dueDate for backwards compatibility)
             if let projectDue = project.dueDate {
+                _hasEndDate = State(initialValue: true)
+                _endDate = State(initialValue: projectDue)
+                // Keep dueDate synced for backwards compatibility
                 _hasDueDate = State(initialValue: true)
                 _dueDate = State(initialValue: projectDue)
             }

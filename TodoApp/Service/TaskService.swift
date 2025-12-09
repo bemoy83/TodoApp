@@ -10,7 +10,7 @@ final class TaskService {
 
     /// Creates a sibling duplicate of the given task.
     /// - Notes:
-    ///   - Copies: title, priority, dueDate, notes, project, parentTask, estimatedSeconds, hasCustomEstimate
+    ///   - Copies: title, priority, dates (dueDate, startDate, endDate), notes, project, parentTask, estimatedSeconds, hasCustomEstimate
     ///   - Resets: completedDate (nil), createdDate (now)
     ///   - Order: places after the original (orderValue + 1)
     @discardableResult
@@ -19,6 +19,8 @@ final class TaskService {
             title: task.title + " (Copy)",
             priority: task.priority,
             dueDate: task.dueDate,
+            startDate: task.startDate,
+            endDate: task.endDate,
             completedDate: nil,
             createdDate: Date(),
             parentTask: task.parentTask,

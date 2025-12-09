@@ -76,7 +76,7 @@ struct TaskComposerForm: View {
     }
 
     private var parentDueDate: Date? {
-        parentTask?.dueDate
+        parentTask?.effectiveDeadline
     }
 
     // Calculate subtask estimate total using @Query (avoids accessing relationships)
