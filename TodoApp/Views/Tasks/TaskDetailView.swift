@@ -191,28 +191,28 @@ struct TaskDetailView: View {
 
     // MARK: - Summary Badge Helpers
 
+    private var timeTrackingSummaryText: String {
+        var text = ""
+
+        // Add time spent
+        if let totalTime = task.totalTimeSpent, totalTime > 0 {
+            text = totalTime.formattedTime
+        } else {
+            text = "No time tracked"
+        }
+
+        // Add progress if has estimate
+        if let estimate = task.effectiveEstimate {
+            let progress = Double(task.totalTimeSpent ?? 0) / Double(estimate)
+            text += " • \(Int(progress * 100))%"
+        }
+
+        return text
+    }
+
     @ViewBuilder
     private var timeTrackingSummary: some View {
-        let summaryText: String = {
-            var text = ""
-
-            // Add time spent
-            if let totalTime = task.totalTimeSpent, totalTime > 0 {
-                text = totalTime.formattedTime
-            } else {
-                text = "No time tracked"
-            }
-
-            // Add progress if has estimate
-            if let estimate = task.effectiveEstimate {
-                let progress = Double(task.totalTimeSpent ?? 0) / Double(estimate)
-                text += " • \(Int(progress * 100))%"
-            }
-
-            return text
-        }()
-
-        Text(summaryText)
+        Text(timeTrackingSummaryText)
             .font(.caption)
             .foregroundStyle(.secondary)
     }
@@ -271,33 +271,38 @@ struct TaskDetailView: View {
         }
     }
 
+    private var entriesSummaryText: String {
+        let entryCount = task.timeEntries?.count ?? 0
+        if entryCount > 0 {
+            let entryWord = entryCount == 1 ? "entry" : "entries"
+            var text = "\(entryCount) \(entryWord)"
+
+            // Add last entry time if available
+            if let lastEntry = task.timeEntries?.sorted(by: { $0.startTime > $1.startTime }).first {
+                let timeAgo = Date().timeIntervalSince(lastEntry.startTime)
+                if timeAgo < 3600 {
+                    text += " • \(Int(timeAgo / 60))m ago"
+                } else if timeAgo < 86400 {
+                    text += " • \(Int(timeAgo / 3600))h ago"
+                } else {
+                    text += " • \(Int(timeAgo / 86400))d ago"
+                }
+            }
+            return text
+        } else {
+            return "No entries"
+        }
+    }
+
     @ViewBuilder
     private var entriesSummary: some View {
         let entryCount = task.timeEntries?.count ?? 0
         if entryCount > 0 {
-            let summaryText: String = {
-                let entryWord = entryCount == 1 ? "entry" : "entries"
-                var text = "\(entryCount) \(entryWord)"
-
-                // Add last entry time if available
-                if let lastEntry = task.timeEntries?.sorted(by: { $0.startTime > $1.startTime }).first {
-                    let timeAgo = Date().timeIntervalSince(lastEntry.startTime)
-                    if timeAgo < 3600 {
-                        text += " • \(Int(timeAgo / 60))m ago"
-                    } else if timeAgo < 86400 {
-                        text += " • \(Int(timeAgo / 3600))h ago"
-                    } else {
-                        text += " • \(Int(timeAgo / 86400))d ago"
-                    }
-                }
-                return text
-            }()
-
-            Text(summaryText)
+            Text(entriesSummaryText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         } else {
-            Text("No entries")
+            Text(entriesSummaryText)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
