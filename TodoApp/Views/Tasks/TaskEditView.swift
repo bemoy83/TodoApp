@@ -5,6 +5,7 @@ struct TaskEditView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var task: Task
     @Query(sort: \Project.title) private var projects: [Project]
+    @Query(sort: \Tag.order) private var allTags: [Tag]
 
     let isNewTask: Bool
     let onSave: (Task) -> Void
@@ -20,7 +21,7 @@ struct TaskEditView: View {
     @State private var selectedProject: Project?
     @State private var notesText: String
     @State private var hasNotes: Bool
-    @State private var selectedTagIds: Set<UUID> = [] // Not used in edit mode
+    @State private var selectedTagIds: Set<UUID>
 
     // Grouped estimation state (replaces 13 individual state properties)
     @State private var estimation: TaskEstimator.EstimationState
@@ -49,6 +50,9 @@ struct TaskEditView: View {
         _selectedProject = State(initialValue: task.project)
         _notesText = State(initialValue: task.notes ?? "")
         _hasNotes = State(initialValue: !(task.notes ?? "").isEmpty)
+
+        // Initialize tags from task
+        _selectedTagIds = State(initialValue: Set(task.tags?.map { $0.id } ?? []))
 
         // Initialize grouped estimation state from task
         var estimationState = TaskEstimator.EstimationState(from: task)
@@ -82,7 +86,7 @@ struct TaskEditView: View {
                 hasEndDate: $hasEndDate,
                 endDate: $endDate,
                 priority: $task.priority,
-                selectedTagIds: $selectedTagIds, // Not used in edit mode
+                selectedTagIds: $selectedTagIds,
                 estimation: $estimation,
                 isSubtask: isSubtask,
                 parentTask: task.parentTask,
@@ -107,6 +111,10 @@ struct TaskEditView: View {
         // Only write to endDate (primary field), keep dueDate for backwards compatibility (read-only)
         task.startDate = hasStartDate ? startDate : nil
         task.endDate = hasEndDate ? endDate : nil
+
+        // Update tags
+        let selectedTags = allTags.filter { selectedTagIds.contains($0.id) }
+        task.tags = selectedTags.isEmpty ? nil : selectedTags
 
         // Process notes
         task.notes = TaskEstimator.processNotes(notesText)

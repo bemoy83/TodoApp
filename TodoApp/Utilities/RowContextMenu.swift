@@ -21,6 +21,7 @@ struct RowContextMenu: ViewModifier {
     // State for custom pickers
     @State private var showingCustomDatePicker = false
     @State private var showingCustomEstimatePicker = false
+    @State private var showingTagPicker = false
 
     func body(content: Content) -> some View {
         Group {
@@ -136,6 +137,13 @@ struct RowContextMenu: ViewModifier {
                         Label("Set Estimate", systemImage: "clock")
                     }
 
+                    // Manage Tags
+                    Button {
+                        showingTagPicker = true
+                    } label: {
+                        Label("Manage Tags", systemImage: "tag")
+                    }
+
                     // Add Subtask (only for parent tasks)
                     if task.parentTask == nil, let onAddSubtask {
                         Button {
@@ -198,6 +206,9 @@ struct RowContextMenu: ViewModifier {
         }
         .sheet(isPresented: $showingCustomEstimatePicker) {
             CustomEstimatePickerSheet(task: task)
+        }
+        .sheet(isPresented: $showingTagPicker) {
+            TagPickerSheet(task: task)
         }
     }
 
@@ -430,5 +441,14 @@ private struct CustomEstimatePickerSheet: View {
         } else {
             return "\(m)m"
         }
+    }
+}
+
+private struct TagPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Bindable var task: Task
+
+    var body: some View {
+        TagPickerView(task: task)
     }
 }

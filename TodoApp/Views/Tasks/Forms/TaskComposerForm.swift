@@ -115,12 +115,7 @@ struct TaskComposerForm: View {
                 dueDateSection
                 prioritySection
                 projectSection
-
-                // Only show tags section in creation mode (not editing)
-                if editingTask == nil {
-                    tagsSection
-                }
-
+                tagsSection
                 personnelSection
                 estimateSection
                     .id("estimateSection")
