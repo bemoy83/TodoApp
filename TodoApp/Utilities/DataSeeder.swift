@@ -149,4 +149,35 @@ struct DataSeeder {
             print("❌ Error linking tasks to templates: \(error)")
         }
     }
+
+    /// Migrates legacy dueDate to endDate for backwards compatibility
+    /// Copies dueDate to endDate for all tasks that have dueDate but no endDate
+    /// Safe to run multiple times (idempotent)
+    static func migrateDueDateToEndDate(context: ModelContext) {
+        let descriptor = FetchDescriptor<Task>()
+
+        do {
+            let tasks = try context.fetch(descriptor)
+
+            var migratedCount = 0
+
+            for task in tasks {
+                // Only migrate if task has dueDate but no endDate
+                if let dueDate = task.dueDate, task.endDate == nil {
+                    task.endDate = dueDate
+                    migratedCount += 1
+                }
+            }
+
+            if migratedCount > 0 {
+                try context.save()
+                print("✅ Migrated \(migratedCount) tasks from dueDate to endDate")
+            } else {
+                print("✅ No tasks need date migration")
+            }
+
+        } catch {
+            print("❌ Error migrating task dates: \(error)")
+        }
+    }
 }

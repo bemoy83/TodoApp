@@ -7,6 +7,12 @@ struct TodoApp: App {
 
     init() {
         do {
+            // Pre-create Application Support directory to prevent CoreData stat errors
+            let fileManager = FileManager.default
+            if let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+                try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
+            }
+
             // Create model container
             modelContainer = try ModelContainer(
                 for: Task.self, Project.self, TimeEntry.self, TaskTemplate.self, CustomUnit.self, Tag.self
@@ -23,6 +29,9 @@ struct TodoApp: App {
 
             // Link existing tasks to templates (safe to run multiple times)
             DataSeeder.linkTasksToTemplates(context: modelContainer.mainContext)
+
+            // Migrate legacy dueDate to endDate (safe to run multiple times)
+            DataSeeder.migrateDueDateToEndDate(context: modelContainer.mainContext)
 
         } catch {
             fatalError("Failed to initialize ModelContainer: \(error)")

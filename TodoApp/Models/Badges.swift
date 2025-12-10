@@ -316,24 +316,7 @@ struct TagBadge: View {
     }
 
     private var tagColor: Color {
-        switch tag.color {
-        case "blue": return .blue
-        case "purple": return .purple
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "green": return .green
-        case "red": return .red
-        case "cyan": return .cyan
-        case "teal": return .teal
-        case "brown": return .brown
-        case "indigo": return .indigo
-        case "pink": return .pink
-        case "mint": return .mint
-        case "gray": return .gray
-        case "black": return .black
-        case "white": return .white
-        default: return .gray
-        }
+        tag.colorValue
     }
 }
 
@@ -343,6 +326,7 @@ struct TagBadge: View {
 /// Shows organizational context without competing with critical info
 struct CompactTagSummary: View {
     let tags: [Tag]
+    var isHighlighted: Bool = false
 
     var body: some View {
         HStack(spacing: 4) {
@@ -352,6 +336,6 @@ struct CompactTagSummary: View {
                 .font(.caption)
                 .monospacedDigit()
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(isHighlighted ? .blue : .secondary)
     }
 }

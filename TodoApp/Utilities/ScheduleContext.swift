@@ -70,9 +70,12 @@ struct ScheduleContext {
 
     /// Create schedule context from a task
     static func from(task: Task) -> ScheduleContext {
-        ScheduleContext(
-            hasDueDate: task.dueDate != nil,
-            dueDate: task.dueDate ?? Date(),
+        // Use endDate (new) with fallback to dueDate (legacy) for backwards compatibility
+        let effectiveEnd = task.endDate ?? task.dueDate
+
+        return ScheduleContext(
+            hasDueDate: effectiveEnd != nil,
+            dueDate: effectiveEnd ?? Date(),
             hasStartDate: task.startDate != nil,
             startDate: task.startDate ?? Date(),
             hasEndDate: task.endDate != nil,

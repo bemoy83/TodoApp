@@ -75,8 +75,12 @@ struct TaskComposerForm: View {
         }
     }
 
+    private var parentStartDate: Date? {
+        parentTask?.startDate
+    }
+
     private var parentDueDate: Date? {
-        parentTask?.dueDate
+        parentTask?.effectiveDeadline
     }
 
     // Calculate subtask estimate total using @Query (avoids accessing relationships)
@@ -111,12 +115,7 @@ struct TaskComposerForm: View {
                 dueDateSection
                 prioritySection
                 projectSection
-
-                // Only show tags section in creation mode (not editing)
-                if editingTask == nil {
-                    tagsSection
-                }
-
+                tagsSection
                 personnelSection
                 estimateSection
                     .id("estimateSection")
@@ -212,7 +211,8 @@ struct TaskComposerForm: View {
             endDate: $endDate,
             showingValidationAlert: $showingDateValidationAlert,
             isSubtask: isSubtask,
-            parentDueDate: parentDueDate,
+            parentStartDate: parentStartDate,
+            parentEndDate: parentDueDate,
             selectedProject: selectedProject, // Real-time project conflict detection
             onDateChange: validateSubtaskDueDate
         )
@@ -432,23 +432,6 @@ private struct TagChip: View {
     }
 
     private var tagColor: Color {
-        switch tag.color {
-        case "blue": return .blue
-        case "purple": return .purple
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "green": return .green
-        case "red": return .red
-        case "cyan": return .cyan
-        case "teal": return .teal
-        case "brown": return .brown
-        case "indigo": return .indigo
-        case "pink": return .pink
-        case "mint": return .mint
-        case "gray": return .gray
-        case "black": return .black
-        case "white": return .white
-        default: return .gray
-        }
+        tag.colorValue
     }
 }

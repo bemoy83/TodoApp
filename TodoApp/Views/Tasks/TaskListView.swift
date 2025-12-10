@@ -67,24 +67,52 @@ struct TaskListView: View {
             result = result.filter { $0.status == .blocked }
         }
 
-        // Tag filtering with AND/OR logic
+        // Smart hierarchical tag filtering: includes parents if they OR their subtasks match
         if !selectedTagIds.isEmpty {
             result = result.filter { task in
-                guard let taskTags = task.tags else { return false }
-                let taskTagIds = Set(taskTags.map { $0.id })
-
-                switch tagFilterMode {
-                case .any:
-                    // OR logic: task has ANY of the selected tags
-                    return !selectedTagIds.isDisjoint(with: taskTagIds)
-                case .all:
-                    // AND logic: task has ALL selected tags
-                    return selectedTagIds.isSubset(of: taskTagIds)
-                }
+                // Include parent if:
+                // 1. Parent itself matches the tag filter, OR
+                // 2. Any subtask matches the tag filter
+                return taskMatchesTagFilter(task) || hasMatchingSubtask(task)
             }
         }
 
         return result
+    }
+
+    // MARK: - Tag Filtering Helpers
+
+    /// Check if a task matches the current tag filter
+    private func taskMatchesTagFilter(_ task: Task) -> Bool {
+        guard let taskTags = task.tags else { return false }
+        let taskTagIds = Set(taskTags.map { $0.id })
+
+        switch tagFilterMode {
+        case .any:
+            // OR logic: task has ANY of the selected tags
+            return !selectedTagIds.isDisjoint(with: taskTagIds)
+        case .all:
+            // AND logic: task has ALL selected tags
+            return selectedTagIds.isSubset(of: taskTagIds)
+        }
+    }
+
+    /// Check if any subtask matches the current tag filter
+    private func hasMatchingSubtask(_ parentTask: Task) -> Bool {
+        guard let subtasks = parentTask.subtasks, !subtasks.isEmpty else { return false }
+        return subtasks.contains { taskMatchesTagFilter($0) }
+    }
+
+    /// Count how many subtasks match the current tag filter
+    func matchingSubtaskCount(_ parentTask: Task) -> Int {
+        guard let subtasks = parentTask.subtasks, !subtasks.isEmpty else { return 0 }
+        return subtasks.filter { taskMatchesTagFilter($0) }.count
+    }
+
+    /// Get IDs of subtasks that match the current tag filter
+    private func matchingSubtaskIds(_ parentTask: Task) -> Set<UUID> {
+        guard let subtasks = parentTask.subtasks, !subtasks.isEmpty else { return [] }
+        return Set(subtasks.filter { taskMatchesTagFilter($0) }.map { $0.id })
     }
 
     private var selectedTags: [Tag] {
@@ -112,7 +140,11 @@ struct TaskListView: View {
                             TaskListRow(
                                 expansionState: expansionState,
                                 task: task,
-                                isEditMode: editMode == .active
+                                isEditMode: editMode == .active,
+                                isTagFilterActive: !selectedTagIds.isEmpty,
+                                taskMatchesFilter: selectedTagIds.isEmpty || taskMatchesTagFilter(task),
+                                matchingSubtaskCount: selectedTagIds.isEmpty ? 0 : matchingSubtaskCount(task),
+                                matchingSubtaskIds: selectedTagIds.isEmpty ? [] : matchingSubtaskIds(task)
                             )
                         }
                         .onMove { source, destination in
@@ -137,7 +169,11 @@ struct TaskListView: View {
                                 isSelected: selectedTasksForArchive.contains(task.id),
                                 onToggleSelection: {
                                     toggleSelection(for: task)
-                                }
+                                },
+                                isTagFilterActive: !selectedTagIds.isEmpty,
+                                taskMatchesFilter: selectedTagIds.isEmpty || taskMatchesTagFilter(task),
+                                matchingSubtaskCount: selectedTagIds.isEmpty ? 0 : matchingSubtaskCount(task),
+                                matchingSubtaskIds: selectedTagIds.isEmpty ? [] : matchingSubtaskIds(task)
                             )
                         }
                         .onMove { source, destination in
@@ -508,6 +544,12 @@ private struct TaskListRow: View {
     var isSelected: Bool = false
     var onToggleSelection: (() -> Void)? = nil
 
+    // Tag filtering context
+    var isTagFilterActive: Bool = false
+    var taskMatchesFilter: Bool = true
+    var matchingSubtaskCount: Int = 0
+    var matchingSubtaskIds: Set<UUID> = []
+
     @Query(filter: #Predicate<Task> { task in
         !task.isArchived
     }, sort: \Task.order) private var allTasks: [Task]
@@ -520,32 +562,56 @@ private struct TaskListRow: View {
         isEditMode && task.isCompleted && onToggleSelection != nil
     }
 
+    // Parent shown only for context (doesn't match but has matching subtasks)
+    private var isContextMatch: Bool {
+        isTagFilterActive && !taskMatchesFilter && matchingSubtaskCount > 0
+    }
+
     var body: some View {
         Group {
-            HStack(spacing: DesignSystem.Spacing.sm) {
-                // Selection checkbox for completed tasks in edit mode
-                if showSelectionUI {
-                    Button {
-                        onToggleSelection?()
-                    } label: {
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                            .font(.title3)
-                            .foregroundStyle(isSelected ? .blue : .gray)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    // Selection checkbox for completed tasks in edit mode
+                    if showSelectionUI {
+                        Button {
+                            onToggleSelection?()
+                        } label: {
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                .font(.title3)
+                                .foregroundStyle(isSelected ? .blue : .gray)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        TaskDetailView(task: task)
+                    } label: {
+                        TaskRowView(task: task, onOpen: { })
+                    }
+                    .disabled(isEditMode)
+                    .opacity(isContextMatch ? 0.6 : 1.0)  // Dim parent when shown for context
                 }
 
-                NavigationLink {
-                    TaskDetailView(task: task)
-                } label: {
-                    TaskRowView(task: task, onOpen: { })
+                // Show indicator when parent is displayed only for subtask matches
+                if isContextMatch {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.turn.down.right")
+                            .font(.caption2)
+                        Text("\(matchingSubtaskCount) subtask\(matchingSubtaskCount == 1 ? "" : "s") match filter")
+                            .font(.caption)
+                        Spacer()
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, showSelectionUI ? 52 : 16)
                 }
-                .disabled(isEditMode)
             }
 
             if expansionState.isExpanded(task.id), hasSubtasks {
-                TaskExpandedSubtasksView(parentTask: task)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                TaskExpandedSubtasksView(
+                    parentTask: task,
+                    highlightedSubtaskIds: matchingSubtaskIds
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }

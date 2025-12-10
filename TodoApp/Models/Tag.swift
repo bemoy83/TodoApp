@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import SwiftUI
 
 // MARK: - Tag Category Enum
 
@@ -210,5 +211,38 @@ extension Tag {
     /// Find system tag by name
     static func systemTag(named: String) -> Tag? {
         systemTags.first { $0.name == named }
+    }
+}
+
+// MARK: - Color Utilities
+
+extension Tag {
+    /// Converts tag color string to SwiftUI Color
+    /// Centralized color mapping to avoid duplication across views
+    var colorValue: Color {
+        Tag.color(from: color)
+    }
+
+    /// Static helper to convert color string to Color
+    /// Useful when working with color strings directly (e.g., in forms)
+    static func color(from colorName: String) -> Color {
+        switch colorName {
+        case "blue": return .blue
+        case "purple": return .purple
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "green": return .green
+        case "red": return .red
+        case "cyan": return .cyan
+        case "teal": return .teal
+        case "brown": return .brown
+        case "indigo": return .indigo
+        case "pink": return .pink
+        case "mint": return .mint
+        case "gray": return .gray
+        case "black": return .black
+        case "white": return .white
+        default: return .gray
+        }
     }
 }

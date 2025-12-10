@@ -5,13 +5,14 @@ import SwiftData
 struct TagManagementView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.editMode) private var editMode
     @Query(sort: \Tag.order) private var allTags: [Tag]
-    @Query private var allTasks: [Task]
 
     @State private var showingAddTag = false
     @State private var tagToEdit: Tag?
     @State private var tagToDelete: Tag?
     @State private var showingDeleteAlert = false
+    @State private var showingRestoreAlert = false
 
     var showDismissButton: Bool = false
 
@@ -26,13 +27,11 @@ struct TagManagementView: View {
                         ForEach(categoryTags) { tag in
                             TagRow(tag: tag, taskCount: taskCount(for: tag))
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    if !tag.isSystem {
-                                        Button(role: .destructive) {
-                                            tagToDelete = tag
-                                            showingDeleteAlert = true
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
+                                    Button(role: .destructive) {
+                                        tagToDelete = tag
+                                        showingDeleteAlert = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
 
                                     Button {
@@ -49,15 +48,16 @@ struct TagManagementView: View {
                                         Label("Edit Tag", systemImage: "pencil")
                                     }
 
-                                    if !tag.isSystem {
-                                        Button(role: .destructive) {
-                                            tagToDelete = tag
-                                            showingDeleteAlert = true
-                                        } label: {
-                                            Label("Delete Tag", systemImage: "trash")
-                                        }
+                                    Button(role: .destructive) {
+                                        tagToDelete = tag
+                                        showingDeleteAlert = true
+                                    } label: {
+                                        Label("Delete Tag", systemImage: "trash")
                                     }
                                 }
+                        }
+                        .onMove { indices, newOffset in
+                            moveTag(in: category, from: indices, to: newOffset)
                         }
                     } header: {
                         HStack(spacing: 6) {
@@ -98,7 +98,23 @@ struct TagManagementView: View {
         }
         .navigationTitle("Tags")
         .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                if !allTags.isEmpty {
+                    EditButton()
+                }
+            }
+
             ToolbarItemGroup(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        showingRestoreAlert = true
+                    } label: {
+                        Label("Restore System Tags", systemImage: "arrow.clockwise")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+
                 if showDismissButton {
                     Button("Done") {
                         dismiss()
@@ -128,12 +144,28 @@ struct TagManagementView: View {
         } message: {
             if let tag = tagToDelete {
                 let count = taskCount(for: tag)
-                if count > 0 {
-                    Text("This tag is used by \(count) task(s). Deleting it will remove the tag from those tasks.")
+                if tag.isSystem {
+                    if count > 0 {
+                        Text("This is a system tag used by \(count) task(s). You can restore it later using 'Restore System Tags'.")
+                    } else {
+                        Text("This is a system tag. You can restore it later using 'Restore System Tags'.")
+                    }
                 } else {
-                    Text("Are you sure you want to delete this tag? This action cannot be undone.")
+                    if count > 0 {
+                        Text("This tag is used by \(count) task(s). Deleting it will remove the tag from those tasks.")
+                    } else {
+                        Text("Are you sure you want to delete this tag? This action cannot be undone.")
+                    }
                 }
             }
+        }
+        .alert("Restore System Tags?", isPresented: $showingRestoreAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Restore") {
+                restoreSystemTags()
+            }
+        } message: {
+            Text("This will restore any missing system tags for event management. Existing tags will not be affected.")
         }
     }
 
@@ -146,9 +178,8 @@ struct TagManagementView: View {
     }
 
     private func taskCount(for tag: Tag) -> Int {
-        allTasks.filter { task in
-            task.tags?.contains(where: { $0.id == tag.id }) ?? false
-        }.count
+        // Use SwiftData relationship for O(1) access instead of O(n) iteration
+        tag.tasks?.count ?? 0
     }
 
     // MARK: - Actions
@@ -158,6 +189,62 @@ struct TagManagementView: View {
         modelContext.delete(tag)
         try? modelContext.save()
         HapticManager.success()
+    }
+
+    private func moveTag(in category: TagCategory, from source: IndexSet, to destination: Int) {
+        // Get mutable copy of tags in this category
+        var categoryTags = tags(for: category)
+
+        // Perform the move
+        categoryTags.move(fromOffsets: source, toOffset: destination)
+
+        // Update order values to reflect new positions
+        for (index, tag) in categoryTags.enumerated() {
+            tag.order = index
+        }
+
+        // Save changes
+        do {
+            try modelContext.save()
+            HapticManager.light()
+        } catch {
+            print("Error saving tag order: \(error)")
+        }
+    }
+
+    private func restoreSystemTags() {
+        // Get existing tag names
+        let existingTagNames = Set(allTags.map { $0.name })
+
+        // Find missing system tags
+        let missingTags = Tag.systemTags.filter { !existingTagNames.contains($0.name) }
+
+        guard !missingTags.isEmpty else {
+            print("No missing system tags to restore")
+            return
+        }
+
+        // Insert missing tags
+        for systemTag in missingTags {
+            let newTag = Tag(
+                name: systemTag.name,
+                icon: systemTag.icon,
+                color: systemTag.color,
+                category: systemTag.category,
+                isSystem: true,
+                order: systemTag.order
+            )
+            modelContext.insert(newTag)
+        }
+
+        // Save changes
+        do {
+            try modelContext.save()
+            HapticManager.success()
+            print("✅ Restored \(missingTags.count) system tag(s)")
+        } catch {
+            print("❌ Error restoring system tags: \(error)")
+        }
     }
 }
 
@@ -205,24 +292,7 @@ private struct TagRow: View {
     }
 
     private var tagColor: Color {
-        switch tag.color {
-        case "blue": return .blue
-        case "purple": return .purple
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "green": return .green
-        case "red": return .red
-        case "cyan": return .cyan
-        case "teal": return .teal
-        case "brown": return .brown
-        case "indigo": return .indigo
-        case "pink": return .pink
-        case "mint": return .mint
-        case "gray": return .gray
-        case "black": return .black
-        case "white": return .white
-        default: return .gray
-        }
+        tag.colorValue
     }
 }
 

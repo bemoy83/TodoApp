@@ -168,24 +168,7 @@ struct TagFormView: View {
     // MARK: - Helpers
 
     private var selectedColor: Color {
-        switch color {
-        case "blue": return .blue
-        case "purple": return .purple
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "green": return .green
-        case "red": return .red
-        case "cyan": return .cyan
-        case "teal": return .teal
-        case "brown": return .brown
-        case "indigo": return .indigo
-        case "pink": return .pink
-        case "mint": return .mint
-        case "gray": return .gray
-        case "black": return .black
-        case "white": return .white
-        default: return .gray
-        }
+        Tag.color(from: color)
     }
 
     // MARK: - Actions
@@ -244,24 +227,7 @@ private struct ColorCircle: View {
     }
 
     private var displayColor: Color {
-        switch colorName {
-        case "blue": return .blue
-        case "purple": return .purple
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "green": return .green
-        case "red": return .red
-        case "cyan": return .cyan
-        case "teal": return .teal
-        case "brown": return .brown
-        case "indigo": return .indigo
-        case "pink": return .pink
-        case "mint": return .mint
-        case "gray": return .gray
-        case "black": return .black
-        case "white": return .white
-        default: return .gray
-        }
+        Tag.color(from: colorName)
     }
 }
 

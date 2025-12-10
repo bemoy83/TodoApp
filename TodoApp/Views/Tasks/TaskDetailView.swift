@@ -10,13 +10,9 @@ struct TaskDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     @Bindable var task: Task
-    @Query(filter: #Predicate<Task> { task in
-        !task.isArchived
-    }) private var allTasks: [Task]
 
     @State private var showingEditSheet = false
     @State private var showingMoreSheet = false
-    @State private var notesExpanded: Bool
 
     // NEW: central alert state for executor-backed alerts
     @State private var currentAlert: TaskActionAlert?
@@ -25,9 +21,6 @@ struct TaskDetailView: View {
 
     init(task: Task) {
         self.task = task
-        // Preserve your old behavior: auto-expand short notes
-        let notesLength = task.notes?.count ?? 0
-        _notesExpanded = State(initialValue: notesLength > 0 && notesLength <= 100)
     }
 
     var body: some View {
@@ -54,7 +47,7 @@ struct TaskDetailView: View {
 
                 TaskSubtasksView(task: task)
 
-                TaskDependenciesView(task: task, allTasks: allTasks)
+                TaskDependenciesView(task: task)
             }
             .padding(DesignSystem.Spacing.lg)
         }

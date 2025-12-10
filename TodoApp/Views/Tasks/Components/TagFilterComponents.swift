@@ -31,24 +31,7 @@ struct TagFilterChip: View {
     }
 
     private var tagColor: Color {
-        switch tag.color {
-        case "blue": return .blue
-        case "purple": return .purple
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "green": return .green
-        case "red": return .red
-        case "cyan": return .cyan
-        case "teal": return .teal
-        case "brown": return .brown
-        case "indigo": return .indigo
-        case "pink": return .pink
-        case "mint": return .mint
-        case "gray": return .gray
-        case "black": return .black
-        case "white": return .white
-        default: return .gray
-        }
+        tag.colorValue
     }
 }
 
@@ -234,23 +217,6 @@ private struct TagFilterRow: View {
     }
 
     private var tagColor: Color {
-        switch tag.color {
-        case "blue": return .blue
-        case "purple": return .purple
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "green": return .green
-        case "red": return .red
-        case "cyan": return .cyan
-        case "teal": return .teal
-        case "brown": return .brown
-        case "indigo": return .indigo
-        case "pink": return .pink
-        case "mint": return .mint
-        case "gray": return .gray
-        case "black": return .black
-        case "white": return .white
-        default: return .gray
-        }
+        tag.colorValue
     }
 }
