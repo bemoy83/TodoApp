@@ -196,7 +196,7 @@ struct TaskDetailView: View {
 
         // Add time spent
         if let totalTime = task.totalTimeSpent, totalTime > 0 {
-            text = totalTime.formattedTime
+            text = totalTime.formattedTime()
         } else {
             text = "No time tracked"
         }
