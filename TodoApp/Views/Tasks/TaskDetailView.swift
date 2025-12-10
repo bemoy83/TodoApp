@@ -275,7 +275,8 @@ struct TaskDetailView: View {
         let entryCount = task.timeEntries?.count ?? 0
         if entryCount > 0 {
             let summaryText: String = {
-                var text = "\(entryCount) \(entryCount == 1 ? "entry" : "entries")"
+                let entryWord = entryCount == 1 ? "entry" : "entries"
+                var text = "\(entryCount) \(entryWord)"
 
                 // Add last entry time if available
                 if let lastEntry = task.timeEntries?.sorted(by: { $0.startTime > $1.startTime }).first {
