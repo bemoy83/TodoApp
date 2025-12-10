@@ -17,19 +17,58 @@ struct TaskDetailView: View {
     // NEW: central alert state for executor-backed alerts
     @State private var currentAlert: TaskActionAlert?
 
-    // Collapsible section states
-    @State private var isTimeTrackingExpanded = true
-    @State private var isPersonnelExpanded = false
-    @State private var isQuantityExpanded = false
-    @State private var isTagsExpanded = false
-    @State private var isEntriesExpanded = false
-    @State private var isSubtasksExpanded = false
-    @State private var isDependenciesExpanded = false
+    // Collapsible section states with smart defaults
+    @State private var isTimeTrackingExpanded: Bool
+    @State private var isPersonnelExpanded: Bool
+    @State private var isQuantityExpanded: Bool
+    @State private var isTagsExpanded: Bool
+    @State private var isEntriesExpanded: Bool
+    @State private var isSubtasksExpanded: Bool
+    @State private var isDependenciesExpanded: Bool
 
     private let router = TaskActionRouter()
 
     init(task: Task) {
         self.task = task
+
+        // Smart defaults based on task state
+        if task.hasActiveTimer {
+            // Execution mode - focus on time tracking
+            _isTimeTrackingExpanded = State(initialValue: true)
+            _isPersonnelExpanded = State(initialValue: false)
+            _isQuantityExpanded = State(initialValue: false)
+            _isTagsExpanded = State(initialValue: false)
+            _isEntriesExpanded = State(initialValue: true) // Show accumulating entries
+            _isSubtasksExpanded = State(initialValue: false)
+            _isDependenciesExpanded = State(initialValue: false)
+        } else if task.isCompleted {
+            // Review mode - show results
+            _isTimeTrackingExpanded = State(initialValue: true)
+            _isPersonnelExpanded = State(initialValue: false)
+            _isQuantityExpanded = State(initialValue: false)
+            _isTagsExpanded = State(initialValue: false)
+            _isEntriesExpanded = State(initialValue: (task.timeEntries?.count ?? 0) > 0) // Show if has entries
+            _isSubtasksExpanded = State(initialValue: false)
+            _isDependenciesExpanded = State(initialValue: false)
+        } else if (task.subtasks?.count ?? 0) > 0 || (task.dependsOn?.count ?? 0) > 0 {
+            // Planning mode with structure - show work breakdown
+            _isTimeTrackingExpanded = State(initialValue: false)
+            _isPersonnelExpanded = State(initialValue: task.expectedPersonnelCount != nil)
+            _isQuantityExpanded = State(initialValue: task.unit != .none)
+            _isTagsExpanded = State(initialValue: false)
+            _isEntriesExpanded = State(initialValue: false)
+            _isSubtasksExpanded = State(initialValue: true) // Show work structure
+            _isDependenciesExpanded = State(initialValue: (task.dependsOn?.count ?? 0) > 0)
+        } else {
+            // Default mode - show essentials
+            _isTimeTrackingExpanded = State(initialValue: true)
+            _isPersonnelExpanded = State(initialValue: task.expectedPersonnelCount != nil)
+            _isQuantityExpanded = State(initialValue: task.unit != .none)
+            _isTagsExpanded = State(initialValue: false)
+            _isEntriesExpanded = State(initialValue: false)
+            _isSubtasksExpanded = State(initialValue: false)
+            _isDependenciesExpanded = State(initialValue: false)
+        }
     }
 
     var body: some View {
