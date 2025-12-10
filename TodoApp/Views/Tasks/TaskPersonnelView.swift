@@ -20,13 +20,6 @@ struct TaskPersonnelView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            // Section header
-            Text("Personnel")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.horizontal)
-
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                 // Three states: direct assignment, calculated from subtasks, or empty
                 if let direct = task.expectedPersonnelCount {

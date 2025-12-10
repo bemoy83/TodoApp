@@ -17,6 +17,15 @@ struct TaskDetailView: View {
     // NEW: central alert state for executor-backed alerts
     @State private var currentAlert: TaskActionAlert?
 
+    // Collapsible section states
+    @State private var isTimeTrackingExpanded = true
+    @State private var isPersonnelExpanded = false
+    @State private var isQuantityExpanded = false
+    @State private var isTagsExpanded = false
+    @State private var isEntriesExpanded = false
+    @State private var isSubtasksExpanded = false
+    @State private var isDependenciesExpanded = false
+
     private let router = TaskActionRouter()
 
     init(task: Task) {
@@ -31,23 +40,67 @@ struct TaskDetailView: View {
                 TaskDetailHeaderView(task: task)
 
                 // Time tracking remains the canonical place for timer controls
-                TaskTimeTrackingView(task: task)
+                DetailSectionDisclosure(
+                    title: "Time Tracking",
+                    icon: "clock",
+                    isExpanded: $isTimeTrackingExpanded,
+                    summary: { timeTrackingSummary },
+                    content: { TaskTimeTrackingView(task: task) }
+                )
 
                 // Personnel planning and tracking
-                TaskPersonnelView(task: task)
+                DetailSectionDisclosure(
+                    title: "Personnel",
+                    icon: "person.2.fill",
+                    isExpanded: $isPersonnelExpanded,
+                    summary: { personnelSummary },
+                    content: { TaskPersonnelView(task: task) }
+                )
 
                 // Quantity tracking for productivity measurement
-                TaskQuantityView(task: task)
+                DetailSectionDisclosure(
+                    title: "Quantity",
+                    icon: "number",
+                    isExpanded: $isQuantityExpanded,
+                    summary: { quantitySummary },
+                    content: { TaskQuantityView(task: task) }
+                )
 
                 // Tags for organization and filtering
-                TaskTagsView(task: task)
+                DetailSectionDisclosure(
+                    title: "Tags",
+                    icon: "tag",
+                    isExpanded: $isTagsExpanded,
+                    summary: { tagsSummary },
+                    content: { TaskTagsView(task: task) }
+                )
 
                 // Time entries management
-                TimeEntriesView(task: task)
+                DetailSectionDisclosure(
+                    title: "Time Entries",
+                    icon: "list.bullet.clipboard",
+                    isExpanded: $isEntriesExpanded,
+                    summary: { entriesSummary },
+                    content: { TimeEntriesView(task: task) }
+                )
 
-                TaskSubtasksView(task: task)
+                // Subtasks
+                DetailSectionDisclosure(
+                    title: "Subtasks",
+                    icon: "list.bullet.indent",
+                    isExpanded: $isSubtasksExpanded,
+                    summary: { subtasksSummary },
+                    content: { TaskSubtasksView(task: task) }
+                )
 
-                TaskDependenciesView(task: task)
+                // Dependencies
+                DetailSectionDisclosure(
+                    title: "Dependencies",
+                    icon: "link",
+                    isExpanded: $isDependenciesExpanded,
+                    summary: { dependenciesSummary },
+                    content: { TaskDependenciesView(task: task) }
+                )
             }
             .padding(DesignSystem.Spacing.lg)
         }
@@ -95,5 +148,144 @@ struct TaskDetailView: View {
         }
         // Present any alerts triggered from this view (e.g., edit intent if it ever alerts)
         .taskActionAlert(alert: $currentAlert)
+    }
+
+    // MARK: - Summary Badge Helpers
+
+    @ViewBuilder
+    private var timeTrackingSummary: some View {
+        HStack(spacing: 4) {
+            if let totalTime = task.totalTimeSpent, totalTime > 0 {
+                Text(totalTime.formattedTime)
+            } else {
+                Text("No time tracked")
+            }
+
+            if let estimate = task.effectiveEstimate {
+                Text("•")
+                let progress = Double(task.totalTimeSpent ?? 0) / Double(estimate)
+                Text("\(Int(progress * 100))%")
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    @ViewBuilder
+    private var personnelSummary: some View {
+        if let count = task.expectedPersonnelCount {
+            Text("\(count) \(count == 1 ? "person" : "people")")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else {
+            Text("Not set")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    @ViewBuilder
+    private var quantitySummary: some View {
+        if task.unit != .none, let quantity = task.quantity {
+            Text("\(Int(quantity)) \(task.unit.symbol)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else {
+            Text("Not set")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    @ViewBuilder
+    private var tagsSummary: some View {
+        let tagCount = task.tags?.count ?? 0
+        if tagCount > 0 {
+            HStack(spacing: 4) {
+                ForEach(task.tags?.prefix(2) ?? [], id: \.self) { tag in
+                    Text(tag.name)
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color(hex: tag.color).opacity(0.2))
+                        .foregroundStyle(Color(hex: tag.color))
+                        .cornerRadius(4)
+                }
+                if tagCount > 2 {
+                    Text("+\(tagCount - 2)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        } else {
+            Text("No tags")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    @ViewBuilder
+    private var entriesSummary: some View {
+        let entryCount = task.timeEntries?.count ?? 0
+        if entryCount > 0 {
+            HStack(spacing: 4) {
+                Text("\(entryCount) \(entryCount == 1 ? "entry" : "entries")")
+
+                // Show last entry time
+                if let lastEntry = task.timeEntries?.sorted(by: { $0.startTime > $1.startTime }).first {
+                    Text("•")
+                    let timeAgo = Date().timeIntervalSince(lastEntry.startTime)
+                    if timeAgo < 3600 {
+                        Text("\(Int(timeAgo / 60))m ago")
+                    } else if timeAgo < 86400 {
+                        Text("\(Int(timeAgo / 3600))h ago")
+                    } else {
+                        Text("\(Int(timeAgo / 86400))d ago")
+                    }
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        } else {
+            Text("No entries")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    @ViewBuilder
+    private var subtasksSummary: some View {
+        let subtaskCount = task.subtasks?.count ?? 0
+        if subtaskCount > 0 {
+            let completedCount = task.subtasks?.filter { $0.isCompleted }.count ?? 0
+            Text("\(completedCount)/\(subtaskCount) completed")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else {
+            Text("No subtasks")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    @ViewBuilder
+    private var dependenciesSummary: some View {
+        let blockingCount = task.blockingDependencies.count
+        if blockingCount > 0 {
+            Text("\(blockingCount) blocking")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        } else {
+            let totalDeps = (task.blockedBy?.count ?? 0) + (task.blocking?.count ?? 0)
+            if totalDeps > 0 {
+                Text("\(totalDeps) \(totalDeps == 1 ? "dependency" : "dependencies")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("None")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
     }
 }

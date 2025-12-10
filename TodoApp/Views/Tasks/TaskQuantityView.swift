@@ -12,13 +12,6 @@ struct TaskQuantityView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            // Section header
-            Text("Quantity Tracking")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.horizontal)
-
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                 // Task Type display
                 if let taskType = task.taskType {

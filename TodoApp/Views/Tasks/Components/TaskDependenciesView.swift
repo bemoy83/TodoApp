@@ -40,17 +40,12 @@ struct TaskDependenciesView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            // Section header with edit button
-            HStack {
-                Text("Dependencies")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
+            // Edit button (if has dependencies)
+            if !isSubtask || enableDependencies {
+                if let deps = task.dependsOn, !deps.isEmpty {
+                    HStack {
+                        Spacer()
 
-                Spacer()
-
-                if !isSubtask || enableDependencies {
-                    if let deps = task.dependsOn, !deps.isEmpty {
                         Button(isEditingDependencies ? "Done" : "Edit") {
                             isEditingDependencies.toggle()
                             HapticManager.selection()
@@ -58,9 +53,9 @@ struct TaskDependenciesView: View {
                         .font(.subheadline)
                         .foregroundStyle(.blue)
                     }
+                    .padding(.horizontal)
                 }
             }
-            .padding(.horizontal)
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
                 // Toggle for subtasks (now persisted)
