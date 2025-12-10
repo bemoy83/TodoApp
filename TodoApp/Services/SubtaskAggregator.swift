@@ -1,6 +1,6 @@
 import SwiftUI
 import SwiftData
-import Combine
+internal import Combine
 
 /// Aggregator service that caches recursive subtask calculations to improve performance
 /// Solves O(n²) complexity issues when computing total time, personnel counts, etc. across deep subtask hierarchies
