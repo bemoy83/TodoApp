@@ -220,7 +220,8 @@ struct TaskDetailView: View {
     @ViewBuilder
     private var personnelSummary: some View {
         if let count = task.expectedPersonnelCount {
-            Text("\(count) \(count == 1 ? "person" : "people")")
+            let personWord = count == 1 ? "person" : "people"
+            Text("\(count) \(personWord)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         } else {
@@ -327,7 +328,8 @@ struct TaskDetailView: View {
         } else {
             let totalDeps = (task.dependsOn?.count ?? 0) + (task.blockedBy?.count ?? 0)
             if totalDeps > 0 {
-                Text("\(totalDeps) \(totalDeps == 1 ? "dependency" : "dependencies")")
+                let depWord = totalDeps == 1 ? "dependency" : "dependencies"
+                Text("\(totalDeps) \(depWord)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
