@@ -226,7 +226,7 @@ struct TaskDetailView: View {
     @ViewBuilder
     private var quantitySummary: some View {
         if task.unit != .none, let quantity = task.quantity {
-            Text("\(Int(quantity)) \(task.unit.symbol)")
+            Text("\(Int(quantity)) \(task.unit.rawValue)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         } else {
@@ -267,24 +267,26 @@ struct TaskDetailView: View {
     private var entriesSummary: some View {
         let entryCount = task.timeEntries?.count ?? 0
         if entryCount > 0 {
-            HStack(spacing: 4) {
-                Text("\(entryCount) \(entryCount == 1 ? "entry" : "entries")")
+            let summaryText: String = {
+                var text = "\(entryCount) \(entryCount == 1 ? "entry" : "entries")"
 
-                // Show last entry time
+                // Add last entry time if available
                 if let lastEntry = task.timeEntries?.sorted(by: { $0.startTime > $1.startTime }).first {
-                    Text("•")
                     let timeAgo = Date().timeIntervalSince(lastEntry.startTime)
                     if timeAgo < 3600 {
-                        Text("\(Int(timeAgo / 60))m ago")
+                        text += " • \(Int(timeAgo / 60))m ago"
                     } else if timeAgo < 86400 {
-                        Text("\(Int(timeAgo / 3600))h ago")
+                        text += " • \(Int(timeAgo / 3600))h ago"
                     } else {
-                        Text("\(Int(timeAgo / 86400))d ago")
+                        text += " • \(Int(timeAgo / 86400))d ago"
                     }
                 }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+                return text
+            }()
+
+            Text(summaryText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         } else {
             Text("No entries")
                 .font(.caption)
@@ -315,7 +317,7 @@ struct TaskDetailView: View {
                 .font(.caption)
                 .foregroundStyle(.orange)
         } else {
-            let totalDeps = (task.blockedBy?.count ?? 0) + (task.blocking?.count ?? 0)
+            let totalDeps = (task.dependsOn?.count ?? 0) + (task.blockedBy?.count ?? 0)
             if totalDeps > 0 {
                 Text("\(totalDeps) \(totalDeps == 1 ? "dependency" : "dependencies")")
                     .font(.caption)
