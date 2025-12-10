@@ -10,6 +10,13 @@ struct TaskPersonnelView: View {
 
     @State private var showingPersonnelPicker = false
     @State private var selectedCount: Int = 1
+    @State private var saveError: TaskActionAlert?
+    @StateObject private var aggregator = SubtaskAggregator()
+
+    // Use aggregated stats for performance
+    private var stats: SubtaskAggregator.AggregatedStats {
+        aggregator.getStats(for: task, allTasks: allTasks, currentTime: Date())
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
@@ -175,8 +182,8 @@ struct TaskPersonnelView: View {
                         .padding(.horizontal)
 
                     PersonHoursSection(
-                        totalPersonHours: computeTotalPersonHours(),
-                        directPersonHours: computeDirectPersonHours(),
+                        totalPersonHours: stats.totalPersonHours,
+                        directPersonHours: stats.directPersonHours,
                         hasSubtasks: hasSubtasks
                     )
                 }
@@ -188,16 +195,35 @@ struct TaskPersonnelView: View {
                 selectedCount: $selectedCount,
                 onSave: {
                     task.expectedPersonnelCount = selectedCount
-                    try? task.modelContext?.save()
-                    HapticManager.success()
+                    do {
+                        try task.modelContext?.save()
+                        aggregator.invalidate(taskId: task.id)
+                        HapticManager.success()
+                    } catch {
+                        saveError = TaskActionAlert(
+                            title: "Save Failed",
+                            message: "Could not save personnel count: \(error.localizedDescription)",
+                            actions: [AlertAction(title: "OK", role: .cancel, action: {})]
+                        )
+                    }
                 },
                 onRemove: task.expectedPersonnelCount != nil ? {
                     task.expectedPersonnelCount = nil
-                    try? task.modelContext?.save()
-                    HapticManager.success()
+                    do {
+                        try task.modelContext?.save()
+                        aggregator.invalidate(taskId: task.id)
+                        HapticManager.success()
+                    } catch {
+                        saveError = TaskActionAlert(
+                            title: "Save Failed",
+                            message: "Could not remove personnel assignment: \(error.localizedDescription)",
+                            actions: [AlertAction(title: "OK", role: .cancel, action: {})]
+                        )
+                    }
                 } : nil
             )
         }
+        .taskActionAlert(alert: $saveError)
     }
 
     // MARK: - Computed Properties
@@ -313,11 +339,11 @@ struct TaskPersonnelView: View {
     // MARK: - Personnel Statistics
 
     private func computeActualPersonnelStats() -> PersonnelStats? {
-        let directCounts = getDirectPersonnelCounts()
-        let subtaskCounts = getSubtaskPersonnelCounts()
-        let allCounts = directCounts + subtaskCounts
-
+        // Use aggregator for personnel counts (includes all subtasks)
+        let allCounts = stats.personnelCounts
         guard !allCounts.isEmpty else { return nil }
+
+        let directCounts = task.timeEntries?.map { $0.personnelCount } ?? []
 
         let min = allCounts.min() ?? 1
         let max = allCounts.max() ?? 1
@@ -330,33 +356,8 @@ struct TaskPersonnelView: View {
             mostCommon: mostCommon,
             average: average,
             hasDirectEntries: !directCounts.isEmpty,
-            hasSubtaskEntries: !subtaskCounts.isEmpty
+            hasSubtaskEntries: allCounts.count > directCounts.count
         )
-    }
-
-    private func getDirectPersonnelCounts() -> [Int] {
-        guard let entries = task.timeEntries else { return [] }
-        return entries.map { $0.personnelCount }
-    }
-
-    private func getSubtaskPersonnelCounts() -> [Int] {
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        return collectPersonnelCounts(from: subtasks)
-    }
-
-    private func collectPersonnelCounts(from subtasks: [Task]) -> [Int] {
-        var counts: [Int] = []
-
-        for subtask in subtasks {
-            if let entries = subtask.timeEntries {
-                counts.append(contentsOf: entries.map { $0.personnelCount })
-            }
-
-            let nestedSubtasks = allTasks.filter { $0.parentTask?.id == subtask.id }
-            counts.append(contentsOf: collectPersonnelCounts(from: nestedSubtasks))
-        }
-
-        return counts
     }
 
     private func mostFrequent(in numbers: [Int]) -> Int {
@@ -364,41 +365,7 @@ struct TaskPersonnelView: View {
         return counts.max { $0.value < $1.value }?.key ?? 1
     }
 
-    // MARK: - Person-Hours Calculations
-
-    private func computeDirectPersonHours() -> Double {
-        guard let entries = task.timeEntries else { return 0.0 }
-
-        return entries.reduce(0.0) { total, entry in
-            total + TimeEntryManager.calculatePersonHours(for: entry)
-        }
-    }
-
-    private func computeTotalPersonHours() -> Double {
-        var total = computeDirectPersonHours()
-
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        for subtask in subtasks {
-            total += computePersonHours(for: subtask)
-        }
-
-        return total
-    }
-
-    private func computePersonHours(for task: Task) -> Double {
-        guard let entries = task.timeEntries else { return 0.0 }
-
-        var totalPersonHours = entries.reduce(0.0) { total, entry in
-            total + TimeEntryManager.calculatePersonHours(for: entry)
-        }
-
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        for subtask in subtasks {
-            totalPersonHours += computePersonHours(for: subtask)
-        }
-
-        return totalPersonHours
-    }
+    // Removed recursive personnel calculations - now using SubtaskAggregator for performance
 }
 
 // MARK: - Supporting Types

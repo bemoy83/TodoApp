@@ -8,6 +8,7 @@ struct TaskQuantityView: View {
     @State private var showingQuantityPicker = false
     @State private var editedQuantity: String = ""
     @State private var editedUnit: UnitType = .none
+    @State private var saveError: TaskActionAlert?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
@@ -200,17 +201,34 @@ struct TaskQuantityView: View {
                         task.quantity = nil
                         task.unit = .none
                     }
-                    try? task.modelContext?.save()
-                    HapticManager.success()
+                    do {
+                        try task.modelContext?.save()
+                        HapticManager.success()
+                    } catch {
+                        saveError = TaskActionAlert(
+                            title: "Save Failed",
+                            message: "Could not save quantity: \(error.localizedDescription)",
+                            actions: [AlertAction(title: "OK", role: .cancel, action: {})]
+                        )
+                    }
                 },
                 onRemove: (task.unit != .none || task.quantity != nil) ? {
                     task.quantity = nil
                     task.unit = .none
-                    try? task.modelContext?.save()
-                    HapticManager.success()
+                    do {
+                        try task.modelContext?.save()
+                        HapticManager.success()
+                    } catch {
+                        saveError = TaskActionAlert(
+                            title: "Save Failed",
+                            message: "Could not remove quantity tracking: \(error.localizedDescription)",
+                            actions: [AlertAction(title: "OK", role: .cancel, action: {})]
+                        )
+                    }
                 } : nil
             )
         }
+        .taskActionAlert(alert: $saveError)
     }
 
     // MARK: - Helper Methods

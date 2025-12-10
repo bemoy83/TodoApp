@@ -17,10 +17,17 @@ struct TaskTimeTrackingView: View {
     }
 
     @State private var currentTime = Date()
-    
+    @StateObject private var aggregator = SubtaskAggregator()
+
     init(task: Task, alert: Binding<TaskActionAlert?>? = nil) {
         self._task = Bindable(wrappedValue: task)
         self.externalAlert = alert
+    }
+
+    // MARK: - Aggregated Stats
+
+    private var stats: SubtaskAggregator.AggregatedStats {
+        aggregator.getStats(for: task, allTasks: allTasks, currentTime: currentTime)
     }
 
     var body: some View {
@@ -78,51 +85,7 @@ struct TaskTimeTrackingView: View {
         .taskActionAlert(alert: alertBinding)
     }
 
-    // MARK: - Computed Properties
-    
-    private var computedTotalTimeSpent: Int {
-        var total = task.directTimeSpent
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        for subtask in subtasks {
-            total += computeTotalTime(for: subtask)
-        }
-        return total
-    }
-    
-    private func computeTotalTime(for task: Task) -> Int {
-        var total = task.directTimeSpent
-        
-        if task.hasActiveTimer {
-            if let activeEntry = task.timeEntries?.first(where: { $0.endTime == nil }) {
-                let elapsed = currentTime.timeIntervalSince(activeEntry.startTime)
-                let minutes = Int(elapsed / 60)
-                total += max(0, minutes)
-            }
-        }
-        
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        for subtask in subtasks {
-            total += computeTotalTime(for: subtask)
-        }
-        return max(0, total)
-    }
-    
-    private func computeTotalTimeSeconds(for task: Task) -> Int {
-        var total = task.directTimeSpent  // Already in seconds!
-
-        if task.hasActiveTimer {
-            if let activeEntry = task.timeEntries?.first(where: { $0.endTime == nil }) {
-                let elapsed = currentTime.timeIntervalSince(activeEntry.startTime)
-                total += max(0, Int(elapsed))
-            }
-        }
-
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        for subtask in subtasks {
-            total += computeTotalTimeSeconds(for: subtask)
-        }
-        return max(0, total)
-    }
+    // MARK: - Computed Properties (using SubtaskAggregator)
     
     // MARK: - Timer Status
 
@@ -153,34 +116,19 @@ struct TaskTimeTrackingView: View {
     }
 
     private var displayedTotalTimeSeconds: Int {
-        var total = task.directTimeSpent  // Already in seconds!
-
-        if task.hasActiveTimer {
-            total += currentSessionSeconds
-        }
-
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        for subtask in subtasks {
-            total += computeTotalTimeSeconds(for: subtask)
-        }
-
-        return max(0, total)
+        stats.totalTimeSeconds
     }
-    
+
     private var displayedTotalTime: Int {
-        return displayedTotalTimeSeconds / 60
+        displayedTotalTimeSeconds / 60
     }
 
     private var displayedDirectTimeSeconds: Int {
-        var totalSeconds = task.directTimeSpent  // Already in seconds!
-        if task.hasActiveTimer {
-            totalSeconds += currentSessionSeconds
-        }
-        return totalSeconds
+        stats.directTimeSeconds
     }
 
     private var displayedDirectTime: Int {
-        return displayedDirectTimeSeconds / 60
+        displayedDirectTimeSeconds / 60
     }
 
     private var currentSessionSeconds: Int {
@@ -193,82 +141,18 @@ struct TaskTimeTrackingView: View {
         return max(0, Int(elapsed))
     }
 
-    // MARK: - Person-Hours Calculations
+    // MARK: - Person-Hours Calculations (using SubtaskAggregator)
 
-    /// Calculate direct person-hours for this task (including active timer)
     private var displayedDirectPersonHours: Double {
-        guard let entries = task.timeEntries else { return 0.0 }
-
-        return entries.reduce(0.0) { total, entry in
-            let endTime = entry.endTime ?? (entry.endTime == nil && task.hasActiveTimer ? currentTime : nil)
-            guard let end = endTime else { return total }
-
-            // Use TimeEntryManager to calculate work hours only
-            let durationSeconds = TimeEntryManager.calculateDuration(start: entry.startTime, end: end)
-            let personHours = (durationSeconds / 3600.0) * Double(entry.personnelCount)
-
-            return total + personHours
-        }
+        stats.directPersonHours
     }
 
-    /// Calculate total person-hours including all subtasks
     private var displayedTotalPersonHours: Double {
-        var total = displayedDirectPersonHours
-
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        for subtask in subtasks {
-            total += computePersonHours(for: subtask)
-        }
-
-        return total
+        stats.totalPersonHours
     }
 
-    /// Recursively calculate person-hours for a task and its subtasks
-    private func computePersonHours(for task: Task) -> Double {
-        guard let entries = task.timeEntries else { return 0.0 }
-
-        var totalPersonHours = entries.reduce(0.0) { total, entry in
-            let endTime = entry.endTime ?? (entry.endTime == nil && task.hasActiveTimer ? currentTime : nil)
-            guard let end = endTime else { return total }
-
-            // Use TimeEntryManager to calculate work hours only
-            let durationSeconds = TimeEntryManager.calculateDuration(start: entry.startTime, end: end)
-            let personHours = (durationSeconds / 3600.0) * Double(entry.personnelCount)
-
-            return total + personHours
-        }
-
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        for subtask in subtasks {
-            totalPersonHours += computePersonHours(for: subtask)
-        }
-
-        return totalPersonHours
-    }
-
-    /// Check if any entries have personnel > 1
     private var hasPersonnelTracking: Bool {
-        // Check direct entries
-        if let entries = task.timeEntries, entries.contains(where: { $0.personnelCount > 1 }) {
-            return true
-        }
-
-        // Check subtask entries
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        return checkSubtasksForPersonnel(in: subtasks)
-    }
-
-    private func checkSubtasksForPersonnel(in subtasks: [Task]) -> Bool {
-        for subtask in subtasks {
-            if let entries = subtask.timeEntries, entries.contains(where: { $0.personnelCount > 1 }) {
-                return true
-            }
-            let nestedSubtasks = allTasks.filter { $0.parentTask?.id == subtask.id }
-            if checkSubtasksForPersonnel(in: nestedSubtasks) {
-                return true
-            }
-        }
-        return false
+        stats.hasPersonnelTracking
     }
 
     private var liveTimeProgress: Double? {
@@ -309,11 +193,15 @@ struct TaskTimeTrackingView: View {
             _ = router.performWithExecutor(.stopTimer, on: task, context: context) { alert in
                 alertBinding.wrappedValue = alert
             }
+            // Invalidate cache after stopping timer
+            aggregator.invalidate(taskId: task.id)
         } else {
             _ = router.performWithExecutor(.startTimer, on: task, context: context) { alert in
                 alertBinding.wrappedValue = alert
             }
             currentTime = Date()
+            // Invalidate cache after starting timer
+            aggregator.invalidate(taskId: task.id)
         }
     }
 }
