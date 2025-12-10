@@ -16,20 +16,18 @@ struct TimeEntryManager {
 
     // MARK: - Duration Calculations
 
-    /// Calculate duration between start and end times based on work hours (not 24-hour clock)
-    /// Uses WorkHoursCalculator to only count hours within the workday window (07:00-15:00)
+    /// Calculate actual elapsed time between start and end (24/7, not restricted to work hours)
+    /// Use this for displaying time entry durations and calculating person-hours
     /// - Parameters:
     ///   - start: Start time
     ///   - end: Optional end time (nil means ongoing, uses current time)
-    /// - Returns: Duration in seconds (work hours only)
+    /// - Returns: Actual elapsed duration in seconds
     static func calculateDuration(start: Date, end: Date?) -> TimeInterval {
         let endTime = end ?? Date()
+        guard endTime > start else { return 0.0 }
 
-        // Use WorkHoursCalculator to get work hours only (not 24-hour difference)
-        let workHours = WorkHoursCalculator.calculateAvailableHours(from: start, to: endTime)
-
-        // Convert hours to seconds
-        return workHours * 3600.0
+        // Return actual elapsed time in seconds (24/7 tracking)
+        return endTime.timeIntervalSince(start)
     }
 
     /// Calculate duration for a time entry
@@ -37,6 +35,17 @@ struct TimeEntryManager {
     /// - Returns: Duration in seconds
     static func calculateDuration(for entry: TimeEntry) -> TimeInterval {
         calculateDuration(start: entry.startTime, end: entry.endTime)
+    }
+
+    /// Calculate work hours between start and end (restricted to workday window)
+    /// Use this for planning and scheduling purposes only, NOT for time tracking
+    /// - Parameters:
+    ///   - start: Start date
+    ///   - end: End date
+    /// - Returns: Work hours within workday windows (minimum 1 hour)
+    static func calculateWorkHours(start: Date, end: Date) -> Double {
+        // Use WorkHoursCalculator for planning purposes
+        return WorkHoursCalculator.calculateAvailableHours(from: start, to: end)
     }
 
     // MARK: - Person-Hours Calculations
