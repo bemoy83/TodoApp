@@ -326,6 +326,7 @@ struct TagBadge: View {
 /// Shows organizational context without competing with critical info
 struct CompactTagSummary: View {
     let tags: [Tag]
+    var isHighlighted: Bool = false
 
     var body: some View {
         HStack(spacing: 4) {
@@ -335,6 +336,6 @@ struct CompactTagSummary: View {
                 .font(.caption)
                 .monospacedDigit()
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(isHighlighted ? .blue : .secondary)
     }
 }

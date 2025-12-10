@@ -123,18 +123,9 @@ private struct ExpandedSubtaskRow: View {
         VStack(spacing: 0) {
             // Main content
             HStack(spacing: 0) {
-                // Left indent with highlight indicator
-                if isHighlighted {
-                    Rectangle()
-                        .fill(.blue)
-                        .frame(width: 3)
-                        .padding(.leading, DesignSystem.Spacing.xl - 3)
-                    Color.clear
-                        .frame(width: 0)
-                } else {
-                    Color.clear
-                        .frame(width: DesignSystem.Spacing.xl)
-                }
+                // Left indent (no bar)
+                Color.clear
+                    .frame(width: DesignSystem.Spacing.xl)
 
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     // Status icon
@@ -161,11 +152,9 @@ private struct ExpandedSubtaskRow: View {
                             .pulsingAnimation(active: true)
                     }
 
-                    // Tag filter match indicator
-                    if isHighlighted {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.blue)
+                    // Tag summary - highlighted in blue if matches filter
+                    if let tags = subtask.tags, !tags.isEmpty {
+                        CompactTagSummary(tags: tags, isHighlighted: isHighlighted)
                     }
                 }
                 .padding(.leading, DesignSystem.Spacing.sm)
