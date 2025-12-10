@@ -193,21 +193,28 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var timeTrackingSummary: some View {
-        HStack(spacing: 4) {
+        let summaryText: String = {
+            var text = ""
+
+            // Add time spent
             if let totalTime = task.totalTimeSpent, totalTime > 0 {
-                Text(totalTime.formattedTime)
+                text = totalTime.formattedTime
             } else {
-                Text("No time tracked")
+                text = "No time tracked"
             }
 
+            // Add progress if has estimate
             if let estimate = task.effectiveEstimate {
-                Text("•")
                 let progress = Double(task.totalTimeSpent ?? 0) / Double(estimate)
-                Text("\(Int(progress * 100))%")
+                text += " • \(Int(progress * 100))%"
             }
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
+
+            return text
+        }()
+
+        Text(summaryText)
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
