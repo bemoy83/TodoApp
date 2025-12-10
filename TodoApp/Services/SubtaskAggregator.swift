@@ -1,10 +1,11 @@
 import SwiftUI
 import SwiftData
+import Combine
 
 /// Aggregator service that caches recursive subtask calculations to improve performance
 /// Solves O(n²) complexity issues when computing total time, personnel counts, etc. across deep subtask hierarchies
 @MainActor
-class SubtaskAggregator: ObservableObject {
+final class SubtaskAggregator: ObservableObject {
 
     // MARK: - Cache Structures
 
