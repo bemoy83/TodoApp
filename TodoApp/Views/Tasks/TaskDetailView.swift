@@ -115,15 +115,16 @@ struct TaskDetailView: View {
     var body: some View {
         let ctx = TaskActionRouter.Context(modelContext: modelContext, hapticsEnabled: true)
 
-        ScrollView {
-            VStack(spacing: 0) {
-                // Phase 3: Tab bar at top (no heavy header)
-                TaskDetailTabBar(selectedTab: $selectedTab)
-                    .padding(.horizontal, DesignSystem.Spacing.md)
-                    .padding(.top, DesignSystem.Spacing.sm)
-                    .padding(.bottom, DesignSystem.Spacing.md)
+        VStack(spacing: 0) {
+            // Phase 3: Sticky tab bar at top (fixed, doesn't scroll)
+            TaskDetailTabBar(selectedTab: $selectedTab)
+                .padding(.horizontal, DesignSystem.Spacing.md)
+                .padding(.top, DesignSystem.Spacing.sm)
+                .padding(.bottom, DesignSystem.Spacing.sm)
+                .background(DesignSystem.Colors.systemBackground)
 
-                // Tab content
+            // Scrollable content below tab bar
+            ScrollView {
                 tabContent(context: ctx)
             }
         }
