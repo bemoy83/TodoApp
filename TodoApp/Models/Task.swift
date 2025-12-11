@@ -313,6 +313,12 @@ final class Task: TitledItem {
     }
 
     @Transient
+    var hasInProgressSubtasks: Bool {
+        guard let subtasks = subtasks, !subtasks.isEmpty else { return false }
+        return subtasks.contains { $0.status == .inProgress }
+    }
+
+    @Transient
     var status: TaskStatus {
         // Completed takes highest priority
         if isCompleted {
@@ -327,7 +333,8 @@ final class Task: TitledItem {
         // In Progress if:
         // - Has time spent or active timer
         // - Has at least one completed subtask (shows progress on parent)
-        if directTimeSpent > 0 || hasActiveTimer || hasCompletedSubtasks {
+        // - Has at least one in-progress subtask (propagates status up)
+        if directTimeSpent > 0 || hasActiveTimer || hasCompletedSubtasks || hasInProgressSubtasks {
             return .inProgress
         }
 
