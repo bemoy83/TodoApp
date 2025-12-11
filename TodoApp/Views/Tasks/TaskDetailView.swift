@@ -195,7 +195,8 @@ struct TaskDetailView: View {
         var text = ""
 
         // Add time spent
-        if let totalTime = task.totalTimeSpent, totalTime > 0 {
+        let totalTime = task.totalTimeSpent
+        if totalTime > 0 {
             text = totalTime.formattedTime()
         } else {
             text = "No time tracked"
@@ -203,7 +204,7 @@ struct TaskDetailView: View {
 
         // Add progress if has estimate
         if let estimate = task.effectiveEstimate {
-            let progress = Double(task.totalTimeSpent ?? 0) / Double(estimate)
+            let progress = Double(task.totalTimeSpent) / Double(estimate)
             text += " • \(Int(progress * 100))%"
         }
 
