@@ -121,7 +121,7 @@ struct TaskDetailView: View {
                 .padding(.horizontal, DesignSystem.Spacing.md)
                 .padding(.top, DesignSystem.Spacing.sm)
                 .padding(.bottom, DesignSystem.Spacing.sm)
-                .background(DesignSystem.Colors.systemBackground)
+                .background(DesignSystem.Colors.background)
 
             // Scrollable content below tab bar
             ScrollView {
