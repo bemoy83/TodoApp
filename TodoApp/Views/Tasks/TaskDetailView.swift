@@ -234,14 +234,38 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var quantitySummary: some View {
-        if task.unit != .none, let quantity = task.quantity {
-            Text("\(Int(quantity)) \(task.unit.rawValue)")
+        if task.hasQuantityProgress {
+            // Show progress: "45.5/60 m² (76%)"
+            let completed = task.quantity ?? 0
+            let expected = task.expectedQuantity!
+            let progress = task.quantityProgress!
+            let progressPercent = Int(progress * 100)
+
+            Text("\(formatQuantity(completed))/\(formatQuantity(expected)) \(task.unitDisplayName) (\(progressPercent)%)")
+                .font(.caption)
+                .foregroundStyle(progress >= 1.0 ? .green : .secondary)
+        } else if task.unit != .none, let quantity = task.quantity {
+            // Fallback: only completed quantity (no expected)
+            Text("\(formatQuantity(quantity)) \(task.unitDisplayName)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+        } else if task.expectedQuantity != nil {
+            // Only expected quantity set (no progress yet)
+            Text("0/\(formatQuantity(task.expectedQuantity!)) \(task.unitDisplayName) (0%)")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         } else {
             Text("Not set")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+        }
+    }
+
+    private func formatQuantity(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(format: "%.0f", value)
+        } else {
+            return String(format: "%.1f", value)
         }
     }
 

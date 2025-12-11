@@ -309,6 +309,43 @@ final class Task: TitledItem {
         calculateTotalTime()
     }
 
+    // MARK: - Time Entry Helpers (for Execution Tab)
+
+    /// Active timer entry (for quick stop/edit access)
+    @Transient
+    var activeTimerEntry: TimeEntry? {
+        guard let entries = timeEntries else { return nil }
+        return entries.first { $0.endTime == nil }
+    }
+
+    /// Today's completed time entries
+    @Transient
+    var todayEntries: [TimeEntry] {
+        guard let entries = timeEntries else { return [] }
+        let today = Date()
+        return entries.filter { entry in
+            guard let endTime = entry.endTime else { return false }
+            return Calendar.current.isDate(endTime, inSameDayAs: today)
+        }
+    }
+
+    /// Today's tracked hours (completed entries only)
+    @Transient
+    var todayHours: Double {
+        let totalSeconds = todayEntries.reduce(0.0) { total, entry in
+            return total + TimeEntryManager.calculateDuration(for: entry)
+        }
+        return totalSeconds / 3600.0
+    }
+
+    /// Today's person-hours (completed entries only)
+    @Transient
+    var todayPersonHours: Double {
+        todayEntries.reduce(0.0) { total, entry in
+            return total + TimeEntryManager.calculatePersonHours(for: entry)
+        }
+    }
+
     @Transient
     var hasCompletedSubtasks: Bool {
         guard let subtasks = subtasks, !subtasks.isEmpty else { return false }
@@ -397,7 +434,40 @@ final class Task: TitledItem {
         
         return blocks
     }
-    
+
+    // MARK: - Blocking Analysis (for Execution Tab)
+
+    /// Human-readable blocking reasons for planning/execution visibility
+    @Transient
+    var blockingReasons: [String] {
+        var reasons: [String] = []
+
+        // Direct dependencies
+        for dep in blockingDependencies {
+            reasons.append("Waiting on: \(dep.title)")
+        }
+
+        // Subtask dependencies
+        for (subtask, dep) in blockingSubtaskDependencies {
+            reasons.append("Subtask '\(subtask.title)' blocked by: \(dep.title)")
+        }
+
+        return reasons
+    }
+
+    /// Whether this task can start work (not blocked, meets basic requirements)
+    @Transient
+    var canStartWork: Bool {
+        // Can't start if blocked
+        guard status != .blocked else { return false }
+
+        // Can't start if already completed
+        guard !isCompleted else { return false }
+
+        // All clear to start
+        return true
+    }
+
     // MARK: - Subtask Counts
     
     /// Number of *direct* child subtasks (does not include grandchildren).
