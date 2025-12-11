@@ -130,6 +130,7 @@ final class Task: TitledItem {
     var effortHours: Double? // Total work effort in person-hours (nil = not using effort-based estimation)
 
     // Productivity tracking (Quantified Tasks)
+    var expectedQuantity: Double? // Expected/target quantity for planning (e.g., 45.5 square meters to complete)
     var quantity: Double? // Amount of work completed (e.g., 45.5 square meters, 120 pieces)
     var unit: UnitType = UnitType.none // Unit of measurement for quantity
     var taskType: String? // Task type/category for grouping productivity (e.g., "Carpet Installation", "Painting")
@@ -186,6 +187,7 @@ final class Task: TitledItem {
         hasCustomEstimate: Bool = false,
         expectedPersonnelCount: Int? = nil,
         effortHours: Double? = nil,
+        expectedQuantity: Double? = nil,
         quantity: Double? = nil,
         unit: UnitType = UnitType.none,
         taskType: String? = nil,
@@ -207,6 +209,7 @@ final class Task: TitledItem {
         self.hasCustomEstimate = hasCustomEstimate
         self.expectedPersonnelCount = expectedPersonnelCount
         self.effortHours = effortHours
+        self.expectedQuantity = expectedQuantity
         self.quantity = quantity
         self.unit = unit
         self.taskType = taskType
@@ -306,10 +309,53 @@ final class Task: TitledItem {
         calculateTotalTime()
     }
 
+    // MARK: - Time Entry Helpers (for Execution Tab)
+
+    /// Active timer entry (for quick stop/edit access)
+    @Transient
+    var activeTimerEntry: TimeEntry? {
+        guard let entries = timeEntries else { return nil }
+        return entries.first { $0.endTime == nil }
+    }
+
+    /// Today's completed time entries
+    @Transient
+    var todayEntries: [TimeEntry] {
+        guard let entries = timeEntries else { return [] }
+        let today = Date()
+        return entries.filter { entry in
+            guard let endTime = entry.endTime else { return false }
+            return Calendar.current.isDate(endTime, inSameDayAs: today)
+        }
+    }
+
+    /// Today's tracked hours (completed entries only)
+    @Transient
+    var todayHours: Double {
+        let totalSeconds = todayEntries.reduce(0.0) { total, entry in
+            return total + TimeEntryManager.calculateDuration(for: entry)
+        }
+        return totalSeconds / 3600.0
+    }
+
+    /// Today's person-hours (completed entries only)
+    @Transient
+    var todayPersonHours: Double {
+        todayEntries.reduce(0.0) { total, entry in
+            return total + TimeEntryManager.calculatePersonHours(for: entry)
+        }
+    }
+
     @Transient
     var hasCompletedSubtasks: Bool {
         guard let subtasks = subtasks, !subtasks.isEmpty else { return false }
         return subtasks.contains { $0.isCompleted }
+    }
+
+    @Transient
+    var hasInProgressSubtasks: Bool {
+        guard let subtasks = subtasks, !subtasks.isEmpty else { return false }
+        return subtasks.contains { $0.status == .inProgress }
     }
 
     @Transient
@@ -327,7 +373,8 @@ final class Task: TitledItem {
         // In Progress if:
         // - Has time spent or active timer
         // - Has at least one completed subtask (shows progress on parent)
-        if directTimeSpent > 0 || hasActiveTimer || hasCompletedSubtasks {
+        // - Has at least one in-progress subtask (propagates status up)
+        if directTimeSpent > 0 || hasActiveTimer || hasCompletedSubtasks || hasInProgressSubtasks {
             return .inProgress
         }
 
@@ -387,7 +434,40 @@ final class Task: TitledItem {
         
         return blocks
     }
-    
+
+    // MARK: - Blocking Analysis (for Execution Tab)
+
+    /// Human-readable blocking reasons for planning/execution visibility
+    @Transient
+    var blockingReasons: [String] {
+        var reasons: [String] = []
+
+        // Direct dependencies
+        for dep in blockingDependencies {
+            reasons.append("Waiting on: \(dep.title)")
+        }
+
+        // Subtask dependencies
+        for (subtask, dep) in blockingSubtaskDependencies {
+            reasons.append("Subtask '\(subtask.title)' blocked by: \(dep.title)")
+        }
+
+        return reasons
+    }
+
+    /// Whether this task can start work (not blocked, meets basic requirements)
+    @Transient
+    var canStartWork: Bool {
+        // Can't start if blocked
+        guard status != .blocked else { return false }
+
+        // Can't start if already completed
+        guard !isCompleted else { return false }
+
+        // All clear to start
+        return true
+    }
+
     // MARK: - Subtask Counts
     
     /// Number of *direct* child subtasks (does not include grandchildren).
@@ -556,6 +636,30 @@ final class Task: TitledItem {
     @Transient
     var hasProductivityData: Bool {
         unitsPerHour != nil
+    }
+
+    // MARK: - Quantity Progress Tracking
+
+    /// Progress toward expected quantity (0.0 - 1.0+), nil if no expected quantity set
+    @Transient
+    var quantityProgress: Double? {
+        guard let expected = expectedQuantity, expected > 0 else { return nil }
+        let completed = quantity ?? 0
+        return completed / expected
+    }
+
+    /// Remaining quantity to complete (negative if over), nil if no expected quantity
+    @Transient
+    var quantityRemaining: Double? {
+        guard let expected = expectedQuantity else { return nil }
+        let completed = quantity ?? 0
+        return expected - completed
+    }
+
+    /// Whether quantity progress tracking is available
+    @Transient
+    var hasQuantityProgress: Bool {
+        expectedQuantity != nil && expectedQuantity! > 0
     }
 
     // MARK: - Date Conflict Detection (Phase 2: Hybrid Date Constraints)

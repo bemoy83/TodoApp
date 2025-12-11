@@ -21,20 +21,20 @@ struct TimeEntriesView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-            // Header
+            // Add entry button (moved from header)
             HStack {
-                Text("Time Entries")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-
                 Spacer()
 
                 Button {
                     showingManualEntrySheet = true
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(DesignSystem.Colors.taskInProgress)
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Add Entry")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundStyle(DesignSystem.Colors.taskInProgress)
                 }
             }
             .padding(.horizontal)

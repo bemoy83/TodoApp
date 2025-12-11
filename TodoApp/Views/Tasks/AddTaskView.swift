@@ -137,7 +137,8 @@ struct AddTaskView: View {
             hasCustomEstimate: estimate.hasCustomEstimate,
             expectedPersonnelCount: estimate.expectedPersonnelCount,
             effortHours: estimate.effortHours,
-            quantity: parsedQuantity,
+            expectedQuantity: parsedQuantity,
+            quantity: nil,
             unit: hasQuantity ? estimation.unit : UnitType.none,
             taskType: hasQuantity ? estimation.taskType : nil,
             taskTemplate: hasQuantity ? estimation.taskTemplate : nil

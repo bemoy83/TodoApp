@@ -12,13 +12,6 @@ struct TaskQuantityView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            // Section header
-            Text("Quantity Tracking")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.horizontal)
-
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                 // Task Type display
                 if let taskType = task.taskType {
@@ -47,9 +40,25 @@ struct TaskQuantityView: View {
                         .padding(.horizontal)
                 }
 
-                // Current quantity and unit display
-                if task.isUnitQuantifiable, let quantity = task.quantity {
-                    // Has quantity set
+                // Progress display (if expected quantity is set)
+                if task.hasQuantityProgress {
+                    QuantityProgressRow(
+                        expected: task.expectedQuantity!,
+                        completed: task.quantity ?? 0,
+                        unit: task.unitDisplayName,
+                        icon: task.unitIcon,
+                        onTap: {
+                            editedQuantity = task.quantity.map { String(format: "%.1f", $0) } ?? ""
+                            editedUnit = task.unit
+                            showingQuantityPicker = true
+                            HapticManager.selection()
+                        }
+                    )
+
+                    Divider()
+                        .padding(.horizontal)
+                } else if task.isUnitQuantifiable, let quantity = task.quantity {
+                    // Fallback: only completed quantity (no expected)
                     Button {
                         editedQuantity = String(format: "%.1f", quantity)
                         editedUnit = task.unit
@@ -391,13 +400,116 @@ private struct ProductivitySection: View {
     }
 }
 
+// MARK: - Quantity Progress Row
+
+private struct QuantityProgressRow: View {
+    let expected: Double
+    let completed: Double
+    let unit: String
+    let icon: String
+    let onTap: () -> Void
+
+    private var progress: Double {
+        guard expected > 0 else { return 0 }
+        return min(completed / expected, 1.0)
+    }
+
+    private var progressPercentage: Int {
+        Int(progress * 100)
+    }
+
+    private var progressColor: Color {
+        if completed >= expected {
+            return DesignSystem.Colors.success
+        } else if progress >= 0.75 {
+            return DesignSystem.Colors.warning
+        } else {
+            return DesignSystem.Colors.info
+        }
+    }
+
+    private func formatQuantity(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(format: "%.0f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                // Header row
+                HStack {
+                    Image(systemName: icon)
+                        .font(.body)
+                        .foregroundStyle(progressColor)
+                        .frame(width: 28)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text("\(formatQuantity(completed))/\(formatQuantity(expected))")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+
+                            Text(unit)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Text("Progress: \(progressPercentage)%")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("\(progressPercentage)%")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(progressColor)
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .padding(.horizontal)
+
+                // Progress bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        // Background
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(height: 8)
+                            .cornerRadius(4)
+
+                        // Progress fill
+                        Rectangle()
+                            .fill(progressColor)
+                            .frame(width: geometry.size.width * progress, height: 8)
+                            .cornerRadius(4)
+                    }
+                }
+                .frame(height: 8)
+                .padding(.horizontal)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Preview
 
-#Preview("With Quantity Set") {
+#Preview("With Progress Tracking") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: Task.self, TimeEntry.self, configurations: config)
 
-    let task = Task(title: "Paint walls", quantity: 45.5, unit: .squareMeters)
+    let task = Task(title: "Paint walls", expectedQuantity: 60.0, quantity: 45.5, unit: .squareMeters)
 
     let entry = TimeEntry(
         startTime: Date().addingTimeInterval(-7200),

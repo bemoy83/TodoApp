@@ -29,13 +29,6 @@ struct TaskSubtasksView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            // Section header
-            Text("Subtasks")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.horizontal)
-
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                 if subtasks.isEmpty {
                     // Empty state

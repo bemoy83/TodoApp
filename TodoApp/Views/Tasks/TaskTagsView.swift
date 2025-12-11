@@ -16,13 +16,6 @@ struct TaskTagsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            // Section header
-            Text("Tags")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.horizontal)
-
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                 if !taskTags.isEmpty {
                     // Display current tags
