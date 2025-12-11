@@ -116,12 +116,21 @@ struct TaskDetailView: View {
         let ctx = TaskActionRouter.Context(modelContext: modelContext, hapticsEnabled: true)
 
         VStack(spacing: 0) {
-            // Phase 3: Sticky tab bar at top (fixed, doesn't scroll)
-            TaskDetailTabBar(selectedTab: $selectedTab)
-                .padding(.horizontal, DesignSystem.Spacing.md)
-                .padding(.top, DesignSystem.Spacing.sm)
-                .padding(.bottom, DesignSystem.Spacing.sm)
-                .background(DesignSystem.Colors.background)
+            // Native iOS segmented picker for tab selection
+            Picker("Tab", selection: $selectedTab) {
+                Label("Plan", systemImage: "checklist")
+                    .tag(TaskDetailTab.plan)
+
+                Label("Execute", systemImage: "bolt.fill")
+                    .tag(TaskDetailTab.execute)
+
+                Label("Review", systemImage: "chart.bar.fill")
+                    .tag(TaskDetailTab.review)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, DesignSystem.Spacing.md)
+            .padding(.top, DesignSystem.Spacing.sm)
+            .padding(.bottom, DesignSystem.Spacing.sm)
 
             // Scrollable content below tab bar
             ScrollView {
@@ -779,47 +788,3 @@ private struct CircularProgressView: View {
     }
 }
 
-// MARK: - Tab Bar Component
-
-/// Tab bar for TaskDetailView
-/// Phase 2: Shows Plan, Execute, Review tabs
-private struct TaskDetailTabBar: View {
-    @Binding var selectedTab: TaskDetailView.TaskDetailTab
-
-    var body: some View {
-        HStack(spacing: 0) {
-            // Only show the three main tabs (not .all)
-            ForEach([TaskDetailView.TaskDetailTab.plan, .execute, .review], id: \.self) { tab in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedTab = tab
-                    }
-                    HapticManager.selection()
-                } label: {
-                    VStack(spacing: DesignSystem.Spacing.xs) {
-                        Image(systemName: tab.icon)
-                            .font(.body)
-                            .fontWeight(selectedTab == tab ? .semibold : .regular)
-
-                        Text(tab.title)
-                            .font(.caption)
-                            .fontWeight(selectedTab == tab ? .semibold : .regular)
-                    }
-                    .foregroundStyle(selectedTab == tab ? DesignSystem.Colors.primary : DesignSystem.Colors.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignSystem.Spacing.sm)
-                    .background(
-                        selectedTab == tab
-                            ? DesignSystem.Colors.secondaryBackground
-                            : Color.clear
-                    )
-                    .cornerRadius(DesignSystem.CornerRadius.md)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(DesignSystem.Spacing.xs)
-        .background(DesignSystem.Colors.tertiaryBackground)
-        .cornerRadius(DesignSystem.CornerRadius.md)
-    }
-}
