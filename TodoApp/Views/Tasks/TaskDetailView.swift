@@ -60,6 +60,17 @@ struct TaskDetailView: View {
     init(task: Task) {
         self.task = task
 
+        // Phase 2: Smart default tab selection
+        let defaultTab: TaskDetailTab
+        if task.hasActiveTimer {
+            defaultTab = .execute  // Running timer → Execute tab
+        } else if task.isCompleted {
+            defaultTab = .review   // Completed → Review tab (will implement in Phase 3)
+        } else {
+            defaultTab = .plan     // Default to Plan (primary workspace)
+        }
+        _selectedTab = State(initialValue: defaultTab)
+
         // Smart defaults based on task state
         if task.hasActiveTimer {
             // Execution mode - focus on time tracking
@@ -103,13 +114,18 @@ struct TaskDetailView: View {
     var body: some View {
         let ctx = TaskActionRouter.Context(modelContext: modelContext, hapticsEnabled: true)
 
-        VStack(spacing: 0) {
-            // Tab bar (Phase 1: only showing .all for now)
-            TaskDetailTabBar(selectedTab: $selectedTab)
-                .padding(DesignSystem.Spacing.md)
+        ScrollView {
+            VStack(spacing: 0) {
+                // Phase 2: Header at top (scrolls with content)
+                TaskDetailHeaderView(task: task, alert: $currentAlert)
+                    .padding(.bottom, DesignSystem.Spacing.md)
 
-            // Tab content
-            ScrollView {
+                // Phase 2: Tab bar (scrolls with content - sticky tabs can come in Phase 3 if needed)
+                TaskDetailTabBar(selectedTab: $selectedTab)
+                    .padding(.horizontal, DesignSystem.Spacing.md)
+                    .padding(.bottom, DesignSystem.Spacing.md)
+
+                // Tab content
                 tabContent(context: ctx)
             }
         }
@@ -159,14 +175,31 @@ struct TaskDetailView: View {
         .taskActionAlert(alert: $currentAlert)
     }
 
-    // MARK: - Tab Content (Phase 1: All content in .all tab)
+    // MARK: - Tab Content (Phase 2: Conservative split between Plan/Execute)
     @ViewBuilder
     private func tabContent(context: TaskActionRouter.Context) -> some View {
-        // Phase 1: All tabs show the same existing content
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            TaskDetailHeaderView(task: task)
+        switch selectedTab {
+        case .all:
+            // Phase 1 fallback (not used in Phase 2+)
+            allTabContent
 
-            // Time tracking remains the canonical place for timer controls
+        case .plan:
+            planTabContent
+
+        case .execute:
+            executeTabContent
+
+        case .review:
+            // Phase 3: Review tab (for now, show plan content as fallback)
+            planTabContent
+        }
+    }
+
+    // MARK: - Plan Tab Content
+    @ViewBuilder
+    private var planTabContent: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            // Time estimation (planning)
             DetailSectionDisclosure(
                 title: "Time Tracking",
                 icon: "clock",
@@ -175,7 +208,7 @@ struct TaskDetailView: View {
                 content: { TaskTimeTrackingView(task: task) }
             )
 
-            // Personnel planning and tracking
+            // Personnel planning
             DetailSectionDisclosure(
                 title: "Personnel",
                 icon: "person.2.fill",
@@ -184,7 +217,7 @@ struct TaskDetailView: View {
                 content: { TaskPersonnelView(task: task) }
             )
 
-            // Quantity tracking for productivity measurement
+            // Quantity target planning
             DetailSectionDisclosure(
                 title: "Quantity",
                 icon: "number",
@@ -193,7 +226,7 @@ struct TaskDetailView: View {
                 content: { TaskQuantityView(task: task) }
             )
 
-            // Tags for organization and filtering
+            // Tags for organization
             DetailSectionDisclosure(
                 title: "Tags",
                 icon: "tag",
@@ -202,16 +235,7 @@ struct TaskDetailView: View {
                 content: { TaskTagsView(task: task) }
             )
 
-            // Time entries management
-            DetailSectionDisclosure(
-                title: "Time Entries",
-                icon: "list.bullet.clipboard",
-                isExpanded: $isEntriesExpanded,
-                summary: { entriesSummary },
-                content: { TimeEntriesView(task: task) }
-            )
-
-            // Subtasks
+            // Subtasks structure
             DetailSectionDisclosure(
                 title: "Subtasks",
                 icon: "list.bullet.indent",
@@ -220,7 +244,105 @@ struct TaskDetailView: View {
                 content: { TaskSubtasksView(task: task) }
             )
 
-            // Dependencies
+            // Dependencies management
+            DetailSectionDisclosure(
+                title: "Dependencies",
+                icon: "link",
+                isExpanded: $isDependenciesExpanded,
+                summary: { dependenciesSummary },
+                content: { TaskDependenciesView(task: task) }
+            )
+        }
+        .padding(DesignSystem.Spacing.lg)
+    }
+
+    // MARK: - Execute Tab Content
+    @ViewBuilder
+    private var executeTabContent: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            // Timer controls and progress
+            DetailSectionDisclosure(
+                title: "Time Tracking",
+                icon: "clock",
+                isExpanded: $isTimeTrackingExpanded,
+                summary: { timeTrackingSummary },
+                content: { TaskTimeTrackingView(task: task) }
+            )
+
+            // Today's time entries
+            DetailSectionDisclosure(
+                title: "Time Entries",
+                icon: "list.bullet.clipboard",
+                isExpanded: $isEntriesExpanded,
+                summary: { entriesSummary },
+                content: { TimeEntriesView(task: task) }
+            )
+
+            // Quantity progress tracking
+            DetailSectionDisclosure(
+                title: "Quantity",
+                icon: "number",
+                isExpanded: $isQuantityExpanded,
+                summary: { quantitySummary },
+                content: { TaskQuantityView(task: task) }
+            )
+        }
+        .padding(DesignSystem.Spacing.lg)
+    }
+
+    // MARK: - All Tab Content (Phase 1 fallback)
+    @ViewBuilder
+    private var allTabContent: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            // All sections (Phase 1 behavior)
+            DetailSectionDisclosure(
+                title: "Time Tracking",
+                icon: "clock",
+                isExpanded: $isTimeTrackingExpanded,
+                summary: { timeTrackingSummary },
+                content: { TaskTimeTrackingView(task: task) }
+            )
+
+            DetailSectionDisclosure(
+                title: "Personnel",
+                icon: "person.2.fill",
+                isExpanded: $isPersonnelExpanded,
+                summary: { personnelSummary },
+                content: { TaskPersonnelView(task: task) }
+            )
+
+            DetailSectionDisclosure(
+                title: "Quantity",
+                icon: "number",
+                isExpanded: $isQuantityExpanded,
+                summary: { quantitySummary },
+                content: { TaskQuantityView(task: task) }
+            )
+
+            DetailSectionDisclosure(
+                title: "Tags",
+                icon: "tag",
+                isExpanded: $isTagsExpanded,
+                summary: { tagsSummary },
+                content: { TaskTagsView(task: task) }
+            )
+
+            DetailSectionDisclosure(
+                title: "Time Entries",
+                icon: "list.bullet.clipboard",
+                isExpanded: $isEntriesExpanded,
+                summary: { entriesSummary },
+                content: { TimeEntriesView(task: task) }
+            )
+
+            DetailSectionDisclosure(
+                title: "Subtasks",
+                icon: "list.bullet.indent",
+                isExpanded: $isSubtasksExpanded,
+                summary: { subtasksSummary },
+                content: { TaskSubtasksView(task: task) }
+            )
+
             DetailSectionDisclosure(
                 title: "Dependencies",
                 icon: "link",
@@ -400,20 +522,45 @@ struct TaskDetailView: View {
 
 // MARK: - Tab Bar Component
 
-/// Simple tab bar for TaskDetailView
-/// Phase 1: Only shows "All" tab
-/// Phase 2+: Will show Plan, Execute, Review tabs
+/// Tab bar for TaskDetailView
+/// Phase 2: Shows Plan, Execute, Review tabs
 private struct TaskDetailTabBar: View {
     @Binding var selectedTab: TaskDetailView.TaskDetailTab
 
     var body: some View {
-        // Phase 1: Simple single tab indicator
-        // Phase 2+: Will become proper segmented control
-        HStack {
-            Text("All")
-                .font(.headline)
-                .foregroundStyle(.primary)
-            Spacer()
+        HStack(spacing: 0) {
+            // Only show the three main tabs (not .all)
+            ForEach([TaskDetailView.TaskDetailTab.plan, .execute, .review], id: \.self) { tab in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedTab = tab
+                    }
+                    HapticManager.selection()
+                } label: {
+                    VStack(spacing: DesignSystem.Spacing.xs) {
+                        Image(systemName: tab.icon)
+                            .font(.body)
+                            .fontWeight(selectedTab == tab ? .semibold : .regular)
+
+                        Text(tab.title)
+                            .font(.caption)
+                            .fontWeight(selectedTab == tab ? .semibold : .regular)
+                    }
+                    .foregroundStyle(selectedTab == tab ? DesignSystem.Colors.primary : DesignSystem.Colors.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DesignSystem.Spacing.sm)
+                    .background(
+                        selectedTab == tab
+                            ? DesignSystem.Colors.secondaryBackground
+                            : Color.clear
+                    )
+                    .cornerRadius(DesignSystem.CornerRadius.md)
+                }
+                .buttonStyle(.plain)
+            }
         }
+        .padding(DesignSystem.Spacing.xs)
+        .background(DesignSystem.Colors.tertiaryBackground)
+        .cornerRadius(DesignSystem.CornerRadius.md)
     }
 }
