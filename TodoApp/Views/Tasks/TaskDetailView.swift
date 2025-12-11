@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// Session 3: Unified Actions rollout â€” coordinator-only detail view
+/// Session 3: Unified Actions rollout – coordinator-only detail view
 /// - Keeps your existing components:
 ///   TaskDetailHeaderView, TaskTimeTrackingView, TaskSubtasksView, TaskDependenciesView
 /// - Routes toolbar & sheet actions through TaskActionRouter (no duplicate business logic here).
@@ -17,7 +17,7 @@ struct TaskDetailView: View {
     // NEW: central alert state for executor-backed alerts
     @State private var currentAlert: TaskActionAlert?
 
-    // MARK: - Tab Navigation (Phase 1)
+    // MARK: - Tab Navigation
     @State private var selectedTab: TaskDetailTab = .all
 
     // Collapsible section states with smart defaults
@@ -28,16 +28,16 @@ struct TaskDetailView: View {
     @State private var isEntriesExpanded: Bool
     @State private var isSubtasksExpanded: Bool
     @State private var isDependenciesExpanded: Bool
-    @State private var isNotesExpanded: Bool = true // Phase 3: Notes in Plan tab
+    @State private var isNotesExpanded: Bool = true
 
     private let router = TaskActionRouter()
 
     // MARK: - Tab Type Definition
     fileprivate enum TaskDetailTab: Hashable, CaseIterable {
-        case all    // Phase 1: Temporary placeholder that shows current behavior
-        case plan   // Phase 2+: Planning and structure
-        case execute // Phase 2+: Timer controls and progress tracking
-        case review  // Phase 3+: Analytics and metrics
+        case all    // Phase 1: Temporary placeholder
+        case plan   // Planning and structure
+        case execute // Timer controls and progress tracking
+        case review  // Analytics and metrics
 
         var title: String {
             switch self {
@@ -61,12 +61,12 @@ struct TaskDetailView: View {
     init(task: Task) {
         self.task = task
 
-        // Phase 2: Smart default tab selection
+        // Smart default tab selection
         let defaultTab: TaskDetailTab
         if task.hasActiveTimer {
             defaultTab = .execute  // Running timer → Execute tab
         } else if task.isCompleted {
-            defaultTab = .review   // Completed → Review tab (will implement in Phase 3)
+            defaultTab = .review   // Completed → Review tab
         } else {
             defaultTab = .plan     // Default to Plan (primary workspace)
         }
@@ -113,8 +113,6 @@ struct TaskDetailView: View {
     }
 
     var body: some View {
-        let ctx = TaskActionRouter.Context(modelContext: modelContext, hapticsEnabled: true)
-
         VStack(spacing: 0) {
             // Native iOS segmented picker for tab selection
             Picker("Tab", selection: $selectedTab) {
@@ -135,7 +133,7 @@ struct TaskDetailView: View {
 
             // Scrollable content below tab bar
             ScrollView {
-                tabContent(context: ctx)
+                tabContent()
             }
         }
         .navigationTitle(task.title)
@@ -144,6 +142,7 @@ struct TaskDetailView: View {
             ToolbarItemGroup(placement: .primaryAction) {
                 // Edit – now routed via executor; if no alert, open editor
                 Button {
+                    let ctx = TaskActionRouter.Context(modelContext: modelContext, hapticsEnabled: true)
                     var presentedAlert = false
                     _ = router.performWithExecutor(.edit, on: task, context: ctx) { alert in
                         presentedAlert = true
@@ -184,208 +183,46 @@ struct TaskDetailView: View {
         .taskActionAlert(alert: $currentAlert)
     }
 
-    // MARK: - Tab Content (Phase 2: Conservative split between Plan/Execute)
+    // MARK: - Tab Content Router
     @ViewBuilder
-    private func tabContent(context: TaskActionRouter.Context) -> some View {
+    private func tabContent() -> some View {
         switch selectedTab {
         case .all:
-            // Phase 1 fallback (not used in Phase 2+)
+            // Phase 1 fallback (not actively used)
             allTabContent
 
         case .plan:
-            planTabContent
+            TaskDetailPlanView(
+                task: task,
+                currentAlert: $currentAlert,
+                isTimeTrackingExpanded: $isTimeTrackingExpanded,
+                isPersonnelExpanded: $isPersonnelExpanded,
+                isQuantityExpanded: $isQuantityExpanded,
+                isTagsExpanded: $isTagsExpanded,
+                isSubtasksExpanded: $isSubtasksExpanded,
+                isDependenciesExpanded: $isDependenciesExpanded,
+                isNotesExpanded: $isNotesExpanded
+            )
 
         case .execute:
-            executeTabContent
+            TaskDetailExecuteView(task: task)
 
         case .review:
-            // Phase 3: Review tab (for now, show plan content as fallback)
-            planTabContent
-        }
-    }
-
-    // MARK: - Plan Tab Content (Phase 3: Grouped collapsibles + header details)
-    @ViewBuilder
-    private var planTabContent: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            // Task header details (moved from top-level header)
-            TaskDetailHeaderView(task: task, alert: $currentAlert)
-
-            // Group 1: Estimates & Resources
-            DetailSectionDisclosure(
-                title: "Estimates & Resources",
-                icon: "chart.bar.fill",
-                isExpanded: $isTimeTrackingExpanded,
-                summary: { estimatesResourcesSummary },
-                content: {
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-                        // Time estimation
-                        TaskTimeTrackingView(task: task)
-
-                        Divider()
-
-                        // Personnel planning
-                        TaskPersonnelView(task: task)
-
-                        Divider()
-
-                        // Quantity target
-                        TaskQuantityView(task: task)
-                    }
-                }
-            )
-
-            // Group 2: Structure & Dependencies
-            DetailSectionDisclosure(
-                title: "Structure & Dependencies",
-                icon: "diagram.split.2x2",
-                isExpanded: $isSubtasksExpanded,
-                summary: { structureSummary },
-                content: {
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-                        // Subtasks
-                        TaskSubtasksView(task: task)
-
-                        Divider()
-
-                        // Dependencies
-                        TaskDependenciesView(task: task)
-                    }
-                }
-            )
-
-            // Group 3: Metadata (Tags + Notes)
-            DetailSectionDisclosure(
-                title: "Metadata",
-                icon: "tag.fill",
-                isExpanded: $isTagsExpanded,
-                summary: { metadataSummary },
-                content: {
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-                        // Tags
-                        TaskTagsView(task: task)
-
-                        // Notes (Phase 3: Now editable in Plan tab only)
-                        if let notes = task.notes, !notes.isEmpty {
-                            Divider()
-
-                            SharedNotesSection(notes: notes, isExpanded: $isNotesExpanded)
-                                .padding(.horizontal, DesignSystem.Spacing.md)
-                        }
-                    }
-                }
+            TaskDetailReviewView(
+                task: task,
+                currentAlert: $currentAlert,
+                isTimeTrackingExpanded: $isTimeTrackingExpanded,
+                isPersonnelExpanded: $isPersonnelExpanded,
+                isQuantityExpanded: $isQuantityExpanded,
+                isTagsExpanded: $isTagsExpanded,
+                isSubtasksExpanded: $isSubtasksExpanded,
+                isDependenciesExpanded: $isDependenciesExpanded,
+                isNotesExpanded: $isNotesExpanded
             )
         }
-        .padding(DesignSystem.Spacing.lg)
     }
 
-    // Summary for Estimates & Resources group
-    @ViewBuilder
-    private var estimatesResourcesSummary: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            if let estimate = task.effectiveEstimate {
-                Text(estimate.formattedTime())
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if let personnel = task.expectedPersonnelCount {
-                Text("•")
-                    .foregroundStyle(.tertiary)
-                Text("\(personnel)p")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if task.hasQuantityProgress {
-                Text("•")
-                    .foregroundStyle(.tertiary)
-                let progress = Int((task.quantityProgress ?? 0) * 100)
-                Text("\(progress)%")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    // Summary for Structure group
-    @ViewBuilder
-    private var structureSummary: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            if task.subtaskCount > 0 {
-                Text("\(task.completedDirectSubtaskCount)/\(task.subtaskCount) subtasks")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if (task.dependsOn?.count ?? 0) > 0 {
-                if task.subtaskCount > 0 {
-                    Text("•")
-                        .foregroundStyle(.tertiary)
-                }
-                let depCount = task.dependsOn?.count ?? 0
-                Text("\(depCount) \(depCount == 1 ? "dependency" : "dependencies")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    // Summary for Metadata group
-    @ViewBuilder
-    private var metadataSummary: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            if let tags = task.tags, !tags.isEmpty {
-                Text("\(tags.count) \(tags.count == 1 ? "tag" : "tags")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if let notes = task.notes, !notes.isEmpty {
-                if let tags = task.tags, !tags.isEmpty {
-                    Text("•")
-                        .foregroundStyle(.tertiary)
-                }
-                Text("Has notes")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    // MARK: - Execute Tab Content (Phase 3: Streamlined, zero distractions)
-    @ViewBuilder
-    private var executeTabContent: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            // Blocking banner (if blocked)
-            if !task.canStartWork {
-                BlockingBanner(task: task)
-            }
-
-            // Timer controls (always expanded in Execute)
-            TaskTimeTrackingView(task: task)
-                .detailCardStyle()
-
-            // Today's progress summary
-            if task.todayHours > 0 || task.hasActiveTimer {
-                TodayProgressCard(task: task)
-            }
-
-            // Quantity progress (if tracking quantity)
-            if task.hasQuantityProgress || task.quantity != nil {
-                TaskQuantityView(task: task)
-                    .detailCardStyle()
-            }
-
-            // Today's time entries (always expanded)
-            TimeEntriesView(task: task)
-                .detailCardStyle()
-
-            // Subtask summary badge (read-only, just status)
-            if task.subtaskCount > 0 {
-                SubtaskSummaryCard(task: task)
-            }
-        }
-        .padding(DesignSystem.Spacing.lg)
-    }
-
-    // MARK: - All Tab Content (Phase 1 fallback)
+    // MARK: - All Tab Content (Phase 1 fallback - kept for compatibility)
     @ViewBuilder
     private var allTabContent: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
@@ -449,7 +286,7 @@ struct TaskDetailView: View {
         .padding(DesignSystem.Spacing.lg)
     }
 
-    // MARK: - Summary Badge Helpers
+    // MARK: - Summary Badge Helpers (for .all fallback tab)
 
     private var timeTrackingSummaryText: String {
         var text = ""
@@ -614,178 +451,3 @@ struct TaskDetailView: View {
         }
     }
 }
-
-// MARK: - Execute Tab Supporting Components
-
-/// Blocking banner for Execute tab - prominent warning when task is blocked
-private struct BlockingBanner: View {
-    let task: Task
-    @State private var isExpanded = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Button {
-                withAnimation {
-                    isExpanded.toggle()
-                }
-                HapticManager.light()
-            } label: {
-                HStack(spacing: DesignSystem.Spacing.sm) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.title3)
-                        .foregroundStyle(.white)
-
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                        Text("BLOCKED")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.white)
-
-                        if !isExpanded, let firstReason = task.blockingReasons.first {
-                            Text(firstReason)
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.9))
-                                .lineLimit(1)
-                        }
-                    }
-
-                    Spacer()
-
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-                .padding(DesignSystem.Spacing.md)
-            }
-            .buttonStyle(.plain)
-
-            if isExpanded {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                    ForEach(task.blockingReasons, id: \.self) { reason in
-                        HStack(alignment: .top, spacing: DesignSystem.Spacing.xs) {
-                            Text("•")
-                                .foregroundStyle(.white)
-                            Text(reason)
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.9))
-                        }
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                    }
-                }
-                .padding(.bottom, DesignSystem.Spacing.sm)
-            }
-        }
-        .background(DesignSystem.Colors.error)
-        .cornerRadius(DesignSystem.CornerRadius.md)
-    }
-}
-
-/// Today's progress summary card for Execute tab
-private struct TodayProgressCard: View {
-    let task: Task
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Text("Today's Progress")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: DesignSystem.Spacing.lg) {
-                // Hours tracked today
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                    Text(String(format: "%.1fh", task.todayHours))
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.primary)
-
-                    Text("Hours Tracked")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Divider()
-                    .frame(height: 40)
-
-                // Person-hours today
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                    Text(String(format: "%.1f", task.todayPersonHours))
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.primary)
-
-                    Text("Person-Hours")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-            }
-        }
-        .padding(DesignSystem.Spacing.md)
-        .detailCardStyle()
-    }
-}
-
-/// Subtask summary card for Execute tab - read-only status
-private struct SubtaskSummaryCard: View {
-    let task: Task
-
-    var body: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            Image(systemName: "list.bullet.indent")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .frame(width: 28)
-
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                Text("Subtasks")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.primary)
-
-                Text("\(task.completedDirectSubtaskCount)/\(task.subtaskCount) completed")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            // Progress indicator
-            let progress = task.subtaskCount > 0
-                ? Double(task.completedDirectSubtaskCount) / Double(task.subtaskCount)
-                : 0.0
-            CircularProgressView(progress: progress)
-                .frame(width: 32, height: 32)
-        }
-        .padding(DesignSystem.Spacing.md)
-        .detailCardStyle()
-    }
-}
-
-/// Simple circular progress indicator
-private struct CircularProgressView: View {
-    let progress: Double
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(lineWidth: 3)
-                .opacity(0.3)
-                .foregroundStyle(DesignSystem.Colors.secondary)
-
-            Circle()
-                .trim(from: 0.0, to: CGFloat(min(progress, 1.0)))
-                .stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                .foregroundStyle(progress >= 1.0 ? DesignSystem.Colors.success : DesignSystem.Colors.info)
-                .rotationEffect(Angle(degrees: 270.0))
-                .animation(.linear, value: progress)
-
-            Text("\(Int(progress * 100))%")
-                .font(.caption2)
-                .fontWeight(.medium)
-                .foregroundStyle(.primary)
-        }
-    }
-}
-
