@@ -493,12 +493,25 @@ Before detailed planning, clarify:
 
 ---
 
-## Branch Reminder
+## Branch Setup
 
-All work happens on:
-**`claude/collapsible-detail-sections-01MFSx9P76dB9pHNVDetGMU4`**
+**IMPORTANT:** This planning session will start on a **NEW branch** for tab implementation.
 
-Do NOT merge or switch branches during planning. This is still the active feature branch.
+The foundation work was completed on:
+- `claude/collapsible-detail-sections-01MFSx9P76dB9pHNVDetGMU4` ✅ **MERGED TO MAIN**
+
+**Your new branch for tab work:**
+- Will be created at session start
+- Should follow naming: `claude/tab-view-01[SESSION_ID]`
+- Branched from: `main` (includes all foundation work)
+
+**What's now in main:**
+- Collapsible detail sections with smart defaults
+- Expected vs completed quantity tracking
+- Parent status propagation from subtasks
+- Time entry helpers (todayEntries, todayHours, activeTimerEntry)
+- Blocking analysis (blockingReasons, canStartWork)
+- Progress summary badges
 
 ---
 
