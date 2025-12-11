@@ -135,13 +135,13 @@ struct TaskEditView: View {
         // Apply quantity tracking (only when in quantity mode)
         if estimation.mode == .quantity {
             task.unit = estimation.unit
-            task.quantity = !estimation.quantity.isEmpty ? Double(estimation.quantity) : nil
+            task.expectedQuantity = !estimation.quantity.isEmpty ? Double(estimation.quantity) : nil
             task.taskType = estimation.taskType
             task.taskTemplate = estimation.taskTemplate // Link to template for custom unit support
             task.customProductivityRate = estimation.productivityRate // Save custom productivity rate
         } else {
             task.unit = UnitType.none
-            task.quantity = nil
+            task.expectedQuantity = nil
             task.taskType = nil
             task.taskTemplate = nil
             task.customProductivityRate = nil

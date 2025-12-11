@@ -72,7 +72,7 @@ struct TaskEstimator {
             self.expectedPersonnelCount = task.expectedPersonnelCount
             self.taskType = task.taskType
             self.unit = task.unit
-            self.quantity = task.quantity.map { String($0) } ?? ""
+            self.quantity = task.expectedQuantity.map { String($0) } ?? ""
             // Prioritize custom productivity rate over calculated historical rate
             self.productivityRate = task.customProductivityRate ?? task.unitsPerHour
             self.taskTemplate = task.taskTemplate

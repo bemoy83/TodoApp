@@ -130,6 +130,7 @@ final class Task: TitledItem {
     var effortHours: Double? // Total work effort in person-hours (nil = not using effort-based estimation)
 
     // Productivity tracking (Quantified Tasks)
+    var expectedQuantity: Double? // Expected/target quantity for planning (e.g., 45.5 square meters to complete)
     var quantity: Double? // Amount of work completed (e.g., 45.5 square meters, 120 pieces)
     var unit: UnitType = UnitType.none // Unit of measurement for quantity
     var taskType: String? // Task type/category for grouping productivity (e.g., "Carpet Installation", "Painting")
@@ -186,6 +187,7 @@ final class Task: TitledItem {
         hasCustomEstimate: Bool = false,
         expectedPersonnelCount: Int? = nil,
         effortHours: Double? = nil,
+        expectedQuantity: Double? = nil,
         quantity: Double? = nil,
         unit: UnitType = UnitType.none,
         taskType: String? = nil,
@@ -207,6 +209,7 @@ final class Task: TitledItem {
         self.hasCustomEstimate = hasCustomEstimate
         self.expectedPersonnelCount = expectedPersonnelCount
         self.effortHours = effortHours
+        self.expectedQuantity = expectedQuantity
         self.quantity = quantity
         self.unit = unit
         self.taskType = taskType
@@ -563,6 +566,30 @@ final class Task: TitledItem {
     @Transient
     var hasProductivityData: Bool {
         unitsPerHour != nil
+    }
+
+    // MARK: - Quantity Progress Tracking
+
+    /// Progress toward expected quantity (0.0 - 1.0+), nil if no expected quantity set
+    @Transient
+    var quantityProgress: Double? {
+        guard let expected = expectedQuantity, expected > 0 else { return nil }
+        let completed = quantity ?? 0
+        return completed / expected
+    }
+
+    /// Remaining quantity to complete (negative if over), nil if no expected quantity
+    @Transient
+    var quantityRemaining: Double? {
+        guard let expected = expectedQuantity else { return nil }
+        let completed = quantity ?? 0
+        return expected - completed
+    }
+
+    /// Whether quantity progress tracking is available
+    @Transient
+    var hasQuantityProgress: Bool {
+        expectedQuantity != nil && expectedQuantity! > 0
     }
 
     // MARK: - Date Conflict Detection (Phase 2: Hybrid Date Constraints)
