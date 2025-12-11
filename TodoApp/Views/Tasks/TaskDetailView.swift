@@ -32,7 +32,7 @@ struct TaskDetailView: View {
     private let router = TaskActionRouter()
 
     // MARK: - Tab Type Definition
-    private enum TaskDetailTab: Hashable, CaseIterable {
+    fileprivate enum TaskDetailTab: Hashable, CaseIterable {
         case all    // Phase 1: Temporary placeholder that shows current behavior
         case plan   // Phase 2+: Planning and structure
         case execute // Phase 2+: Timer controls and progress tracking
@@ -106,8 +106,7 @@ struct TaskDetailView: View {
         VStack(spacing: 0) {
             // Tab bar (Phase 1: only showing .all for now)
             TaskDetailTabBar(selectedTab: $selectedTab)
-                .padding(.horizontal, DesignSystem.Spacing.md)
-                .padding(.vertical, DesignSystem.Spacing.sm)
+                .padding(DesignSystem.Spacing.md)
 
             // Tab content
             ScrollView {
@@ -416,6 +415,5 @@ private struct TaskDetailTabBar: View {
                 .foregroundStyle(.primary)
             Spacer()
         }
-        .padding(.vertical, DesignSystem.Spacing.xs)
     }
 }
