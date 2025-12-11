@@ -193,10 +193,13 @@ struct TaskDetailView: View {
         }
     }
 
-    // MARK: - Plan Tab Content (Phase 3: Grouped collapsibles)
+    // MARK: - Plan Tab Content (Phase 3: Grouped collapsibles + header details)
     @ViewBuilder
     private var planTabContent: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            // Task header details (moved from top-level header)
+            TaskDetailHeaderView(task: task, alert: $currentAlert)
+
             // Group 1: Estimates & Resources
             DetailSectionDisclosure(
                 title: "Estimates & Resources",
