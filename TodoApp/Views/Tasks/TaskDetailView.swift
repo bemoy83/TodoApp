@@ -128,6 +128,7 @@ struct TaskDetailView: View {
                     .tag(TaskDetailTab.review)
             }
             .pickerStyle(.segmented)
+            .labelStyle(.titleAndIcon)
             .padding(.horizontal, DesignSystem.Spacing.md)
             .padding(.top, DesignSystem.Spacing.sm)
             .padding(.bottom, DesignSystem.Spacing.sm)
