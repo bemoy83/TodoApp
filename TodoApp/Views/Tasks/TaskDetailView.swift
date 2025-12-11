@@ -247,24 +247,8 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var tagsSummary: some View {
-        let tagCount = task.tags?.count ?? 0
-        if tagCount > 0 {
-            HStack(spacing: 4) {
-                ForEach(task.tags?.prefix(2) ?? [], id: \.self) { tag in
-                    Text(tag.name)
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color(hex: tag.color).opacity(0.2))
-                        .foregroundStyle(Color(hex: tag.color))
-                        .cornerRadius(4)
-                }
-                if tagCount > 2 {
-                    Text("+\(tagCount - 2)")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-            }
+        if let tags = task.tags, !tags.isEmpty {
+            CompactTagSummary(tags: Array(tags))
         } else {
             Text("No tags")
                 .font(.caption)
