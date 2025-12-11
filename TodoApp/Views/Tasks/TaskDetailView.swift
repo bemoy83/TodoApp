@@ -117,20 +117,17 @@ struct TaskDetailView: View {
 
         ScrollView {
             VStack(spacing: 0) {
-                // Phase 2: Header at top (scrolls with content)
-                TaskDetailHeaderView(task: task, alert: $currentAlert)
-                    .padding(.bottom, DesignSystem.Spacing.md)
-
-                // Phase 2: Tab bar (scrolls with content - sticky tabs can come in Phase 3 if needed)
+                // Phase 3: Tab bar at top (no heavy header)
                 TaskDetailTabBar(selectedTab: $selectedTab)
                     .padding(.horizontal, DesignSystem.Spacing.md)
+                    .padding(.top, DesignSystem.Spacing.sm)
                     .padding(.bottom, DesignSystem.Spacing.md)
 
                 // Tab content
                 tabContent(context: ctx)
             }
         }
-        .navigationTitle("Task Details")
+        .navigationTitle(task.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
