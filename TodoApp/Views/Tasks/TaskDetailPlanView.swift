@@ -56,8 +56,8 @@ struct TaskDetailPlanView: View {
                 .detailCardStyle()
             }
 
+            // Title + Status Card
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                // Title (always shown, editable)
                 SharedTitleSection(
                     item: task,
                     isEditing: .constant(false),
@@ -65,47 +65,52 @@ struct TaskDetailPlanView: View {
                     placeholder: "Task title"
                 )
 
-                // Status Section (always shown)
                 StatusSection(
                     task: task,
                     alertBinding: $currentAlert,
                     modelContext: modelContext
                 )
-
-                // 1️⃣ SCHEDULE & SCOPE
-                ScheduleScopeSection(task: task, alert: $currentAlert)
-
-                // Date Conflict Warning (if applicable)
-                if task.hasDateConflicts {
-                    DateConflictWarningSection(task: task)
-                }
-
-                // 2️⃣ RESOURCES
-                ResourcesSection(
-                    task: task,
-                    isPersonnelExpanded: $isPersonnelExpanded,
-                    isQuantityExpanded: $isQuantityExpanded
-                )
-
-                // 3️⃣ STRUCTURE
-                StructureSection(
-                    task: task,
-                    isSubtasksExpanded: $isSubtasksExpanded,
-                    isDependenciesExpanded: $isDependenciesExpanded
-                )
-
-                // 4️⃣ ORGANIZATION
-                OrganizationClassificationSection(
-                    task: task,
-                    isTagsExpanded: $isTagsExpanded
-                )
-
-                // 5️⃣ NOTES
-                NotesInfoSection(
-                    task: task,
-                    isNotesExpanded: $isNotesExpanded
-                )
             }
+            .detailCardStyle()
+
+            // 1️⃣ Schedule & Scope Card
+            ScheduleScopeSection(task: task, alert: $currentAlert)
+                .detailCardStyle()
+
+            // Date Conflict Warning Card (if applicable)
+            if task.hasDateConflicts {
+                DateConflictWarningSection(task: task)
+                    .detailCardStyle()
+            }
+
+            // 2️⃣ Resources Card
+            ResourcesSection(
+                task: task,
+                isPersonnelExpanded: $isPersonnelExpanded,
+                isQuantityExpanded: $isQuantityExpanded
+            )
+            .detailCardStyle()
+
+            // 3️⃣ Structure Card
+            StructureSection(
+                task: task,
+                isSubtasksExpanded: $isSubtasksExpanded,
+                isDependenciesExpanded: $isDependenciesExpanded
+            )
+            .detailCardStyle()
+
+            // 4️⃣ Organization Card
+            OrganizationClassificationSection(
+                task: task,
+                isTagsExpanded: $isTagsExpanded
+            )
+            .detailCardStyle()
+
+            // 5️⃣ Notes Card
+            NotesInfoSection(
+                task: task,
+                isNotesExpanded: $isNotesExpanded
+            )
             .detailCardStyle()
         }
         .padding(DesignSystem.Spacing.lg)
