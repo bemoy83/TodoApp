@@ -17,6 +17,9 @@ struct TaskDetailView: View {
     // NEW: central alert state for executor-backed alerts
     @State private var currentAlert: TaskActionAlert?
 
+    // MARK: - Tab Navigation (Phase 1)
+    @State private var selectedTab: TaskDetailTab = .all
+
     // Collapsible section states with smart defaults
     @State private var isTimeTrackingExpanded: Bool
     @State private var isPersonnelExpanded: Bool
@@ -27,6 +30,32 @@ struct TaskDetailView: View {
     @State private var isDependenciesExpanded: Bool
 
     private let router = TaskActionRouter()
+
+    // MARK: - Tab Type Definition
+    private enum TaskDetailTab: Hashable, CaseIterable {
+        case all    // Phase 1: Temporary placeholder that shows current behavior
+        case plan   // Phase 2+: Planning and structure
+        case execute // Phase 2+: Timer controls and progress tracking
+        case review  // Phase 3+: Analytics and metrics
+
+        var title: String {
+            switch self {
+            case .all: return "All"
+            case .plan: return "Plan"
+            case .execute: return "Execute"
+            case .review: return "Review"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .all: return "list.bullet"
+            case .plan: return "checklist"
+            case .execute: return "bolt.fill"
+            case .review: return "chart.bar.fill"
+            }
+        }
+    }
 
     init(task: Task) {
         self.task = task
@@ -74,80 +103,22 @@ struct TaskDetailView: View {
     var body: some View {
         let ctx = TaskActionRouter.Context(modelContext: modelContext, hapticsEnabled: true)
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                TaskDetailHeaderView(task: task)
+        VStack(spacing: 0) {
+            // Tab bar (Phase 1: only showing .all for now)
+            TaskDetailTabBar(selectedTab: $selectedTab)
+                .padding(.horizontal, DesignSystem.Spacing.md)
+                .padding(.vertical, DesignSystem.Spacing.sm)
 
-                // Time tracking remains the canonical place for timer controls
-                DetailSectionDisclosure(
-                    title: "Time Tracking",
-                    icon: "clock",
-                    isExpanded: $isTimeTrackingExpanded,
-                    summary: { timeTrackingSummary },
-                    content: { TaskTimeTrackingView(task: task) }
-                )
-
-                // Personnel planning and tracking
-                DetailSectionDisclosure(
-                    title: "Personnel",
-                    icon: "person.2.fill",
-                    isExpanded: $isPersonnelExpanded,
-                    summary: { personnelSummary },
-                    content: { TaskPersonnelView(task: task) }
-                )
-
-                // Quantity tracking for productivity measurement
-                DetailSectionDisclosure(
-                    title: "Quantity",
-                    icon: "number",
-                    isExpanded: $isQuantityExpanded,
-                    summary: { quantitySummary },
-                    content: { TaskQuantityView(task: task) }
-                )
-
-                // Tags for organization and filtering
-                DetailSectionDisclosure(
-                    title: "Tags",
-                    icon: "tag",
-                    isExpanded: $isTagsExpanded,
-                    summary: { tagsSummary },
-                    content: { TaskTagsView(task: task) }
-                )
-
-                // Time entries management
-                DetailSectionDisclosure(
-                    title: "Time Entries",
-                    icon: "list.bullet.clipboard",
-                    isExpanded: $isEntriesExpanded,
-                    summary: { entriesSummary },
-                    content: { TimeEntriesView(task: task) }
-                )
-
-                // Subtasks
-                DetailSectionDisclosure(
-                    title: "Subtasks",
-                    icon: "list.bullet.indent",
-                    isExpanded: $isSubtasksExpanded,
-                    summary: { subtasksSummary },
-                    content: { TaskSubtasksView(task: task) }
-                )
-
-                // Dependencies
-                DetailSectionDisclosure(
-                    title: "Dependencies",
-                    icon: "link",
-                    isExpanded: $isDependenciesExpanded,
-                    summary: { dependenciesSummary },
-                    content: { TaskDependenciesView(task: task) }
-                )
+            // Tab content
+            ScrollView {
+                tabContent(context: ctx)
             }
-            .padding(DesignSystem.Spacing.lg)
         }
         .navigationTitle("Task Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                // Edit â€” now routed via executor; if no alert, open editor
+                // Edit – now routed via executor; if no alert, open editor
                 Button {
                     var presentedAlert = false
                     _ = router.performWithExecutor(.edit, on: task, context: ctx) { alert in
@@ -161,7 +132,7 @@ struct TaskDetailView: View {
                     Image(systemName: "pencil")
                 }
 
-                // More â€” shared Quick Actions sheet (already executor-backed)
+                // More – shared Quick Actions sheet (already executor-backed)
                 Button {
                     showingMoreSheet = true
                 } label: {
@@ -187,6 +158,79 @@ struct TaskDetailView: View {
         }
         // Present any alerts triggered from this view (e.g., edit intent if it ever alerts)
         .taskActionAlert(alert: $currentAlert)
+    }
+
+    // MARK: - Tab Content (Phase 1: All content in .all tab)
+    @ViewBuilder
+    private func tabContent(context: TaskActionRouter.Context) -> some View {
+        // Phase 1: All tabs show the same existing content
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            TaskDetailHeaderView(task: task)
+
+            // Time tracking remains the canonical place for timer controls
+            DetailSectionDisclosure(
+                title: "Time Tracking",
+                icon: "clock",
+                isExpanded: $isTimeTrackingExpanded,
+                summary: { timeTrackingSummary },
+                content: { TaskTimeTrackingView(task: task) }
+            )
+
+            // Personnel planning and tracking
+            DetailSectionDisclosure(
+                title: "Personnel",
+                icon: "person.2.fill",
+                isExpanded: $isPersonnelExpanded,
+                summary: { personnelSummary },
+                content: { TaskPersonnelView(task: task) }
+            )
+
+            // Quantity tracking for productivity measurement
+            DetailSectionDisclosure(
+                title: "Quantity",
+                icon: "number",
+                isExpanded: $isQuantityExpanded,
+                summary: { quantitySummary },
+                content: { TaskQuantityView(task: task) }
+            )
+
+            // Tags for organization and filtering
+            DetailSectionDisclosure(
+                title: "Tags",
+                icon: "tag",
+                isExpanded: $isTagsExpanded,
+                summary: { tagsSummary },
+                content: { TaskTagsView(task: task) }
+            )
+
+            // Time entries management
+            DetailSectionDisclosure(
+                title: "Time Entries",
+                icon: "list.bullet.clipboard",
+                isExpanded: $isEntriesExpanded,
+                summary: { entriesSummary },
+                content: { TimeEntriesView(task: task) }
+            )
+
+            // Subtasks
+            DetailSectionDisclosure(
+                title: "Subtasks",
+                icon: "list.bullet.indent",
+                isExpanded: $isSubtasksExpanded,
+                summary: { subtasksSummary },
+                content: { TaskSubtasksView(task: task) }
+            )
+
+            // Dependencies
+            DetailSectionDisclosure(
+                title: "Dependencies",
+                icon: "link",
+                isExpanded: $isDependenciesExpanded,
+                summary: { dependenciesSummary },
+                content: { TaskDependenciesView(task: task) }
+            )
+        }
+        .padding(DesignSystem.Spacing.lg)
     }
 
     // MARK: - Summary Badge Helpers
@@ -352,5 +396,26 @@ struct TaskDetailView: View {
                     .foregroundStyle(.tertiary)
             }
         }
+    }
+}
+
+// MARK: - Tab Bar Component
+
+/// Simple tab bar for TaskDetailView
+/// Phase 1: Only shows "All" tab
+/// Phase 2+: Will show Plan, Execute, Review tabs
+private struct TaskDetailTabBar: View {
+    @Binding var selectedTab: TaskDetailView.TaskDetailTab
+
+    var body: some View {
+        // Phase 1: Simple single tab indicator
+        // Phase 2+: Will become proper segmented control
+        HStack {
+            Text("All")
+                .font(.headline)
+                .foregroundStyle(.primary)
+            Spacer()
+        }
+        .padding(.vertical, DesignSystem.Spacing.xs)
     }
 }
