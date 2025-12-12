@@ -53,7 +53,6 @@ struct TaskSubtasksView: View {
                         }
                     }
                     .listStyle(.plain)
-                    .frame(height: CGFloat(subtasks.count) * 44)
                     .scrollDisabled(true)
 
                     if canAddSubtasks {
@@ -158,11 +157,6 @@ private struct SubtaskRow: View {
                             .foregroundStyle(.red)
                             .pulsingAnimation(active: true)
                     }
-
-                    // Navigation chevron
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
                 }
             }
             .buttonStyle(.plain)

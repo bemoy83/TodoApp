@@ -30,7 +30,6 @@ struct TaskDependenciesView: View {
                         }
                     }
                     .listStyle(.plain)
-                    .frame(height: CGFloat(dependencies.count) * 44)
                     .scrollDisabled(true)
 
                     Divider()
@@ -112,11 +111,6 @@ private struct DependencyRow: View {
                         .foregroundStyle(.primary)
 
                     Spacer()
-
-                    // Chevron
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
                 }
             }
             .buttonStyle(.plain)
