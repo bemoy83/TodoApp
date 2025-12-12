@@ -13,7 +13,6 @@ struct TaskDetailReviewView: View {
     @Binding var isTagsExpanded: Bool
     @Binding var isSubtasksExpanded: Bool
     @Binding var isDependenciesExpanded: Bool
-    @Binding var isNotesExpanded: Bool
 
     var body: some View {
         // TODO: Implement Review tab with analytics
@@ -26,8 +25,7 @@ struct TaskDetailReviewView: View {
             isQuantityExpanded: $isQuantityExpanded,
             isTagsExpanded: $isTagsExpanded,
             isSubtasksExpanded: $isSubtasksExpanded,
-            isDependenciesExpanded: $isDependenciesExpanded,
-            isNotesExpanded: $isNotesExpanded
+            isDependenciesExpanded: $isDependenciesExpanded
         )
     }
 }

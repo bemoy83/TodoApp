@@ -28,7 +28,6 @@ struct TaskDetailView: View {
     @State private var isEntriesExpanded: Bool
     @State private var isSubtasksExpanded: Bool
     @State private var isDependenciesExpanded: Bool
-    @State private var isNotesExpanded: Bool = true
 
     private let router = TaskActionRouter()
 
@@ -200,8 +199,7 @@ struct TaskDetailView: View {
                 isQuantityExpanded: $isQuantityExpanded,
                 isTagsExpanded: $isTagsExpanded,
                 isSubtasksExpanded: $isSubtasksExpanded,
-                isDependenciesExpanded: $isDependenciesExpanded,
-                isNotesExpanded: $isNotesExpanded
+                isDependenciesExpanded: $isDependenciesExpanded
             )
 
         case .execute:

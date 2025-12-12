@@ -18,7 +18,6 @@ struct TaskDetailPlanView: View {
     @Binding var isTagsExpanded: Bool
     @Binding var isSubtasksExpanded: Bool
     @Binding var isDependenciesExpanded: Bool
-    @Binding var isNotesExpanded: Bool
 
     private var parentTask: Task? {
         guard let parentId = task.parentTask?.id else { return nil }
@@ -106,11 +105,12 @@ struct TaskDetailPlanView: View {
             )
             .detailCardStyle()
 
-            // 5️⃣ Notes Card
-            NotesInfoSection(
-                task: task,
-                isNotesExpanded: $isNotesExpanded
-            )
+            // 5️⃣ Details Card (Dates)
+            DetailsSection(task: task)
+            .detailCardStyle()
+
+            // 6️⃣ Notes Card
+            NotesSection(task: task)
             .detailCardStyle()
         }
         .padding(DesignSystem.Spacing.lg)
@@ -563,11 +563,29 @@ private struct OrganizationClassificationSection: View {
     }
 }
 
-// MARK: - 5️⃣ Notes Section
+// MARK: - 5️⃣ Details Section (Dates)
 
-private struct NotesInfoSection: View {
+private struct DetailsSection: View {
     let task: Task
-    @Binding var isNotesExpanded: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            Text("Details")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            BasicDatesSection(task: task)
+        }
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - 6️⃣ Notes Section
+
+private struct NotesSection: View {
+    @Bindable var task: Task
+    @State private var showingNoteEditor = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -576,17 +594,71 @@ private struct NotesInfoSection: View {
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
-            VStack(spacing: DesignSystem.Spacing.md) {
-                // Notes (conditional)
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                 if let notes = task.notes, !notes.isEmpty {
-                    SharedNotesSection(notes: notes, isExpanded: $isNotesExpanded)
+                    // Display note content
+                    Text(notes)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal)
+
+                    Divider()
+                        .padding(.horizontal)
+                } else {
+                    // Empty state
+                    Text("No notes")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+
+                    Divider()
+                        .padding(.horizontal)
                 }
 
-                // Basic dates
-                BasicDatesSection(task: task)
+                // Add/Edit button
+                UnifiedAddButton(
+                    title: task.notes?.isEmpty == false ? "Edit Note" : "Add Note",
+                    action: {
+                        showingNoteEditor = true
+                        HapticManager.selection()
+                    }
+                )
             }
         }
         .padding(.horizontal)
+        .sheet(isPresented: $showingNoteEditor) {
+            TaskEditView(task: task)
+        }
+    }
+}
+
+// MARK: - Unified Add Button Component
+
+/// Standardized add button used across all list-based sections
+/// Provides consistent visual treatment and interaction pattern
+private struct UnifiedAddButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.body)
+                    .foregroundStyle(.blue)
+
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.blue)
+
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.vertical, DesignSystem.Spacing.sm)
+        }
+        .buttonStyle(.plain)
     }
 }
 
