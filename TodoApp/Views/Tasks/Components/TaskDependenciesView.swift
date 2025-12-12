@@ -137,7 +137,7 @@ private struct DependencyRow: View {
     let parent = Task(title: "Parent Task", priority: 1, createdDate: Date())
     let dep1 = Task(title: "Setup environment", priority: 1, createdDate: Date())
     let dep2 = Task(title: "Get materials", priority: 1, createdDate: Date())
-    let dep3 = Task(title: "Review plans", priority: 1, createdDate: Date(), completedDate: Date())
+    let dep3 = Task(title: "Review plans", priority: 1, completedDate: Date(), createdDate: Date())
 
     parent.dependsOn = [dep1, dep2, dep3]
 
