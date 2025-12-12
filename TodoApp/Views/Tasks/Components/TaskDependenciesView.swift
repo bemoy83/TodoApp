@@ -14,6 +14,13 @@ struct TaskDependenciesView: View {
         TaskService.blockedByTasks(for: task, from: allTasks)
     }
 
+    // Calculate dynamic height for List based on content
+    private var listHeight: CGFloat {
+        guard let dependencies = task.dependsOn else { return 0 }
+        // Row height: content (~32) + vertical padding (sm = 8*2 = 16) = ~48
+        return CGFloat(dependencies.count) * 48
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -31,8 +38,7 @@ struct TaskDependenciesView: View {
                     }
                     .listStyle(.plain)
                     .scrollDisabled(true)
-                    .frame(minHeight: 0)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(height: listHeight)
 
                     Divider()
                         .padding(.horizontal)

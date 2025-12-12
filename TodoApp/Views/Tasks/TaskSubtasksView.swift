@@ -27,6 +27,12 @@ struct TaskSubtasksView: View {
                 .sorted { ($0.order ?? Int.max) < ($1.order ?? Int.max) }
         }
 
+    // Calculate dynamic height for List based on content
+    private var listHeight: CGFloat {
+        // Row height: content (~44) + vertical padding (xs = 4*2 = 8) = ~52
+        CGFloat(subtasks.count) * 52
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -54,8 +60,7 @@ struct TaskSubtasksView: View {
                     }
                     .listStyle(.plain)
                     .scrollDisabled(true)
-                    .frame(minHeight: 0)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(height: listHeight)
 
                     if canAddSubtasks {
                         Divider()
