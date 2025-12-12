@@ -303,72 +303,69 @@ private struct ResourcesSection: View {
     @Binding var isQuantityExpanded: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Resources")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
+                .padding(.horizontal)
+                .padding(.bottom, DesignSystem.Spacing.sm)
 
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            VStack(alignment: .leading, spacing: 0) {
                 // Personnel planning
-                DetailSectionDisclosure(
+                SubsectionDisclosure(
                     title: "Personnel",
                     icon: "person.2.fill",
                     isExpanded: $isPersonnelExpanded,
-                    summary: { personnelSummary },
-                    content: { TaskPersonnelView(task: task) }
+                    summary: personnelSummary,
+                    content: {
+                        TaskPersonnelView(task: task)
+                            .padding(.horizontal)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
+                    }
                 )
 
+                Divider()
+                    .padding(.leading, 44) // Align with content after icon
+
                 // Quantity tracking
-                DetailSectionDisclosure(
+                SubsectionDisclosure(
                     title: "Quantity",
                     icon: "number",
                     isExpanded: $isQuantityExpanded,
-                    summary: { quantitySummary },
-                    content: { TaskQuantityView(task: task) }
+                    summary: quantitySummary,
+                    content: {
+                        TaskQuantityView(task: task)
+                            .padding(.horizontal)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
+                    }
                 )
             }
         }
-        .padding(.horizontal)
     }
 
-    @ViewBuilder
-    private var personnelSummary: some View {
+    private var personnelSummary: String {
         if let count = task.expectedPersonnelCount {
             let personWord = count == 1 ? "person" : "people"
-            Text("\(count) \(personWord)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            return "\(count) \(personWord)"
         } else {
-            Text("Not set")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            return "Not set"
         }
     }
 
-    @ViewBuilder
-    private var quantitySummary: some View {
+    private var quantitySummary: String {
         if task.hasQuantityProgress {
             let completed = task.quantity ?? 0
             let expected = task.expectedQuantity!
             let progress = task.quantityProgress!
             let progressPercent = Int(progress * 100)
-
-            Text("\(formatQuantity(completed))/\(formatQuantity(expected)) \(task.unitDisplayName) (\(progressPercent)%)")
-                .font(.caption)
-                .foregroundStyle(progress >= 1.0 ? .green : .secondary)
+            return "\(formatQuantity(completed))/\(formatQuantity(expected)) \(task.unitDisplayName) (\(progressPercent)%)"
         } else if task.unit != .none, let quantity = task.quantity {
-            Text("\(formatQuantity(quantity)) \(task.unitDisplayName)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            return "\(formatQuantity(quantity)) \(task.unitDisplayName)"
         } else if task.expectedQuantity != nil {
-            Text("0/\(formatQuantity(task.expectedQuantity!)) \(task.unitDisplayName) (0%)")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            return "0/\(formatQuantity(task.expectedQuantity!)) \(task.unitDisplayName) (0%)"
         } else {
-            Text("Not set")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            return "Not set"
         }
     }
 
@@ -389,68 +386,68 @@ private struct StructureSection: View {
     @Binding var isDependenciesExpanded: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Structure")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
+                .padding(.horizontal)
+                .padding(.bottom, DesignSystem.Spacing.sm)
 
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            VStack(alignment: .leading, spacing: 0) {
                 // Subtasks
-                DetailSectionDisclosure(
+                SubsectionDisclosure(
                     title: "Subtasks",
                     icon: "list.bullet.indent",
                     isExpanded: $isSubtasksExpanded,
-                    summary: { subtasksSummary },
-                    content: { TaskSubtasksView(task: task) }
+                    summary: subtasksSummary,
+                    content: {
+                        TaskSubtasksView(task: task)
+                            .padding(.horizontal)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
+                    }
                 )
 
+                Divider()
+                    .padding(.leading, 44)
+
                 // Dependencies
-                DetailSectionDisclosure(
+                SubsectionDisclosure(
                     title: "Dependencies",
                     icon: "link",
                     isExpanded: $isDependenciesExpanded,
-                    summary: { dependenciesSummary },
-                    content: { TaskDependenciesView(task: task) }
+                    summary: dependenciesSummary,
+                    content: {
+                        TaskDependenciesView(task: task)
+                            .padding(.horizontal)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
+                    }
                 )
             }
         }
-        .padding(.horizontal)
     }
 
-    @ViewBuilder
-    private var subtasksSummary: some View {
+    private var subtasksSummary: String {
         let subtaskCount = task.subtasks?.count ?? 0
         if subtaskCount > 0 {
             let completedCount = task.subtasks?.filter { $0.isCompleted }.count ?? 0
-            Text("\(completedCount)/\(subtaskCount) completed")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            return "\(completedCount)/\(subtaskCount) completed"
         } else {
-            Text("No subtasks")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            return "No subtasks"
         }
     }
 
-    @ViewBuilder
-    private var dependenciesSummary: some View {
+    private var dependenciesSummary: String {
         let blockingCount = task.blockingDependencies.count
         if blockingCount > 0 {
-            Text("\(blockingCount) blocking")
-                .font(.caption)
-                .foregroundStyle(.orange)
+            return "\(blockingCount) blocking"
         } else {
             let totalDeps = (task.dependsOn?.count ?? 0) + (task.blockedBy?.count ?? 0)
             if totalDeps > 0 {
                 let depWord = totalDeps == 1 ? "dependency" : "dependencies"
-                Text("\(totalDeps) \(depWord)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                return "\(totalDeps) \(depWord)"
             } else {
-                Text("None")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                return "None"
             }
         }
     }
@@ -463,13 +460,15 @@ private struct OrganizationClassificationSection: View {
     @Binding var isTagsExpanded: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Organization")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
+                .padding(.horizontal)
+                .padding(.bottom, DesignSystem.Spacing.sm)
 
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            VStack(alignment: .leading, spacing: 0) {
                 // Project (conditional)
                 if let project = task.project {
                     HStack {
@@ -492,7 +491,11 @@ private struct OrganizationClassificationSection: View {
                             .font(.subheadline)
                             .foregroundStyle(.tertiary)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.horizontal)
+                    .padding(.vertical, DesignSystem.Spacing.sm)
+
+                    Divider()
+                        .padding(.leading, 44)
                 }
 
                 // Priority (always shown)
@@ -526,33 +529,36 @@ private struct OrganizationClassificationSection: View {
                             .font(.subheadline)
                             .foregroundStyle(.tertiary)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.horizontal)
+                    .padding(.vertical, DesignSystem.Spacing.sm)
                 }
                 .buttonStyle(.plain)
 
                 Divider()
+                    .padding(.leading, 44)
 
                 // Tags
-                DetailSectionDisclosure(
+                SubsectionDisclosure(
                     title: "Tags",
                     icon: "tag",
                     isExpanded: $isTagsExpanded,
-                    summary: { tagsSummary },
-                    content: { TaskTagsView(task: task) }
+                    summary: tagsSummary,
+                    content: {
+                        TaskTagsView(task: task)
+                            .padding(.horizontal)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
+                    }
                 )
             }
         }
-        .padding(.horizontal)
     }
 
-    @ViewBuilder
-    private var tagsSummary: some View {
+    private var tagsSummary: String {
         if let tags = task.tags, !tags.isEmpty {
-            CompactTagSummary(tags: Array(tags))
+            let tagNames = tags.map { $0.name }.joined(separator: ", ")
+            return tagNames
         } else {
-            Text("No tags")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            return "No tags"
         }
     }
 }
@@ -904,5 +910,63 @@ private struct DateConflictWarningSection: View {
             }
         }
         .padding(.horizontal)
+    }
+}
+
+// MARK: - Subsection Disclosure Component
+
+/// Lightweight disclosure component for subsections within cards
+/// Uses dividers instead of nested cards for cleaner visual hierarchy
+private struct SubsectionDisclosure<Content: View>: View {
+    let title: String
+    let icon: String
+    @Binding var isExpanded: Bool
+    let summary: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header (tappable)
+            Button {
+                withAnimation {
+                    isExpanded.toggle()
+                }
+                HapticManager.light()
+            } label: {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    Image(systemName: icon)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28)
+
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    // Summary text (when collapsed)
+                    if !isExpanded {
+                        Text(summary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, DesignSystem.Spacing.sm)
+            }
+            .buttonStyle(.plain)
+
+            // Content (when expanded)
+            if isExpanded {
+                content()
+            }
+        }
     }
 }
