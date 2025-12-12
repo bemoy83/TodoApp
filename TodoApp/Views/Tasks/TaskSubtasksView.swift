@@ -54,6 +54,8 @@ struct TaskSubtasksView: View {
                     }
                     .listStyle(.plain)
                     .scrollDisabled(true)
+                    .frame(minHeight: 0)
+                    .fixedSize(horizontal: false, vertical: true)
 
                     if canAddSubtasks {
                         Divider()

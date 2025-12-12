@@ -31,6 +31,8 @@ struct TaskDependenciesView: View {
                     }
                     .listStyle(.plain)
                     .scrollDisabled(true)
+                    .frame(minHeight: 0)
+                    .fixedSize(horizontal: false, vertical: true)
 
                     Divider()
                         .padding(.horizontal)
