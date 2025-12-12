@@ -139,14 +139,15 @@ private struct DependencyRow: View {
     let dep2 = Task(title: "Get materials", priority: 1, createdDate: Date())
     let dep3 = Task(title: "Review plans", priority: 1, completedDate: Date(), createdDate: Date())
 
-    parent.dependsOn = [dep1, dep2, dep3]
+    let _ = {
+        parent.dependsOn = [dep1, dep2, dep3]
+        container.mainContext.insert(parent)
+        container.mainContext.insert(dep1)
+        container.mainContext.insert(dep2)
+        container.mainContext.insert(dep3)
+    }()
 
-    container.mainContext.insert(parent)
-    container.mainContext.insert(dep1)
-    container.mainContext.insert(dep2)
-    container.mainContext.insert(dep3)
-
-    NavigationStack {
+    return NavigationStack {
         ScrollView {
             TaskDependenciesView(task: parent)
         }
@@ -157,7 +158,7 @@ private struct DependencyRow: View {
 #Preview("No Dependencies") {
     let task = Task(title: "Task without dependencies", priority: 1, createdDate: Date())
 
-    NavigationStack {
+    return NavigationStack {
         ScrollView {
             TaskDependenciesView(task: task)
         }
