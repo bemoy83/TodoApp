@@ -19,15 +19,19 @@ struct TaskDependenciesView: View {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                 if let dependencies = task.dependsOn, !dependencies.isEmpty {
                     // Dependency list
-                    VStack(spacing: DesignSystem.Spacing.xs) {
+                    List {
                         ForEach(dependencies) { dependency in
                             DependencyRow(
                                 dependency: dependency,
                                 onRemove: { removeDependency(dependency) }
                             )
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                            .listRowSeparator(.hidden)
                         }
                     }
-                    .padding(.horizontal)
+                    .listStyle(.plain)
+                    .frame(height: CGFloat(dependencies.count) * 44)
+                    .scrollDisabled(true)
 
                     Divider()
                         .padding(.horizontal)

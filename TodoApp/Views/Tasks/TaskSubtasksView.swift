@@ -39,7 +39,7 @@ struct TaskSubtasksView: View {
                         .padding(.horizontal)
                 } else {
                     // Subtask list
-                    VStack(spacing: DesignSystem.Spacing.xs) {
+                    List {
                         ForEach(subtasks) { subtask in
                             SubtaskRow(
                                 subtask: subtask,
@@ -48,9 +48,13 @@ struct TaskSubtasksView: View {
                                 onEdit: { editingSubtask = subtask },
                                 onMore: { showingMoreSheetFor = subtask }
                             )
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                            .listRowSeparator(.hidden)
                         }
                     }
-                    .padding(.horizontal)
+                    .listStyle(.plain)
+                    .frame(height: CGFloat(subtasks.count) * 44)
+                    .scrollDisabled(true)
 
                     if canAddSubtasks {
                         Divider()
