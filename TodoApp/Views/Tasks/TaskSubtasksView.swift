@@ -60,26 +60,13 @@ struct TaskSubtasksView: View {
 
                 // Action area
                 if canAddSubtasks {
-                    Button {
-                        showingAddSubtask = true
-                        HapticManager.selection()
-                    } label: {
-                        HStack(spacing: DesignSystem.Spacing.sm) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.body)
-                                .foregroundStyle(.blue)
-
-                            Text("Add Subtask")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.blue)
-
-                            Spacer()
+                    UnifiedAddButton(
+                        title: "Add Subtask",
+                        action: {
+                            showingAddSubtask = true
+                            HapticManager.selection()
                         }
-                        .padding(.horizontal)
-                        .padding(.vertical, DesignSystem.Spacing.xs)
-                    }
-                    .buttonStyle(.plain)
+                    )
                 } else {
                     HStack(spacing: DesignSystem.Spacing.xs) {
                         Image(systemName: "info.circle")
@@ -191,5 +178,34 @@ private struct SubtaskRow: View {
             onMore: onMore,
             alert: $alert
         )
+    }
+}
+
+// MARK: - Unified Add Button Component
+
+/// Standardized add button used across all list-based sections
+/// Provides consistent visual treatment and interaction pattern
+private struct UnifiedAddButton: View {
+    let title: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.body)
+                    .foregroundStyle(.blue)
+                
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.blue)
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.vertical, DesignSystem.Spacing.sm)
+        }
+        .buttonStyle(.plain)
     }
 }

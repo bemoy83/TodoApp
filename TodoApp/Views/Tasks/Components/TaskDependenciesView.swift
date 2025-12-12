@@ -109,26 +109,13 @@ struct TaskDependenciesView: View {
                         }
 
                         // Add button
-                        Button {
-                            showingDependencyPicker = true
-                            HapticManager.selection()
-                        } label: {
-                            HStack(spacing: DesignSystem.Spacing.sm) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.body)
-                                    .foregroundStyle(.blue)
-
-                                Text("Add Dependency")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.blue)
-
-                                Spacer()
+                        UnifiedAddButton(
+                            title: "Add Dependency",
+                            action: {
+                                showingDependencyPicker = true
+                                HapticManager.selection()
                             }
-                            .padding(.horizontal)
-                            .padding(.vertical, DesignSystem.Spacing.xs)
-                        }
-                        .buttonStyle(.plain)
+                        )
                     }
 
                     // Subtask Dependencies Section (only for parent tasks)
@@ -372,4 +359,33 @@ private struct SubtaskDependencyRow: View {
         }
     }
     .modelContainer(for: [Task.self, Project.self, TimeEntry.self])
+}
+
+// MARK: - Unified Add Button Component
+
+/// Standardized add button used across all list-based sections
+/// Provides consistent visual treatment and interaction pattern
+private struct UnifiedAddButton: View {
+    let title: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.body)
+                    .foregroundStyle(.blue)
+                
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.blue)
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.vertical, DesignSystem.Spacing.sm)
+        }
+        .buttonStyle(.plain)
+    }
 }

@@ -58,48 +58,47 @@ struct TaskTagsView: View {
                 }
 
                 // Action button
-                Button {
-                    showingTagPicker = true
-                    HapticManager.selection()
-                } label: {
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        Image(systemName: buttonIcon)
-                            .font(.body)
-                            .foregroundStyle(.blue)
-
-                        Text(buttonText)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.blue)
+                UnifiedAddButton(
+                    title: taskTags.isEmpty ? "Add Tags" : "Edit Tags",
+                    action: {
+                        showingTagPicker = true
+                        HapticManager.selection()
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                )
             }
         }
         .sheet(isPresented: $showingTagPicker) {
             TagPickerView(task: task)
         }
     }
+}
 
-    // MARK: - Helper Properties
+// MARK: - Unified Add Button Component
 
-    private var buttonText: String {
-        if taskTags.isEmpty {
-            return "Add Tags"
-        } else {
-            return "Edit Tags"
+/// Standardized add button used across all list-based sections
+/// Provides consistent visual treatment and interaction pattern
+private struct UnifiedAddButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DesignSystem.Spacing.sm) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.body)
+                    .foregroundStyle(.blue)
+
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.blue)
+
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.vertical, DesignSystem.Spacing.sm)
         }
-    }
-
-    private var buttonIcon: String {
-        if taskTags.isEmpty {
-            return "plus.circle.fill"
-        } else {
-            return "pencil.circle.fill"
-        }
+        .buttonStyle(.plain)
     }
 }
 
