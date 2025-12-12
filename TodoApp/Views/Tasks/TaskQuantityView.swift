@@ -192,7 +192,6 @@ struct TaskQuantityView: View {
                 }
             }
         }
-        .detailCardStyle()
         .sheet(isPresented: $showingQuantityPicker) {
             QuantityPickerSheet(
                 quantity: $editedQuantity,
