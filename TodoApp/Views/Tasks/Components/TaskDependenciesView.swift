@@ -92,29 +92,33 @@ private struct DependencyRow: View {
     let onRemove: () -> Void
 
     var body: some View {
-        NavigationLink(destination: TaskDetailView(task: dependency)) {
-            HStack(spacing: DesignSystem.Spacing.sm) {
-                // Status icon
-                Image(systemName: dependency.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.body)
-                    .foregroundStyle(dependency.isCompleted ? .green : .gray)
-                    .frame(width: 28)
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            // Status icon
+            Image(systemName: dependency.isCompleted ? "checkmark.circle.fill" : "circle")
+                .font(.body)
+                .foregroundStyle(dependency.isCompleted ? .green : .gray)
+                .frame(width: 28)
 
-                // Title
-                Text(dependency.title)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
+            // Content navigation
+            NavigationLink(destination: TaskDetailView(task: dependency)) {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    // Title
+                    Text(dependency.title)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
 
-                Spacer()
+                    Spacer()
 
-                // Chevron
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    // Chevron
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             }
-            .padding(.vertical, DesignSystem.Spacing.sm)
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, DesignSystem.Spacing.sm)
+        .contentShape(Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 withAnimation {
