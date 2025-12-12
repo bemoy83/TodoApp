@@ -214,8 +214,7 @@ struct TaskDetailView: View {
                 isQuantityExpanded: $isQuantityExpanded,
                 isTagsExpanded: $isTagsExpanded,
                 isSubtasksExpanded: $isSubtasksExpanded,
-                isDependenciesExpanded: $isDependenciesExpanded,
-                isNotesExpanded: $isNotesExpanded
+                isDependenciesExpanded: $isDependenciesExpanded
             )
         }
     }
