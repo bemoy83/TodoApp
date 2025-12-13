@@ -10,7 +10,6 @@ struct TaskDependenciesView: View {
 
     @State private var showingDependencyPicker = false
     @AppStorage private var enableDependencies: Bool // Changed to @AppStorage
-    @State private var isEditingDependencies = false
 
     // Use task ID as storage key for per-task persistence
     init(task: Task) {
@@ -40,23 +39,6 @@ struct TaskDependenciesView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            // Edit button (if has dependencies)
-            if !isSubtask || enableDependencies {
-                if let deps = task.dependsOn, !deps.isEmpty {
-                    HStack {
-                        Spacer()
-
-                        Button(isEditingDependencies ? "Done" : "Edit") {
-                            isEditingDependencies.toggle()
-                            HapticManager.selection()
-                        }
-                        .font(.subheadline)
-                        .foregroundStyle(.blue)
-                    }
-                    .padding(.horizontal)
-                }
-            }
-
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
                 // Toggle for subtasks (now persisted)
                 if isSubtask {
@@ -89,23 +71,25 @@ struct TaskDependenciesView: View {
                             .textCase(.uppercase)
                             .padding(.horizontal)
 
-                        VStack(spacing: DesignSystem.Spacing.xs) {
-                            if let dependencies = task.dependsOn, !dependencies.isEmpty {
+                        if let dependencies = task.dependsOn, !dependencies.isEmpty {
+                            VStack(spacing: DesignSystem.Spacing.xs) {
                                 ForEach(dependencies) { dependency in
                                     DependencyRow(
                                         dependency: dependency,
-                                        isEditMode: isEditingDependencies,
                                         onRemove: { removeDependency(dependency) }
                                     )
                                     .padding(.horizontal)
                                 }
-                            } else {
-                                Text("No dependencies")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal)
                             }
+
+                            Divider()
+                                .padding(.horizontal)
+                        } else {
+                            Text("No dependencies")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal)
                         }
 
                         // Add button
@@ -226,7 +210,6 @@ struct TaskDependenciesView: View {
 
 private struct DependencyRow: View {
     let dependency: Task
-    let isEditMode: Bool
     let onRemove: () -> Void
 
     var body: some View {
@@ -237,30 +220,36 @@ private struct DependencyRow: View {
                 .foregroundStyle(dependency.isCompleted ? .green : .gray)
                 .frame(width: 28)
 
-            // Title
-            Text(dependency.title)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
+            // Content navigation
+            NavigationLink(destination: TaskDetailView(task: dependency)) {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    // Title
+                    Text(dependency.title)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
 
-            Spacer()
+                    Spacer()
 
-            // Remove button (only in edit mode)
-            if isEditMode {
-                Button {
-                    withAnimation {
-                        onRemove()
-                        HapticManager.medium()
-                    }
-                } label: {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(.red)
+                    // Navigation chevron
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
-                .buttonStyle(.plain)
             }
+            .buttonStyle(.plain)
         }
         .padding(.vertical, DesignSystem.Spacing.xs)
         .contentShape(Rectangle())
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                withAnimation {
+                    onRemove()
+                    HapticManager.medium()
+                }
+            } label: {
+                Label("Remove", systemImage: "trash")
+            }
+        }
     }
 }
 
