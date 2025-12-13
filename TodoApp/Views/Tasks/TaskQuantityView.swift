@@ -1,33 +1,53 @@
 import SwiftUI
 import SwiftData
 
-/// Interactive quantity/unit tracking view for productivity measurement
+/// Redesigned quantity tracking view with clear planning vs progress separation
+/// - Shows planned quantity (the plan)
+/// - Shows completed quantity (actual progress)
+/// - Visual progress indicators (percentage, progress bar, ratio)
+/// - Single screen, card-based layout
 struct TaskQuantityView: View {
     @Bindable var task: Task
 
     @State private var showingQuantityPicker = false
     @State private var editedQuantity: String = ""
+    @State private var editedExpectedQuantity: String = ""
     @State private var editedUnit: UnitType = .none
     @State private var saveError: TaskActionAlert?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+
+            // MARK: - Planning Section (Expected Quantity)
+
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                // Task Type display
-                if let taskType = task.taskType {
+                Text("PLANNED")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .padding(.horizontal)
+
+                if let expected = task.expectedQuantity, task.isUnitQuantifiable {
+                    // Show planned quantity
                     HStack {
-                        Image(systemName: "tag.fill")
+                        Image(systemName: task.unitIcon)
                             .font(.body)
-                            .foregroundStyle(DesignSystem.Colors.primary)
+                            .foregroundStyle(DesignSystem.Colors.info)
                             .frame(width: 28)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(taskType)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
+                            HStack(spacing: 4) {
+                                Text(formatQuantity(expected))
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.primary)
 
-                            Text("Task Type")
+                                Text(task.unitDisplayName)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Text("Target quantity")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -35,181 +55,299 @@ struct TaskQuantityView: View {
                         Spacer()
                     }
                     .padding(.horizontal)
-
-                    Divider()
-                        .padding(.horizontal)
-                }
-
-                // Progress display (if expected quantity is set)
-                if task.hasQuantityProgress {
-                    QuantityProgressRow(
-                        expected: task.expectedQuantity!,
-                        completed: task.quantity ?? 0,
-                        unit: task.unitDisplayName,
-                        icon: task.unitIcon,
-                        onTap: {
-                            editedQuantity = task.quantity.map { String(format: "%.1f", $0) } ?? ""
-                            editedUnit = task.unit
-                            showingQuantityPicker = true
-                            HapticManager.selection()
-                        }
-                    )
-
-                    Divider()
-                        .padding(.horizontal)
-                } else if task.isUnitQuantifiable, let quantity = task.quantity {
-                    // Fallback: only completed quantity (no expected)
-                    Button {
-                        editedQuantity = String(format: "%.1f", quantity)
-                        editedUnit = task.unit
-                        showingQuantityPicker = true
-                        HapticManager.selection()
-                    } label: {
-                        HStack {
-                            Image(systemName: task.unitIcon)
-                                .font(.body)
-                                .foregroundStyle(DesignSystem.Colors.info)
-                                .frame(width: 28)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(formatQuantity(quantity)) \(task.unitDisplayName)")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.primary)
-
-                                Text("Work completed")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(.horizontal)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-
-                    Divider()
-                        .padding(.horizontal)
                 } else if task.isUnitQuantifiable {
-                    // Unit set but no quantity
-                    Button {
-                        editedQuantity = ""
-                        editedUnit = task.unit
-                        showingQuantityPicker = true
-                        HapticManager.selection()
-                    } label: {
-                        HStack {
-                            Image(systemName: task.unitIcon)
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-                                .frame(width: 28)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(task.unitDisplayName)")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.primary)
-
-                                Text("Tap to add quantity")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(.horizontal)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-
-                    // Warning: unit set but no quantity
-                    HStack(spacing: DesignSystem.Spacing.xs) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.orange)
+                    // Unit set but no expected quantity
+                    HStack {
+                        Image(systemName: task.unitIcon)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
                             .frame(width: 28)
 
-                        Text("Add quantity to track productivity")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("No target set")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            Text("Set expected quantity to track progress")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+
+                        Spacer()
                     }
                     .padding(.horizontal)
-                    .padding(.vertical, 4)
-
-                    Divider()
-                        .padding(.horizontal)
                 } else {
-                    // No unit set
-                    Text("No unit selected")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                }
-
-                // Action button
-                Button {
-                    editedQuantity = task.quantity.map { String(format: "%.1f", $0) } ?? ""
-                    editedUnit = task.unit
-                    showingQuantityPicker = true
-                    HapticManager.selection()
-                } label: {
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        Image(systemName: buttonIcon)
+                    // No unit selected
+                    HStack {
+                        Image(systemName: "number")
                             .font(.body)
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 28)
 
-                        Text(buttonText)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("No unit selected")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            Text("Tap below to set up quantity tracking")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                }
+            }
+
+            // MARK: - Progress Section (Completed vs Planned)
+
+            if task.hasQuantityProgress {
+                Divider()
+                    .padding(.horizontal)
+
+                let completed = task.quantity ?? 0
+                let expected = task.expectedQuantity!
+                let progress = task.quantityProgress!
+                let progressPercent = Int(min(progress, 1.0) * 100)
+
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                    HStack {
+                        Text("COMPLETED")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+
+                        Spacer()
+
+                        // "X of Y" ratio
+                        HStack(spacing: 4) {
+                            Text(formatQuantity(completed))
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(progressColor(for: progress))
+
+                            Text("of")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            Text(formatQuantity(expected))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            Text(task.unitDisplayName)
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .padding(.horizontal)
+
+                    // Progress bar
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                // Background track
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(height: 8)
+
+                                // Progress fill (clamped at 100% for visual)
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(progressColor(for: progress))
+                                    .frame(width: geometry.size.width * min(progress, 1.0), height: 8)
+                            }
+                        }
+                        .frame(height: 8)
+
+                        // Percentage label
+                        HStack {
+                            Text("\(progressPercent)%")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(progressColor(for: progress))
+
+                            Spacer()
+
+                            // Over-completion warning
+                            if progress > 1.0 {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.caption2)
+                                    Text("Over target")
+                                        .font(.caption)
+                                }
+                                .foregroundStyle(.orange)
+                            } else if let remaining = task.quantityRemaining, remaining > 0 {
+                                Text("\(formatQuantity(remaining)) \(task.unitDisplayName) remaining")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            } else if task.isUnitQuantifiable, let quantity = task.quantity, quantity > 0 {
+                // Completed quantity without expected (no progress tracking)
+                Divider()
+                    .padding(.horizontal)
+
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                    Text("COMPLETED")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .padding(.horizontal)
+
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(DesignSystem.Colors.success)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 4) {
+                                Text(formatQuantity(quantity))
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.primary)
+
+                                Text(task.unitDisplayName)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Text("No progress tracking (expected quantity not set)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                }
+            } else if task.expectedQuantity != nil && task.expectedQuantity! > 0 {
+                // Expected set but no completed quantity yet
+                Divider()
+                    .padding(.horizontal)
+
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                    Text("COMPLETED")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .padding(.horizontal)
+
+                    HStack {
+                        Image(systemName: "circle")
+                            .font(.body)
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 28)
+
+                        Text("No work logged yet")
+                            .font(.subheadline)
+                            .foregroundStyle(.tertiary)
+
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                }
+            }
+
+            // MARK: - Task Type (if set)
+
+            if let taskType = task.taskType {
+                Divider()
+                    .padding(.horizontal)
+
+                HStack {
+                    Image(systemName: "tag.fill")
+                        .font(.body)
+                        .foregroundStyle(.purple)
+                        .frame(width: 28)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(taskType)
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.primary)
+
+                        Text("Task category")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+            }
+
+            // MARK: - Action Button
+
+            Divider()
+                .padding(.horizontal)
+
+            Button {
+                // Populate edit values
+                editedExpectedQuantity = task.expectedQuantity.map { formatQuantity($0) } ?? ""
+                editedQuantity = task.quantity.map { formatQuantity($0) } ?? ""
+                editedUnit = task.unit
+                showingQuantityPicker = true
+                HapticManager.selection()
+            } label: {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    Image(systemName: buttonIcon)
+                        .font(.body)
+                        .foregroundStyle(.blue)
+
+                    Text(buttonText)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.blue)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // MARK: - Productivity Metrics (Completed Tasks)
+
+            if let productivity = task.unitsPerHour, task.isCompleted {
+                Divider()
                     .padding(.horizontal)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
 
-                // Productivity metrics (only show if task completed and has data)
-                if let productivity = task.unitsPerHour, task.isCompleted {
-                    Divider()
-                        .padding(.horizontal)
-
-                    ProductivitySection(
-                        productivity: productivity,
-                        unitDisplayName: task.unitDisplayName,
-                        personHours: task.totalPersonHours
-                    )
-                }
+                ProductivitySection(
+                    productivity: productivity,
+                    unitDisplayName: task.unitDisplayName,
+                    personHours: task.totalPersonHours
+                )
             }
         }
         .detailCardStyle()
         .sheet(isPresented: $showingQuantityPicker) {
             QuantityPickerSheet(
-                quantity: $editedQuantity,
+                expectedQuantity: $editedExpectedQuantity,
+                completedQuantity: $editedQuantity,
                 unit: $editedUnit,
+                taskType: task.taskType,
                 onSave: {
-                    if let value = Double(editedQuantity), value > 0 {
-                        task.quantity = value
-                        task.unit = editedUnit
-                    } else if editedUnit.isQuantifiable {
-                        // Unit selected but no valid quantity
-                        task.quantity = nil
-                        task.unit = editedUnit
+                    // Save expected quantity
+                    if let expected = Double(editedExpectedQuantity), expected > 0 {
+                        task.expectedQuantity = expected
                     } else {
-                        // No unit selected, clear both
-                        task.quantity = nil
-                        task.unit = .none
+                        task.expectedQuantity = nil
                     }
+
+                    // Save completed quantity
+                    if let completed = Double(editedQuantity), completed > 0 {
+                        task.quantity = completed
+                    } else {
+                        task.quantity = nil
+                    }
+
+                    // Save unit
+                    task.unit = editedUnit
+
                     do {
                         try task.modelContext?.save()
                         HapticManager.success()
@@ -221,8 +359,9 @@ struct TaskQuantityView: View {
                         )
                     }
                 },
-                onRemove: (task.unit != .none || task.quantity != nil) ? {
+                onRemove: (task.unit != .none || task.quantity != nil || task.expectedQuantity != nil) ? {
                     task.quantity = nil
+                    task.expectedQuantity = nil
                     task.unit = .none
                     do {
                         try task.modelContext?.save()
@@ -250,16 +389,26 @@ struct TaskQuantityView: View {
         }
     }
 
+    private func progressColor(for progress: Double) -> Color {
+        if progress >= 1.0 {
+            return DesignSystem.Colors.success
+        } else if progress >= 0.75 {
+            return DesignSystem.Colors.warning
+        } else {
+            return DesignSystem.Colors.info
+        }
+    }
+
     private var buttonText: String {
-        if task.unit != .none {
+        if task.unit != .none || task.expectedQuantity != nil || task.quantity != nil {
             return "Edit Quantity"
         } else {
-            return "Add Quantity"
+            return "Set Up Quantity Tracking"
         }
     }
 
     private var buttonIcon: String {
-        if task.unit != .none {
+        if task.unit != .none || task.expectedQuantity != nil || task.quantity != nil {
             return "pencil.circle.fill"
         } else {
             return "plus.circle.fill"
@@ -271,12 +420,19 @@ struct TaskQuantityView: View {
 
 private struct QuantityPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Binding var quantity: String
+    @Binding var expectedQuantity: String
+    @Binding var completedQuantity: String
     @Binding var unit: UnitType
+    let taskType: String?
     let onSave: () -> Void
     let onRemove: (() -> Void)?
 
-    @FocusState private var isQuantityFocused: Bool
+    @FocusState private var focusedField: Field?
+
+    enum Field {
+        case expected
+        case completed
+    }
 
     var body: some View {
         NavigationStack {
@@ -294,26 +450,55 @@ private struct QuantityPickerSheet: View {
                     .pickerStyle(.menu)
                 } header: {
                     Text("Unit Type")
+                } footer: {
+                    Text("Select the unit of measurement for this task (e.g., m², pieces, kg).")
                 }
 
                 if unit.isQuantifiable {
                     Section {
                         HStack {
-                            TextField("Quantity", text: $quantity)
+                            TextField("Expected", text: $expectedQuantity)
                                 .keyboardType(.decimalPad)
-                                .focused($isQuantityFocused)
+                                .focused($focusedField, equals: .expected)
 
                             Text(unit.displayName)
                                 .foregroundStyle(.secondary)
                         }
                     } header: {
-                        Text("Amount Completed")
+                        Text("Planned Quantity")
                     } footer: {
-                        Text("Enter the total amount of work completed for this task.")
+                        Text("The target amount you plan to complete (e.g., total area to paint, items to install).")
+                    }
+
+                    Section {
+                        HStack {
+                            TextField("Completed", text: $completedQuantity)
+                                .keyboardType(.decimalPad)
+                                .focused($focusedField, equals: .completed)
+
+                            Text(unit.displayName)
+                                .foregroundStyle(.secondary)
+                        }
+                    } header: {
+                        Text("Completed Quantity")
+                    } footer: {
+                        Text("The amount of work already completed. Update this as you make progress.")
+                    }
+                }
+
+                if let taskType = taskType {
+                    Section {
+                        HStack {
+                            Image(systemName: "tag.fill")
+                                .foregroundStyle(.purple)
+                            Text(taskType)
+                        }
+                    } header: {
+                        Text("Task Category")
                     }
                 }
             }
-            .navigationTitle("Set Quantity")
+            .navigationTitle("Quantity Tracking")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -344,8 +529,9 @@ private struct QuantityPickerSheet: View {
                 }
             }
             .onAppear {
-                if unit.isQuantifiable && quantity.isEmpty {
-                    isQuantityFocused = true
+                // Auto-focus expected field if both are empty
+                if unit.isQuantifiable && expectedQuantity.isEmpty && completedQuantity.isEmpty {
+                    focusedField = .expected
                 }
             }
         }
@@ -370,8 +556,8 @@ private struct ProductivitySection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Text("Productivity")
-                .font(.subheadline)
+            Text("PRODUCTIVITY")
+                .font(.caption)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
                 .padding(.horizontal)
@@ -400,109 +586,6 @@ private struct ProductivitySection: View {
     }
 }
 
-// MARK: - Quantity Progress Row
-
-private struct QuantityProgressRow: View {
-    let expected: Double
-    let completed: Double
-    let unit: String
-    let icon: String
-    let onTap: () -> Void
-
-    private var progress: Double {
-        guard expected > 0 else { return 0 }
-        return min(completed / expected, 1.0)
-    }
-
-    private var progressPercentage: Int {
-        Int(progress * 100)
-    }
-
-    private var progressColor: Color {
-        if completed >= expected {
-            return DesignSystem.Colors.success
-        } else if progress >= 0.75 {
-            return DesignSystem.Colors.warning
-        } else {
-            return DesignSystem.Colors.info
-        }
-    }
-
-    private func formatQuantity(_ value: Double) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(format: "%.0f", value)
-        } else {
-            return String(format: "%.1f", value)
-        }
-    }
-
-    var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                // Header row
-                HStack {
-                    Image(systemName: icon)
-                        .font(.body)
-                        .foregroundStyle(progressColor)
-                        .frame(width: 28)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 4) {
-                            Text("\(formatQuantity(completed))/\(formatQuantity(expected))")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
-
-                            Text(unit)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Text("Progress: \(progressPercentage)%")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("\(progressPercentage)%")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(progressColor)
-
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .padding(.horizontal)
-
-                // Progress bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        // Background
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.2))
-                            .frame(height: 8)
-                            .cornerRadius(4)
-
-                        // Progress fill
-                        Rectangle()
-                            .fill(progressColor)
-                            .frame(width: geometry.size.width * progress, height: 8)
-                            .cornerRadius(4)
-                    }
-                }
-                .frame(height: 8)
-                .padding(.horizontal)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 // MARK: - Preview
 
 #Preview("With Progress Tracking") {
@@ -520,6 +603,30 @@ private struct QuantityProgressRow: View {
 
     container.mainContext.insert(task)
     container.mainContext.insert(entry)
+
+    return TaskQuantityView(task: task)
+        .modelContainer(container)
+        .padding()
+}
+
+#Preview("Over Target") {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Task.self, configurations: config)
+
+    let task = Task(title: "Install flooring", expectedQuantity: 100.0, quantity: 130.0, unit: .squareMeters)
+    container.mainContext.insert(task)
+
+    return TaskQuantityView(task: task)
+        .modelContainer(container)
+        .padding()
+}
+
+#Preview("Expected Set, No Progress") {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Task.self, configurations: config)
+
+    let task = Task(title: "Install flooring", expectedQuantity: 100.0, unit: .squareMeters)
+    container.mainContext.insert(task)
 
     return TaskQuantityView(task: task)
         .modelContainer(container)
