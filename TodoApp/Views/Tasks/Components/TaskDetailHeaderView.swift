@@ -30,45 +30,55 @@ struct TaskDetailHeaderView: View {
             // MARK: - Title & Context Row
             TitleContextRow(task: task, project: task.project, parentTask: parentTask)
 
+            Divider()
+
             // MARK: - Status & Priority Strip
             StatusPriorityRow(task: task, modelContext: modelContext, alertBinding: alertBinding)
 
-            // MARK: - Schedule Summary Row
+            // MARK: - Schedule Summary
             if hasScheduleInfo {
+                Divider()
                 ScheduleSummaryRow(task: task)
             }
 
-            // MARK: - Quantity Overview
-            if hasQuantityInfo {
-                QuantitySummaryRow(task: task)
+            // MARK: - Work Summary (Quantity + Personnel + Productivity)
+            if hasWorkSummaryInfo {
+                Divider()
+                WorkSummaryRow(task: task)
             }
 
             // MARK: - Time / Effort Summary
             if hasTimeInfo {
+                Divider()
                 TimeSummaryRow(task: task, allTasks: allTasks)
             }
 
             // MARK: - Subtasks Progress
             if hasSubtasks {
+                Divider()
                 SubtasksSummaryRow(task: task)
             }
 
             // MARK: - Dependencies / Blockers
             if hasDependencies {
+                Divider()
                 DependenciesSummaryRow(task: task)
             }
 
             // MARK: - Tags Row
             if hasTags {
+                Divider()
                 TagsSummaryRow(tags: Array(task.tags ?? []))
             }
 
             // MARK: - Notes Preview
             if hasNotes {
+                Divider()
                 NotesPreviewRow(notes: task.notes!)
             }
 
             // MARK: - Quick Actions Row
+            Divider()
             QuickActionsRow(task: task, modelContext: modelContext, alertBinding: alertBinding)
         }
         .padding(DesignSystem.Spacing.lg)
@@ -82,8 +92,12 @@ struct TaskDetailHeaderView: View {
         task.startDate != nil || task.endDate != nil
     }
 
-    private var hasQuantityInfo: Bool {
-        task.isUnitQuantifiable && (task.expectedQuantity != nil || task.quantity != nil)
+    private var hasWorkSummaryInfo: Bool {
+        // Show if task has quantity tracking, personnel, or productivity info
+        let hasQuantity = task.isUnitQuantifiable && (task.expectedQuantity != nil || task.quantity != nil)
+        let hasPersonnel = task.expectedPersonnelCount != nil
+        let hasProductivity = task.customProductivityRate != nil || task.taskTemplate != nil
+        return hasQuantity || hasPersonnel || hasProductivity
     }
 
     private var hasTimeInfo: Bool {
@@ -249,6 +263,7 @@ private struct ScheduleSummaryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // Section header
             HStack(spacing: 4) {
                 Image(systemName: "calendar")
                     .font(.caption)
@@ -259,9 +274,10 @@ private struct ScheduleSummaryRow: View {
                     .textCase(.uppercase)
             }
 
-            if let startDate = task.startDate, let endDate = task.endDate {
-                // Full schedule with working window
-                VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
+                // Date range or single date
+                if let startDate = task.startDate, let endDate = task.endDate {
+                    // Full schedule with working window
                     HStack(spacing: 4) {
                         Text(formatDateRange(start: startDate, end: endDate))
                             .font(.subheadline)
@@ -275,21 +291,30 @@ private struct ScheduleSummaryRow: View {
                         }
                     }
 
+                    // Working hours calculation
+                    let availableHours = WorkHoursCalculator.calculateAvailableHours(from: startDate, to: endDate)
+                    let workDays = availableHours / WorkHoursCalculator.workdayHours
+                    let daysText = workDays.truncatingRemainder(dividingBy: 1) == 0
+                        ? "\(Int(workDays)) work \(Int(workDays) == 1 ? "day" : "days")"
+                        : String(format: "%.1f work days", workDays)
+
+                    Text("\(daysText) • \(String(format: "%.1f", availableHours)) work hours")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
                     if task.isCompleted, let completedDate = task.completedDate {
                         Text("Completed \(completedDate.formatted(date: .abbreviated, time: .omitted))")
                             .font(.caption)
                             .foregroundStyle(.green)
                     }
-                }
-            } else if let startDate = task.startDate {
-                // Start date only
-                Text("Start: \(startDate.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.primary)
-            } else if let endDate = task.endDate {
-                // Due date only
-                VStack(alignment: .leading, spacing: 2) {
+                } else if let startDate = task.startDate {
+                    // Start date only
+                    Text("Start: \(startDate.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.primary)
+                } else if let endDate = task.endDate {
+                    // Due date only
                     HStack(spacing: 4) {
                         Text("Due: \(endDate.formatted(date: .abbreviated, time: .shortened))")
                             .font(.subheadline)
@@ -305,10 +330,6 @@ private struct ScheduleSummaryRow: View {
                 }
             }
         }
-        .padding(DesignSystem.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DesignSystem.Colors.tertiaryBackground)
-        .cornerRadius(DesignSystem.CornerRadius.sm)
     }
 
     private func formatDateRange(start: Date, end: Date) -> String {
@@ -334,9 +355,9 @@ private struct ScheduleSummaryRow: View {
     }
 }
 
-// MARK: - Quantity Summary Row
+// MARK: - Work Summary Row (Quantity + Personnel + Productivity)
 
-private struct QuantitySummaryRow: View {
+private struct WorkSummaryRow: View {
     let task: Task
 
     private var progressColor: Color {
@@ -352,66 +373,144 @@ private struct QuantitySummaryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // Section header
             HStack(spacing: 4) {
-                Image(systemName: task.unitIcon)
+                Image(systemName: "square.grid.3x3")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("Quantity")
+                Text("Work Summary")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
             }
 
-            if let expected = task.expectedQuantity, let completed = task.quantity {
-                // Progress tracking
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            VStack(alignment: .leading, spacing: 6) {
+                // Quantity info
+                if task.isUnitQuantifiable {
+                    if let expected = task.expectedQuantity, let completed = task.quantity {
+                        // Progress tracking
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: task.unitIcon)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 20)
+                                Text("Quantity:")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("\(formatQuantity(completed)) of \(formatQuantity(expected)) \(task.unitDisplayName)")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.primary)
+
+                                if let progress = task.quantityProgress {
+                                    Text("(\(Int(progress * 100))%)")
+                                        .font(.caption)
+                                        .foregroundStyle(progressColor)
+                                }
+                            }
+
+                            // Progress bar
+                            if let progress = task.quantityProgress {
+                                GeometryReader { geometry in
+                                    ZStack(alignment: .leading) {
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.secondary.opacity(0.2))
+                                            .frame(height: 4)
+
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(progressColor)
+                                            .frame(width: geometry.size.width * min(progress, 1.0), height: 4)
+                                    }
+                                }
+                                .frame(height: 4)
+                            }
+                        }
+                    } else if let expected = task.expectedQuantity {
+                        // Planned but not started
+                        HStack(spacing: 4) {
+                            Image(systemName: task.unitIcon)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 20)
+                            Text("Target:")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("\(formatQuantity(expected)) \(task.unitDisplayName)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if let completed = task.quantity {
+                        // Completed without plan
+                        HStack(spacing: 4) {
+                            Image(systemName: task.unitIcon)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 20)
+                            Text("Completed:")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("\(formatQuantity(completed)) \(task.unitDisplayName)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                }
+
+                // Personnel info
+                if let personnel = task.expectedPersonnelCount {
                     HStack(spacing: 4) {
-                        Text("\(formatQuantity(completed)) of \(formatQuantity(expected)) \(task.unitDisplayName)")
+                        Image(systemName: "person.2.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 20)
+                        Text("Personnel:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("\(personnel) \(personnel == 1 ? "person" : "people")")
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(.primary)
-
-                        if let progress = task.quantityProgress {
-                            Text("(\(Int(progress * 100))%)")
-                                .font(.caption)
-                                .foregroundStyle(progressColor)
-                        }
-                    }
-
-                    // Progress bar
-                    if let progress = task.quantityProgress {
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 2)
-                                    .fill(Color.secondary.opacity(0.2))
-                                    .frame(height: 4)
-
-                                RoundedRectangle(cornerRadius: 2)
-                                    .fill(progressColor)
-                                    .frame(width: geometry.size.width * min(progress, 1.0), height: 4)
-                            }
-                        }
-                        .frame(height: 4)
                     }
                 }
-            } else if let expected = task.expectedQuantity {
-                // Planned but not started
-                Text("Target: \(formatQuantity(expected)) \(task.unitDisplayName)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
-            } else if let completed = task.quantity {
-                // Completed without plan
-                Text("\(formatQuantity(completed)) \(task.unitDisplayName) completed")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.primary)
+
+                // Productivity rate
+                if let productivity = task.customProductivityRate {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 20)
+                        Text("Productivity:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("\(String(format: "%.1f", productivity)) \(task.unitDisplayName)/person-hr")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+                    }
+                } else if let template = task.taskTemplate, let defaultRate = template.defaultProductivityRate {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 20)
+                        Text("Productivity:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("\(String(format: "%.1f", defaultRate)) \(task.unitDisplayName)/person-hr")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
+                        Text("(default)")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
             }
         }
-        .padding(DesignSystem.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DesignSystem.Colors.tertiaryBackground)
-        .cornerRadius(DesignSystem.CornerRadius.sm)
     }
 
     private func formatQuantity(_ value: Double) -> String {
@@ -431,6 +530,7 @@ private struct TimeSummaryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // Section header
             HStack(spacing: 4) {
                 Image(systemName: "clock")
                     .font(.caption)
@@ -445,23 +545,34 @@ private struct TimeSummaryRow: View {
                 // Time spent
                 if task.totalTimeSpent > 0 {
                     HStack(spacing: 4) {
-                        Text("Logged: \(task.totalTimeSpent.formattedTime())")
+                        Text("Logged:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(task.totalTimeSpent.formattedTime())
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(.primary)
 
                         if let estimate = task.effectiveEstimate {
                             let progress = Double(task.totalTimeSpent) / Double(estimate)
-                            Text("of \(estimate.formattedTime()) (\(Int(progress * 100))%)")
+                            Text("of \(estimate.formattedTime())")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text("(\(Int(progress * 100))%)")
                                 .font(.caption)
                                 .foregroundStyle(progress > 1.0 ? .red : .secondary)
                         }
                     }
                 } else if let estimate = task.effectiveEstimate {
-                    Text("Estimate: \(estimate.formattedTime())")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Text("Estimate:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(estimate.formattedTime())
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 // Active timer indicator
@@ -478,10 +589,6 @@ private struct TimeSummaryRow: View {
                 }
             }
         }
-        .padding(DesignSystem.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DesignSystem.Colors.tertiaryBackground)
-        .cornerRadius(DesignSystem.CornerRadius.sm)
     }
 }
 
@@ -505,6 +612,7 @@ private struct SubtasksSummaryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // Section header
             HStack(spacing: 4) {
                 Image(systemName: "list.bullet.indent")
                     .font(.caption)
@@ -526,10 +634,6 @@ private struct SubtasksSummaryRow: View {
                     .foregroundStyle(progress >= 1.0 ? .green : .secondary)
             }
         }
-        .padding(DesignSystem.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DesignSystem.Colors.tertiaryBackground)
-        .cornerRadius(DesignSystem.CornerRadius.sm)
     }
 }
 
@@ -548,6 +652,7 @@ private struct DependenciesSummaryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // Section header
             HStack(spacing: 4) {
                 Image(systemName: "link")
                     .font(.caption)
@@ -575,10 +680,6 @@ private struct DependenciesSummaryRow: View {
                     .foregroundStyle(.green)
             }
         }
-        .padding(DesignSystem.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(blockingCount > 0 ? DesignSystem.Colors.warning.opacity(0.1) : DesignSystem.Colors.tertiaryBackground)
-        .cornerRadius(DesignSystem.CornerRadius.sm)
     }
 }
 
@@ -589,6 +690,7 @@ private struct TagsSummaryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // Section header
             HStack(spacing: 4) {
                 Image(systemName: "tag")
                     .font(.caption)
@@ -615,10 +717,6 @@ private struct TagsSummaryRow: View {
                 }
             }
         }
-        .padding(DesignSystem.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DesignSystem.Colors.tertiaryBackground)
-        .cornerRadius(DesignSystem.CornerRadius.sm)
     }
 }
 
@@ -638,6 +736,7 @@ private struct NotesPreviewRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            // Section header
             HStack(spacing: 4) {
                 Image(systemName: "note.text")
                     .font(.caption)
@@ -653,10 +752,6 @@ private struct NotesPreviewRow: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
         }
-        .padding(DesignSystem.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DesignSystem.Colors.tertiaryBackground)
-        .cornerRadius(DesignSystem.CornerRadius.sm)
     }
 }
 
