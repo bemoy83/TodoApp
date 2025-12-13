@@ -72,15 +72,20 @@ struct TaskDependenciesView: View {
                             .padding(.horizontal)
 
                         if let dependencies = task.dependsOn, !dependencies.isEmpty {
-                            VStack(spacing: DesignSystem.Spacing.xs) {
+                            List {
                                 ForEach(dependencies) { dependency in
                                     DependencyRow(
                                         dependency: dependency,
                                         onRemove: { removeDependency(dependency) }
                                     )
-                                    .padding(.horizontal)
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 0, leading: DesignSystem.Spacing.lg, bottom: 0, trailing: DesignSystem.Spacing.lg))
                                 }
                             }
+                            .listStyle(.plain)
+                            .scrollDisabled(true)
+                            .frame(height: CGFloat(dependencies.count) * 52) // Approximate row height with padding
 
                             Divider()
                                 .padding(.horizontal)
