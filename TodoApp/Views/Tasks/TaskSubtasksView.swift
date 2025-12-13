@@ -173,11 +173,6 @@ private struct SubtaskRow: View {
                             .foregroundStyle(.red)
                             .pulsingAnimation(active: true)
                     }
-
-                    // Navigation chevron
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
                 }
             }
             .buttonStyle(.plain)

@@ -234,11 +234,6 @@ private struct DependencyRow: View {
                         .foregroundStyle(.primary)
 
                     Spacer()
-
-                    // Navigation chevron
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
                 }
             }
             .buttonStyle(.plain)
