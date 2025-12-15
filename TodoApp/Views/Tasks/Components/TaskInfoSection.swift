@@ -92,7 +92,7 @@ extension TaskInfoSection {
     let task = Task(title: "Install Carpet")
     container.mainContext.insert(task)
 
-    return TaskInfoSection(task: task)
+    TaskInfoSection(task: task)
         .padding()
 }
 
@@ -106,6 +106,6 @@ extension TaskInfoSection {
 
     container.mainContext.insert(task)
 
-    return TaskInfoSection(task: task)
+    TaskInfoSection(task: task)
         .padding()
 }

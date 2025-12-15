@@ -371,7 +371,7 @@ extension TaskScheduleSection {
 
     container.mainContext.insert(task)
 
-    return ScrollView {
+    ScrollView {
         TaskScheduleSection(task: task)
     }
     .padding()
@@ -384,7 +384,7 @@ extension TaskScheduleSection {
     let task = Task(title: "Install Carpet")
     container.mainContext.insert(task)
 
-    return ScrollView {
+    ScrollView {
         TaskScheduleSection(task: task)
     }
     .padding()
