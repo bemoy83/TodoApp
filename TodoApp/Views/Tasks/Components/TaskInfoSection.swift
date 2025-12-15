@@ -88,24 +88,20 @@ extension TaskInfoSection {
 #Preview("Active Task") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: Task.self, configurations: config)
-
     let task = Task(title: "Install Carpet")
     container.mainContext.insert(task)
-
-    TaskInfoSection(task: task)
+    return TaskInfoSection(task: task)
         .padding()
+        .modelContainer(container)
 }
 
 #Preview("Completed Task") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: Task.self, configurations: config)
-
     let task = Task(title: "Install Carpet")
-    task.isCompleted = true
     task.completedDate = Calendar.current.date(byAdding: .hour, value: -2, to: Date())
-
     container.mainContext.insert(task)
-
-    TaskInfoSection(task: task)
+    return TaskInfoSection(task: task)
         .padding()
+        .modelContainer(container)
 }

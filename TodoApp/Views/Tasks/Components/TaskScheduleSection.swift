@@ -363,29 +363,26 @@ extension TaskScheduleSection {
 #Preview("With Dates") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: Task.self, configurations: config)
-
     let task = Task(title: "Install Carpet")
     task.startDate = Date()
     task.endDate = Calendar.current.date(byAdding: .day, value: 3, to: Date())
-    task.timeEstimate = 7200 // 2 hours
-
+    task.estimatedSeconds = 7200 // 2 hours
     container.mainContext.insert(task)
-
-    ScrollView {
+    return ScrollView {
         TaskScheduleSection(task: task)
     }
     .padding()
+    .modelContainer(container)
 }
 
 #Preview("No Dates") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: Task.self, configurations: config)
-
     let task = Task(title: "Install Carpet")
     container.mainContext.insert(task)
-
-    ScrollView {
+    return ScrollView {
         TaskScheduleSection(task: task)
     }
     .padding()
+    .modelContainer(container)
 }
