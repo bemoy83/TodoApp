@@ -182,7 +182,6 @@ struct TaskPersonnelView: View {
                 }
             }
         }
-        .detailCardStyle()
         .sheet(isPresented: $showingPersonnelPicker) {
             PersonnelPickerSheet(
                 selectedCount: $selectedCount,

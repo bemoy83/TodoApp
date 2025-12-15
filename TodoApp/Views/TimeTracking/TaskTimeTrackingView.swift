@@ -75,7 +75,6 @@ struct TaskTimeTrackingView: View {
                 BlockedWarning()
             }
         }
-        .detailCardStyle()
         .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
             // Fast update for smooth countdown when any timer is running
             if hasAnyTimerRunning {

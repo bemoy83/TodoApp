@@ -197,7 +197,6 @@ struct TaskDependenciesView: View {
                 }
             }
         }
-        .detailCardStyle()
         .sheet(isPresented: $showingDependencyPicker) {
             DependencyPickerView(
                 task: task,

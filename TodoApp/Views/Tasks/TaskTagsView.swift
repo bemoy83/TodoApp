@@ -79,7 +79,6 @@ struct TaskTagsView: View {
                 .buttonStyle(.plain)
             }
         }
-        .detailCardStyle()
         .sheet(isPresented: $showingTagPicker) {
             TagPickerView(task: task)
         }

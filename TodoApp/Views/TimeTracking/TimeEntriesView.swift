@@ -65,7 +65,6 @@ struct TimeEntriesView: View {
                     .padding(.horizontal)
             }
         }
-        .detailCardStyle()
         .sheet(isPresented: $showingManualEntrySheet) {
             ManualTimeEntrySheet(task: task)
         }

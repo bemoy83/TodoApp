@@ -99,7 +99,6 @@ struct TaskSubtasksView: View {
                 }
             }
         }
-        .detailCardStyle()
 
         // ✅ New subtask - uses AddTaskView (no phantom tasks)
         .sheet(isPresented: $showingAddSubtask) {
