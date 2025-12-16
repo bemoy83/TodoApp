@@ -643,7 +643,7 @@ private struct EmptyEntriesDisplay: View {
     container.mainContext.insert(entry1)
     container.mainContext.insert(entry2)
 
-    ScrollView {
+    return ScrollView {
         TaskTimeSection(task: task)
     }
     .modelContainer(container)
@@ -656,10 +656,8 @@ private struct EmptyEntriesDisplay: View {
     let task = Task(title: "Install Carpet")
     container.mainContext.insert(task)
 
-    let view: some View = ScrollView {
+    return ScrollView {
         TaskTimeSection(task: task)
     }
     .modelContainer(container)
-
-    view
 }
