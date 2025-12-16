@@ -216,7 +216,9 @@ struct TaskTimeSection: View {
                 }
                 .listStyle(.plain)
                 .scrollDisabled(true)
+                .scrollContentBackground(.hidden)
                 .frame(minHeight: CGFloat(min(sortedEntries.count, 10)) * 60)
+                .clipped()
             } else {
                 EmptyEntriesDisplay()
                     .padding(.horizontal)
