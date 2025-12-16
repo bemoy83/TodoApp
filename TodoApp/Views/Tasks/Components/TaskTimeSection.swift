@@ -633,10 +633,10 @@ private struct EmptyEntriesDisplay: View {
     let task = Task(title: "Install Carpet")
     task.estimatedSeconds = 7200
 
-    let entry1 = TimeEntry(task: task, startTime: Date().addingTimeInterval(-7200), personnelCount: 2)
+    let entry1 = TimeEntry(startTime: Date().addingTimeInterval(-7200), personnelCount: 2, task: task)
     entry1.endTime = Date().addingTimeInterval(-3600)
 
-    let entry2 = TimeEntry(task: task, startTime: Date().addingTimeInterval(-1800), personnelCount: 2)
+    let entry2 = TimeEntry(startTime: Date().addingTimeInterval(-1800), personnelCount: 2, task: task)
     entry2.endTime = Date()
 
     container.mainContext.insert(task)
@@ -656,8 +656,10 @@ private struct EmptyEntriesDisplay: View {
     let task = Task(title: "Install Carpet")
     container.mainContext.insert(task)
 
-    ScrollView {
+    let view: some View = ScrollView {
         TaskTimeSection(task: task)
     }
     .modelContainer(container)
+
+    view
 }
