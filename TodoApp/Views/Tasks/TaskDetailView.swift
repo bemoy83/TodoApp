@@ -26,8 +26,7 @@ struct TaskDetailView: View {
     @State private var isOrganizationExpanded: Bool
 
     // Core tracking sections
-    @State private var isTimeTrackingExpanded: Bool
-    @State private var isEntriesExpanded: Bool
+    @State private var isTimeExpanded: Bool
     @State private var isPersonnelExpanded: Bool
     @State private var isQuantityExpanded: Bool
 
@@ -53,8 +52,7 @@ struct TaskDetailView: View {
             // Execution mode - focus on time tracking
             _isScheduleExpanded = State(initialValue: false)
             _isOrganizationExpanded = State(initialValue: false)
-            _isTimeTrackingExpanded = State(initialValue: true)
-            _isEntriesExpanded = State(initialValue: true)
+            _isTimeExpanded = State(initialValue: true)
             _isPersonnelExpanded = State(initialValue: false)
             _isQuantityExpanded = State(initialValue: false)
             _isSubtasksExpanded = State(initialValue: false)
@@ -64,8 +62,7 @@ struct TaskDetailView: View {
             // Review mode - show results
             _isScheduleExpanded = State(initialValue: false)
             _isOrganizationExpanded = State(initialValue: false)
-            _isTimeTrackingExpanded = State(initialValue: true)
-            _isEntriesExpanded = State(initialValue: (task.timeEntries?.count ?? 0) > 0)
+            _isTimeExpanded = State(initialValue: true)
             _isPersonnelExpanded = State(initialValue: false)
             _isQuantityExpanded = State(initialValue: task.hasQuantityProgress)
             _isSubtasksExpanded = State(initialValue: false)
@@ -75,8 +72,7 @@ struct TaskDetailView: View {
             // Planning mode with structure - show work breakdown
             _isScheduleExpanded = State(initialValue: task.startDate != nil || task.endDate != nil)
             _isOrganizationExpanded = State(initialValue: false)
-            _isTimeTrackingExpanded = State(initialValue: false)
-            _isEntriesExpanded = State(initialValue: false)
+            _isTimeExpanded = State(initialValue: false)
             _isPersonnelExpanded = State(initialValue: task.expectedPersonnelCount != nil)
             _isQuantityExpanded = State(initialValue: task.unit != .none)
             _isSubtasksExpanded = State(initialValue: true)
@@ -86,8 +82,7 @@ struct TaskDetailView: View {
             // Default mode - show essentials
             _isScheduleExpanded = State(initialValue: task.startDate != nil || task.endDate != nil)
             _isOrganizationExpanded = State(initialValue: false)
-            _isTimeTrackingExpanded = State(initialValue: true)
-            _isEntriesExpanded = State(initialValue: false)
+            _isTimeExpanded = State(initialValue: true)
             _isPersonnelExpanded = State(initialValue: task.expectedPersonnelCount != nil)
             _isQuantityExpanded = State(initialValue: task.unit != .none)
             _isSubtasksExpanded = State(initialValue: false)
@@ -136,22 +131,13 @@ struct TaskDetailView: View {
                     content: { TaskOrganizationSection(task: task) }
                 )
 
-                // Time Tracking section
+                // Time section (consolidated Time Tracking + Time Entries)
                 DetailSectionDisclosure(
-                    title: "Time Tracking",
+                    title: "Time",
                     icon: "clock",
-                    isExpanded: $isTimeTrackingExpanded,
-                    summary: { timeTrackingSummary },
-                    content: { TaskTimeTrackingView(task: task) }
-                )
-
-                // Time Entries section
-                DetailSectionDisclosure(
-                    title: "Time Entries",
-                    icon: "list.bullet.clipboard",
-                    isExpanded: $isEntriesExpanded,
-                    summary: { entriesSummary },
-                    content: { TimeEntriesView(task: task) }
+                    isExpanded: $isTimeExpanded,
+                    summary: { timeSummary },
+                    content: { TaskTimeSection(task: task) }
                 )
 
                 // Personnel section
@@ -259,64 +245,10 @@ struct TaskDetailView: View {
     }
 
     @ViewBuilder
-    private var timeTrackingSummary: some View {
-        Text(timeTrackingSummaryText)
+    private var timeSummary: some View {
+        Text(TaskTimeSection.summaryText(for: task))
             .font(.caption)
-            .foregroundStyle(.secondary)
-    }
-
-    private var timeTrackingSummaryText: String {
-        var text = ""
-
-        let totalTime = task.totalTimeSpent
-        if totalTime > 0 {
-            text = totalTime.formattedTime()
-        } else {
-            text = "No time tracked"
-        }
-
-        if let estimate = task.effectiveEstimate {
-            let progress = Double(task.totalTimeSpent) / Double(estimate)
-            text += " • \(Int(progress * 100))%"
-        }
-
-        return text
-    }
-
-    @ViewBuilder
-    private var entriesSummary: some View {
-        let entryCount = task.timeEntries?.count ?? 0
-        if entryCount > 0 {
-            Text(entriesSummaryText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } else {
-            Text("No entries")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    private var entriesSummaryText: String {
-        let entryCount = task.timeEntries?.count ?? 0
-        if entryCount > 0 {
-            let entryWord = entryCount == 1 ? "entry" : "entries"
-            var text = "\(entryCount) \(entryWord)"
-
-            if let lastEntry = task.timeEntries?.sorted(by: { $0.startTime > $1.startTime }).first {
-                let timeAgo = Date().timeIntervalSince(lastEntry.startTime)
-                if timeAgo < 3600 {
-                    text += " • \(Int(timeAgo / 60))m ago"
-                } else if timeAgo < 86400 {
-                    text += " • \(Int(timeAgo / 3600))h ago"
-                } else {
-                    text += " • \(Int(timeAgo / 86400))d ago"
-                }
-            }
-            return text
-        } else {
-            return "No entries"
-        }
+            .foregroundStyle(TaskTimeSection.summaryColor(for: task))
     }
 
     @ViewBuilder
