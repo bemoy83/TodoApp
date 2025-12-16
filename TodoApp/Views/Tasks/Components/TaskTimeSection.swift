@@ -366,6 +366,7 @@ private struct EstimateSection: View {
                         .foregroundStyle(.secondary)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer()
             }
@@ -406,8 +407,10 @@ private struct TotalTimeDisplay: View {
                         Text("\(directTimeSeconds.formattedTime(showSeconds: true)) direct, \(subtaskTime.formattedTime(showSeconds: true)) from subtasks")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer()
             }
@@ -429,8 +432,10 @@ private struct TotalTimeDisplay: View {
                             Text("\(String(format: "%.1f", directPersonHours)) direct, \(String(format: "%.1f", totalPersonHours - directPersonHours)) from subtasks")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                     Spacer()
                 }
