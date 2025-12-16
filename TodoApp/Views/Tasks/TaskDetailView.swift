@@ -35,10 +35,8 @@ struct TaskDetailView: View {
     @State private var isSubtasksExpanded: Bool
     @State private var isDependenciesExpanded: Bool
 
-    // Metadata sections
-    @State private var isTagsExpanded: Bool
-    @State private var isNotesExpanded: Bool
-    @State private var isInfoExpanded: Bool
+    // Consolidated metadata section
+    @State private var isDetailsExpanded: Bool
 
     private let router = TaskActionRouter()
 
@@ -61,9 +59,7 @@ struct TaskDetailView: View {
             _isQuantityExpanded = State(initialValue: false)
             _isSubtasksExpanded = State(initialValue: false)
             _isDependenciesExpanded = State(initialValue: false)
-            _isTagsExpanded = State(initialValue: false)
-            _isNotesExpanded = State(initialValue: false)
-            _isInfoExpanded = State(initialValue: false)
+            _isDetailsExpanded = State(initialValue: false)
         } else if task.isCompleted {
             // Review mode - show results
             _isScheduleExpanded = State(initialValue: false)
@@ -74,9 +70,7 @@ struct TaskDetailView: View {
             _isQuantityExpanded = State(initialValue: task.hasQuantityProgress)
             _isSubtasksExpanded = State(initialValue: false)
             _isDependenciesExpanded = State(initialValue: false)
-            _isTagsExpanded = State(initialValue: false)
-            _isNotesExpanded = State(initialValue: false)
-            _isInfoExpanded = State(initialValue: true) // Show completion date
+            _isDetailsExpanded = State(initialValue: true) // Show completion info
         } else if (task.subtasks?.count ?? 0) > 0 || (task.dependsOn?.count ?? 0) > 0 {
             // Planning mode with structure - show work breakdown
             _isScheduleExpanded = State(initialValue: task.startDate != nil || task.endDate != nil)
@@ -87,9 +81,7 @@ struct TaskDetailView: View {
             _isQuantityExpanded = State(initialValue: task.unit != .none)
             _isSubtasksExpanded = State(initialValue: true)
             _isDependenciesExpanded = State(initialValue: (task.dependsOn?.count ?? 0) > 0)
-            _isTagsExpanded = State(initialValue: false)
-            _isNotesExpanded = State(initialValue: false)
-            _isInfoExpanded = State(initialValue: false)
+            _isDetailsExpanded = State(initialValue: false)
         } else {
             // Default mode - show essentials
             _isScheduleExpanded = State(initialValue: task.startDate != nil || task.endDate != nil)
@@ -100,9 +92,7 @@ struct TaskDetailView: View {
             _isQuantityExpanded = State(initialValue: task.unit != .none)
             _isSubtasksExpanded = State(initialValue: false)
             _isDependenciesExpanded = State(initialValue: false)
-            _isTagsExpanded = State(initialValue: false)
-            _isNotesExpanded = State(initialValue: TaskNotesSection.hasNotes(task))
-            _isInfoExpanded = State(initialValue: false)
+            _isDetailsExpanded = State(initialValue: false)
         }
     }
 
@@ -202,31 +192,13 @@ struct TaskDetailView: View {
                     content: { TaskDependenciesView(task: task) }
                 )
 
-                // Tags section
+                // Details section (consolidated Tags + Notes + Info)
                 DetailSectionDisclosure(
-                    title: "Tags",
-                    icon: "tag",
-                    isExpanded: $isTagsExpanded,
-                    summary: { tagsSummary },
-                    content: { TaskTagsView(task: task) }
-                )
-
-                // Notes section
-                DetailSectionDisclosure(
-                    title: "Notes",
-                    icon: "note.text",
-                    isExpanded: $isNotesExpanded,
-                    summary: { notesSummary },
-                    content: { TaskNotesSection(task: task) }
-                )
-
-                // Info section
-                DetailSectionDisclosure(
-                    title: "Info",
-                    icon: "info.circle",
-                    isExpanded: $isInfoExpanded,
-                    summary: { infoSummary },
-                    content: { TaskInfoSection(task: task) }
+                    title: "Details",
+                    icon: "doc.text",
+                    isExpanded: $isDetailsExpanded,
+                    summary: { detailsSummary },
+                    content: { TaskDetailsSection(task: task) }
                 )
             }
             .padding(DesignSystem.Spacing.lg)
@@ -433,27 +405,9 @@ struct TaskDetailView: View {
     }
 
     @ViewBuilder
-    private var tagsSummary: some View {
-        if let tags = task.tags, !tags.isEmpty {
-            CompactTagSummary(tags: Array(tags))
-        } else {
-            Text("No tags")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    @ViewBuilder
-    private var notesSummary: some View {
-        Text(TaskNotesSection.summaryText(for: task))
+    private var detailsSummary: some View {
+        Text(TaskDetailsSection.summaryText(for: task))
             .font(.caption)
-            .foregroundStyle(TaskNotesSection.hasNotes(task) ? .secondary : .tertiary)
-    }
-
-    @ViewBuilder
-    private var infoSummary: some View {
-        Text(TaskInfoSection.summaryText(for: task))
-            .font(.caption)
-            .foregroundStyle(TaskInfoSection.summaryColor(for: task))
+            .foregroundStyle(TaskDetailsSection.summaryColor(for: task))
     }
 }
