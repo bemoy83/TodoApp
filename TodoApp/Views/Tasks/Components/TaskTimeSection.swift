@@ -176,47 +176,20 @@ struct TaskTimeSection: View {
             }
             .padding(.horizontal)
 
-            // Entries list with swipe actions
+            // Entries list with menu actions
             if hasEntries {
-                List {
+                LazyVStack(spacing: DesignSystem.Spacing.xs) {
                     ForEach(sortedEntries) { entry in
                         TimeEntryListRow(
                             entry: entry,
                             task: task,
-                            onEdit: { editingEntry = entry }
+                            onEdit: { editingEntry = entry },
+                            onDelete: { deleteEntry(entry) }
                         )
-                        .listRowInsets(EdgeInsets(
-                            top: DesignSystem.Spacing.xs,
-                            leading: DesignSystem.Spacing.md,
-                            bottom: DesignSystem.Spacing.xs,
-                            trailing: DesignSystem.Spacing.md
-                        ))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                            if entry.endTime != nil {
-                                Button {
-                                    editingEntry = entry
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                .tint(.blue)
-                            }
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            if entry.endTime != nil {
-                                Button(role: .destructive) {
-                                    deleteEntry(entry)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        }
+                        .padding(.horizontal, DesignSystem.Spacing.md)
+                        .padding(.vertical, DesignSystem.Spacing.xs)
                     }
                 }
-                .listStyle(.plain)
-                .scrollDisabled(true)
-                .frame(height: CGFloat(sortedEntries.count) * 60)
             } else {
                 EmptyEntriesDisplay()
                     .padding(.horizontal)
@@ -542,6 +515,9 @@ private struct TimeEntryListRow: View {
     let entry: TimeEntry
     let task: Task
     let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    @State private var showingDeleteAlert = false
 
     private var isActiveTimer: Bool {
         TimeEntryManager.isActiveTimer(entry)
@@ -597,8 +573,37 @@ private struct TimeEntryListRow: View {
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(isActiveTimer ? DesignSystem.Colors.timerActive : .primary)
+
+            // Action menu (only for completed entries)
+            if !isActiveTimer {
+                Menu {
+                    Button {
+                        onEdit()
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .contentShape(Rectangle())
+        .alert("Delete Time Entry?", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                onDelete()
+            }
+        } message: {
+            Text("This time entry (\(formattedDuration)) will be permanently deleted.")
+        }
     }
 }
 
