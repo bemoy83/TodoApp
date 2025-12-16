@@ -131,13 +131,31 @@ struct TaskDetailView: View {
                     content: { TaskOrganizationSection(task: task) }
                 )
 
-                // Time section (consolidated Time Tracking + Time Entries)
+                // Time section (using original working views)
                 DetailSectionDisclosure(
                     title: "Time",
                     icon: "clock",
                     isExpanded: $isTimeExpanded,
                     summary: { timeSummary },
-                    content: { TaskTimeSection(task: task) }
+                    content: {
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                            // Time Tracking (original working view)
+                            TaskTimeTrackingView(task: task)
+
+                            Divider()
+                                .padding(.horizontal)
+
+                            // Time Entries header
+                            Text("Time Entries")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                                .padding(.horizontal)
+
+                            // Time Entries (original working view)
+                            TimeEntriesView(task: task)
+                        }
+                    }
                 )
 
                 // Personnel section
@@ -246,9 +264,35 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var timeSummary: some View {
-        Text(TaskTimeSection.summaryText(for: task))
+        Text(timeSummaryText)
             .font(.caption)
-            .foregroundStyle(TaskTimeSection.summaryColor(for: task))
+            .foregroundStyle(task.hasActiveTimer ? .red : .secondary)
+    }
+
+    private var timeSummaryText: String {
+        var parts: [String] = []
+
+        // Time spent
+        let totalTime = task.totalTimeSpent
+        if totalTime > 0 {
+            parts.append(totalTime.formattedTime())
+        } else {
+            parts.append("No time")
+        }
+
+        // Progress percentage (if has estimate)
+        if let estimate = task.effectiveEstimate, estimate > 0 {
+            let progress = Double(task.totalTimeSpent) / Double(estimate)
+            parts.append("\(Int(progress * 100))%")
+        }
+
+        // Entry count
+        let entryCount = task.timeEntries?.count ?? 0
+        if entryCount > 0 {
+            parts.append("\(entryCount) \(entryCount == 1 ? "entry" : "entries")")
+        }
+
+        return parts.joined(separator: " • ")
     }
 
     @ViewBuilder
