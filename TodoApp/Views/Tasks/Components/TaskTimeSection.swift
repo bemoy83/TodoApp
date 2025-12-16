@@ -188,10 +188,8 @@ struct TaskTimeSection: View {
                             onDelete: { deleteEntry(entry) }
                         )
                         .padding(.horizontal, DesignSystem.Spacing.md)
-                        .padding(.vertical, DesignSystem.Spacing.xs)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 EmptyEntriesDisplay()
                     .padding(.horizontal)
@@ -543,21 +541,25 @@ private struct TimeEntryListRow: View {
 
     var body: some View {
         HStack(spacing: DesignSystem.Spacing.md) {
+            // Timer indicator
             Image(systemName: isActiveTimer ? "timer" : "clock.fill")
                 .font(.body)
                 .foregroundStyle(isActiveTimer ? DesignSystem.Colors.timerActive : .secondary)
-                .frame(width: 24)
+                .frame(width: 28)
                 .pulsingAnimation(active: isActiveTimer)
 
             VStack(alignment: .leading, spacing: 2) {
+                // Date
                 Text(formattedDate)
                     .font(.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
 
+                // Time range
                 Text(formattedTimeRange)
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                // Personnel badge (only show when > 1)
                 if entry.personnelCount > 1 {
                     HStack(spacing: 4) {
                         Image(systemName: "person.2.fill")
@@ -566,37 +568,39 @@ private struct TimeEntryListRow: View {
                             .font(.caption2)
                     }
                     .foregroundStyle(DesignSystem.Colors.info)
+                    .padding(.top, 2)
                 }
             }
 
             Spacer()
 
+            // Duration badge
             Text(formattedDuration)
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(isActiveTimer ? DesignSystem.Colors.timerActive : .primary)
 
-            // Action menu (only for completed entries)
-            if !isActiveTimer {
-                Menu {
-                    Button {
-                        onEdit()
-                    } label: {
-                        Label("Edit", systemImage: "pencil")
-                    }
-
-                    Button(role: .destructive) {
-                        showingDeleteAlert = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
+            // Action menu (always rendered, disabled when active)
+            Menu {
+                Button {
+                    onEdit()
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
+                    Label("Edit", systemImage: "pencil")
                 }
+                .disabled(isActiveTimer)
+
+                Button(role: .destructive) {
+                    showingDeleteAlert = true
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .disabled(isActiveTimer)
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundStyle(.secondary)
             }
         }
+        .padding(.vertical, DesignSystem.Spacing.xs)
         .contentShape(Rectangle())
         .alert("Delete Time Entry?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
