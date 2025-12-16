@@ -61,6 +61,7 @@ struct TaskTimeSection: View {
             // MARK: - Entries Subsection
             entriesSubsection
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
             if hasAnyTimerRunning {
                 currentTime = Date()
@@ -190,6 +191,7 @@ struct TaskTimeSection: View {
                         .padding(.vertical, DesignSystem.Spacing.xs)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 EmptyEntriesDisplay()
                     .padding(.horizontal)
