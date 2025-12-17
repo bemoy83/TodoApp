@@ -8,16 +8,13 @@ struct TaskDependenciesView: View {
     private let allTasks: [Task]
 
     @State private var showingDependencyPicker = false
-    @AppStorage private var enableDependencies: Bool // Changed to @AppStorage
+    @State private var enableDependencies: Bool = false // Use @State to avoid AttributeGraph cycle
 
-    // Use task ID as storage key for per-task persistence
     init(task: Task, allTasks: [Task] = []) {
         self.task = task
         self.allTasks = allTasks
-        self._enableDependencies = AppStorage(
-            wrappedValue: false,
-            "dependencies_enabled_\(task.id.uuidString)"
-        )
+        // Initialize based on whether task already has dependencies
+        self._enableDependencies = State(initialValue: task.dependsOn?.isEmpty == false)
     }
     
     var blockedByTasks: [Task] {
