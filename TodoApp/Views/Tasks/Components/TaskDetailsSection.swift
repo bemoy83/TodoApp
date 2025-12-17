@@ -8,6 +8,7 @@ struct TaskDetailsSection: View {
     @Query(sort: \Tag.order) private var allTags: [Tag]
 
     @State private var showingTagPicker = false
+    @State private var showingNotesEditor = false
 
     // Get task tags using @Query pattern for fresh data
     private var taskTags: [Tag] {
@@ -34,6 +35,9 @@ struct TaskDetailsSection: View {
         }
         .sheet(isPresented: $showingTagPicker) {
             TagPickerView(task: task)
+        }
+        .sheet(isPresented: $showingNotesEditor) {
+            NotesEditorSheet(task: task)
         }
     }
 
@@ -98,23 +102,64 @@ struct TaskDetailsSection: View {
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
                 Spacer()
+
+                // Edit button
+                Button {
+                    showingNotesEditor = true
+                    HapticManager.selection()
+                } label: {
+                    Text(hasNotes ? "Edit" : "Add")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal)
 
-            // Notes content
+            // Notes content (tappable to edit)
             if let notes = task.notes, !notes.isEmpty {
-                Text(notes)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
+                Button {
+                    showingNotesEditor = true
+                    HapticManager.selection()
+                } label: {
+                    Text(notes)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .multilineTextAlignment(.leading)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal)
             } else {
-                Text("No notes")
-                    .font(.subheadline)
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal)
+                Button {
+                    showingNotesEditor = true
+                    HapticManager.selection()
+                } label: {
+                    HStack(spacing: DesignSystem.Spacing.sm) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(.blue)
+                            .frame(width: 28)
+
+                        Text("Add Notes")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.blue)
+
+                        Spacer()
+                    }
+                    .padding(.vertical, DesignSystem.Spacing.xs)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal)
             }
         }
+    }
+
+    private var hasNotes: Bool {
+        guard let notes = task.notes else { return false }
+        return !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     // MARK: - Info Subsection
@@ -163,6 +208,109 @@ struct TaskDetailsSection: View {
             }
             .padding(.horizontal)
         }
+    }
+}
+
+// MARK: - Notes Editor Sheet
+
+private struct NotesEditorSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+
+    let task: Task
+
+    @State private var editedNotes: String
+    @FocusState private var isTextEditorFocused: Bool
+
+    init(task: Task) {
+        self.task = task
+        self._editedNotes = State(initialValue: task.notes ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                TextEditor(text: $editedNotes)
+                    .focused($isTextEditorFocused)
+                    .padding()
+                    .scrollContentBackground(.hidden)
+                    .background(Color(.systemGroupedBackground))
+            }
+            .navigationTitle("Notes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        saveNotes()
+                    }
+                    .fontWeight(.semibold)
+                }
+
+                ToolbarItem(placement: .keyboard) {
+                    HStack {
+                        Spacer()
+                        Button("Done") {
+                            isTextEditorFocused = false
+                        }
+                    }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if hasExistingNotes {
+                    Button(role: .destructive) {
+                        deleteNotes()
+                    } label: {
+                        Label("Delete Notes", systemImage: "trash")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                    .padding()
+                }
+            }
+            .onAppear {
+                // Auto-focus the text editor
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    isTextEditorFocused = true
+                }
+            }
+        }
+    }
+
+    private var hasExistingNotes: Bool {
+        guard let notes = task.notes else { return false }
+        return !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func saveNotes() {
+        let trimmed = editedNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        task.notes = trimmed.isEmpty ? nil : trimmed
+
+        do {
+            try modelContext.save()
+            HapticManager.success()
+        } catch {
+            HapticManager.error()
+        }
+        dismiss()
+    }
+
+    private func deleteNotes() {
+        task.notes = nil
+
+        do {
+            try modelContext.save()
+            HapticManager.success()
+        } catch {
+            HapticManager.error()
+        }
+        dismiss()
     }
 }
 
