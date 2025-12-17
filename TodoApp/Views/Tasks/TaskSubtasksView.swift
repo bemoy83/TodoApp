@@ -159,7 +159,7 @@ private struct SubtaskRow: View {
             )
 
             // Content navigation
-            NavigationLink(destination: TaskDetailView(task: subtask)) {
+            NavigationLink(destination: LazyView(TaskDetailView(task: subtask))) {
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     SubtaskRowContent(subtask: subtask, style: .detailed)
 
