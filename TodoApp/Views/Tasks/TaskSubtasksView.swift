@@ -5,9 +5,8 @@ struct TaskSubtasksView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var task: Task
 
-    @Query(filter: #Predicate<Task> { task in
-        !task.isArchived
-    }, sort: \Task.order) private var allTasks: [Task]
+    // Passed from parent to prevent @Query duplication
+    private let allTasks: [Task]
 
     @State private var showingAddSubtask = false
     @State private var editingSubtask: Task?
@@ -15,6 +14,11 @@ struct TaskSubtasksView: View {
     @State private var currentAlert: TaskActionAlert?
 
     private let router = TaskActionRouter()
+
+    init(task: Task, allTasks: [Task] = []) {
+        self.task = task
+        self.allTasks = allTasks
+    }
 
     private var unifiedCtx: TaskActionRouter.Context {
         .init(modelContext: modelContext, hapticsEnabled: true)

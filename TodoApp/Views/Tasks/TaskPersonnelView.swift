@@ -4,14 +4,19 @@ import SwiftData
 /// Interactive personnel planning view that matches the subtasks/dependencies pattern
 struct TaskPersonnelView: View {
     @Bindable var task: Task
-    @Query(filter: #Predicate<Task> { task in
-        !task.isArchived
-    }, sort: \Task.order) private var allTasks: [Task]
+
+    // Passed from parent to prevent @Query duplication
+    private let allTasks: [Task]
 
     @State private var showingPersonnelPicker = false
     @State private var selectedCount: Int = 1
     @State private var saveError: TaskActionAlert?
     @StateObject private var aggregator = SubtaskAggregator()
+
+    init(task: Task, allTasks: [Task] = []) {
+        self.task = task
+        self.allTasks = allTasks
+    }
 
     // Use aggregated stats for performance
     private var stats: SubtaskAggregator.AggregatedStats {

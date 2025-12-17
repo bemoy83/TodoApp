@@ -4,16 +4,16 @@ import SwiftData
 struct TaskDependenciesView: View {
     @Bindable var task: Task
 
-    @Query(filter: #Predicate<Task> { task in
-        !task.isArchived
-    }, sort: \Task.order) private var allTasks: [Task]
+    // Passed from parent to prevent @Query duplication
+    private let allTasks: [Task]
 
     @State private var showingDependencyPicker = false
     @AppStorage private var enableDependencies: Bool // Changed to @AppStorage
 
     // Use task ID as storage key for per-task persistence
-    init(task: Task) {
+    init(task: Task, allTasks: [Task] = []) {
         self.task = task
+        self.allTasks = allTasks
         self._enableDependencies = AppStorage(
             wrappedValue: false,
             "dependencies_enabled_\(task.id.uuidString)"

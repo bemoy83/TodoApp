@@ -139,8 +139,8 @@ struct TaskDetailView: View {
                     summary: { timeSummary },
                     content: {
                         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                            // Time Tracking (original working view)
-                            TaskTimeTrackingView(task: task)
+                            // Time Tracking (pass allTasks to avoid @Query duplication)
+                            TaskTimeTrackingView(task: task, allTasks: allTasks)
 
                             Divider()
                                 .padding(.horizontal)
@@ -164,7 +164,7 @@ struct TaskDetailView: View {
                     icon: "person.2.fill",
                     isExpanded: $isPersonnelExpanded,
                     summary: { personnelSummary },
-                    content: { TaskPersonnelView(task: task) }
+                    content: { TaskPersonnelView(task: task, allTasks: allTasks) }
                 )
 
                 // Quantity section
@@ -184,7 +184,7 @@ struct TaskDetailView: View {
                     icon: "list.bullet.indent",
                     isExpanded: $isSubtasksExpanded,
                     summary: { subtasksSummary },
-                    content: { TaskSubtasksView(task: task) }
+                    content: { TaskSubtasksView(task: task, allTasks: allTasks) }
                 )
 
                 // Dependencies section
@@ -193,7 +193,7 @@ struct TaskDetailView: View {
                     icon: "link",
                     isExpanded: $isDependenciesExpanded,
                     summary: { dependenciesSummary },
-                    content: { TaskDependenciesView(task: task) }
+                    content: { TaskDependenciesView(task: task, allTasks: allTasks) }
                 )
 
                 // Details section (consolidated Tags + Notes + Info)
