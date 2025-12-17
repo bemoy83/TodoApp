@@ -4,20 +4,17 @@ import SwiftData
 struct TaskDependenciesView: View {
     @Bindable var task: Task
 
-    @Query(filter: #Predicate<Task> { task in
-        !task.isArchived
-    }, sort: \Task.order) private var allTasks: [Task]
+    // Passed from parent to prevent @Query duplication
+    private let allTasks: [Task]
 
     @State private var showingDependencyPicker = false
-    @AppStorage private var enableDependencies: Bool // Changed to @AppStorage
+    @State private var enableDependencies: Bool = false // Use @State to avoid AttributeGraph cycle
 
-    // Use task ID as storage key for per-task persistence
-    init(task: Task) {
+    init(task: Task, allTasks: [Task] = []) {
         self.task = task
-        self._enableDependencies = AppStorage(
-            wrappedValue: false,
-            "dependencies_enabled_\(task.id.uuidString)"
-        )
+        self.allTasks = allTasks
+        // Initialize based on whether task already has dependencies
+        self._enableDependencies = State(initialValue: task.dependsOn?.isEmpty == false)
     }
     
     var blockedByTasks: [Task] {
@@ -163,7 +160,7 @@ struct TaskDependenciesView: View {
                         VStack(spacing: DesignSystem.Spacing.xs) {
                             if !blockedByTasks.isEmpty {
                                 ForEach(blockedByTasks) { blockedTask in
-                                    NavigationLink(destination: TaskDetailView(task: blockedTask)) {
+                                    NavigationLink(destination: LazyView(TaskDetailView(task: blockedTask))) {
                                         HStack(spacing: DesignSystem.Spacing.sm) {
                                             Image(systemName: "arrow.left.circle")
                                                 .font(.body)
@@ -197,7 +194,6 @@ struct TaskDependenciesView: View {
                 }
             }
         }
-        .detailCardStyle()
         .sheet(isPresented: $showingDependencyPicker) {
             DependencyPickerView(
                 task: task,
@@ -226,7 +222,7 @@ private struct DependencyRow: View {
                 .frame(width: 28)
 
             // Content navigation
-            NavigationLink(destination: TaskDetailView(task: dependency)) {
+            NavigationLink(destination: LazyView(TaskDetailView(task: dependency))) {
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     // Title
                     Text(dependency.title)
@@ -262,7 +258,7 @@ private struct SubtaskDependencyRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
             // Subtask link - larger tap target
-            NavigationLink(destination: TaskDetailView(task: subtask)) {
+            NavigationLink(destination: LazyView(TaskDetailView(task: subtask))) {
                 HStack(spacing: DesignSystem.Spacing.sm) {
                     Image(systemName: "arrow.turn.down.right")
                         .font(.body)
@@ -286,7 +282,7 @@ private struct SubtaskDependencyRow: View {
 
             // Dependencies list - nested under subtask
             ForEach(dependencies) { dependency in
-                NavigationLink(destination: TaskDetailView(task: dependency)) {
+                NavigationLink(destination: LazyView(TaskDetailView(task: dependency))) {
                     HStack(spacing: DesignSystem.Spacing.sm) {
                         Text("↳")
                             .font(.body)

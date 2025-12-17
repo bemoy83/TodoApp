@@ -71,6 +71,7 @@ struct DetailSectionDisclosure<Content: View, Summary: View>: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .detailCardStyle()
     }
 }
 

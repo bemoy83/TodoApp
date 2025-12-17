@@ -6,9 +6,8 @@ struct TaskTimeTrackingView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var task: Task
 
-    @Query(filter: #Predicate<Task> { task in
-        !task.isArchived
-    }, sort: \Task.order) private var allTasks: [Task]
+    // Passed from parent to prevent @Query duplication
+    private let allTasks: [Task]
 
     private let externalAlert: Binding<TaskActionAlert?>?
     @State private var localAlert: TaskActionAlert?
@@ -19,8 +18,9 @@ struct TaskTimeTrackingView: View {
     @State private var currentTime = Date()
     @StateObject private var aggregator = SubtaskAggregator()
 
-    init(task: Task, alert: Binding<TaskActionAlert?>? = nil) {
+    init(task: Task, allTasks: [Task] = [], alert: Binding<TaskActionAlert?>? = nil) {
         self._task = Bindable(wrappedValue: task)
+        self.allTasks = allTasks
         self.externalAlert = alert
     }
 
@@ -75,7 +75,6 @@ struct TaskTimeTrackingView: View {
                 BlockedWarning()
             }
         }
-        .detailCardStyle()
         .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
             // Fast update for smooth countdown when any timer is running
             if hasAnyTimerRunning {

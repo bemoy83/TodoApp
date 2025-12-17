@@ -323,7 +323,6 @@ struct TaskQuantityView: View {
                 )
             }
         }
-        .detailCardStyle()
         .sheet(isPresented: $showingQuantityPicker) {
             QuantityPickerSheet(
                 expectedQuantity: $editedExpectedQuantity,

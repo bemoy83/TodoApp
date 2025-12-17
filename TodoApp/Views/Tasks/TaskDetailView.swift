@@ -1,32 +1,48 @@
 import SwiftUI
 import SwiftData
 
-/// Session 3: Unified Actions rollout â€” coordinator-only detail view
-/// - Keeps your existing components:
-///   TaskDetailHeaderView, TaskTimeTrackingView, TaskSubtasksView, TaskDependenciesView
-/// - Routes toolbar & sheet actions through TaskActionRouter (no duplicate business logic here).
+/// TaskDetailView - Unified one-pager with collapsible mini-sections
+/// All critical info visible at a glance via summary badges when sections are collapsed
 struct TaskDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+
+    @Query(filter: #Predicate<Task> { task in
+        !task.isArchived
+    }, sort: \Task.order) private var allTasks: [Task]
 
     @Bindable var task: Task
 
     @State private var showingEditSheet = false
     @State private var showingMoreSheet = false
 
-    // NEW: central alert state for executor-backed alerts
+    // Central alert state for executor-backed alerts
     @State private var currentAlert: TaskActionAlert?
 
-    // Collapsible section states with smart defaults
-    @State private var isTimeTrackingExpanded: Bool
+    // MARK: - Section Expansion States
+
+    // New header mini-sections
+    @State private var isScheduleExpanded: Bool
+    @State private var isOrganizationExpanded: Bool
+
+    // Core tracking sections
+    @State private var isTimeExpanded: Bool
     @State private var isPersonnelExpanded: Bool
     @State private var isQuantityExpanded: Bool
-    @State private var isTagsExpanded: Bool
-    @State private var isEntriesExpanded: Bool
+
+    // Structure sections
     @State private var isSubtasksExpanded: Bool
     @State private var isDependenciesExpanded: Bool
 
+    // Consolidated metadata section
+    @State private var isDetailsExpanded: Bool
+
     private let router = TaskActionRouter()
+
+    private var parentTask: Task? {
+        guard let parentId = task.parentTask?.id else { return nil }
+        return allTasks.first { $0.id == parentId }
+    }
 
     init(task: Task) {
         self.task = task
@@ -34,40 +50,44 @@ struct TaskDetailView: View {
         // Smart defaults based on task state
         if task.hasActiveTimer {
             // Execution mode - focus on time tracking
-            _isTimeTrackingExpanded = State(initialValue: true)
+            _isScheduleExpanded = State(initialValue: false)
+            _isOrganizationExpanded = State(initialValue: false)
+            _isTimeExpanded = State(initialValue: true)
             _isPersonnelExpanded = State(initialValue: false)
             _isQuantityExpanded = State(initialValue: false)
-            _isTagsExpanded = State(initialValue: false)
-            _isEntriesExpanded = State(initialValue: true) // Show accumulating entries
             _isSubtasksExpanded = State(initialValue: false)
             _isDependenciesExpanded = State(initialValue: false)
+            _isDetailsExpanded = State(initialValue: false)
         } else if task.isCompleted {
             // Review mode - show results
-            _isTimeTrackingExpanded = State(initialValue: true)
+            _isScheduleExpanded = State(initialValue: false)
+            _isOrganizationExpanded = State(initialValue: false)
+            _isTimeExpanded = State(initialValue: true)
             _isPersonnelExpanded = State(initialValue: false)
-            _isQuantityExpanded = State(initialValue: false)
-            _isTagsExpanded = State(initialValue: false)
-            _isEntriesExpanded = State(initialValue: (task.timeEntries?.count ?? 0) > 0) // Show if has entries
+            _isQuantityExpanded = State(initialValue: task.hasQuantityProgress)
             _isSubtasksExpanded = State(initialValue: false)
             _isDependenciesExpanded = State(initialValue: false)
+            _isDetailsExpanded = State(initialValue: true) // Show completion info
         } else if (task.subtasks?.count ?? 0) > 0 || (task.dependsOn?.count ?? 0) > 0 {
             // Planning mode with structure - show work breakdown
-            _isTimeTrackingExpanded = State(initialValue: false)
+            _isScheduleExpanded = State(initialValue: task.startDate != nil || task.endDate != nil)
+            _isOrganizationExpanded = State(initialValue: false)
+            _isTimeExpanded = State(initialValue: false)
             _isPersonnelExpanded = State(initialValue: task.expectedPersonnelCount != nil)
             _isQuantityExpanded = State(initialValue: task.unit != .none)
-            _isTagsExpanded = State(initialValue: false)
-            _isEntriesExpanded = State(initialValue: false)
-            _isSubtasksExpanded = State(initialValue: true) // Show work structure
+            _isSubtasksExpanded = State(initialValue: true)
             _isDependenciesExpanded = State(initialValue: (task.dependsOn?.count ?? 0) > 0)
+            _isDetailsExpanded = State(initialValue: false)
         } else {
             // Default mode - show essentials
-            _isTimeTrackingExpanded = State(initialValue: true)
+            _isScheduleExpanded = State(initialValue: task.startDate != nil || task.endDate != nil)
+            _isOrganizationExpanded = State(initialValue: false)
+            _isTimeExpanded = State(initialValue: true)
             _isPersonnelExpanded = State(initialValue: task.expectedPersonnelCount != nil)
             _isQuantityExpanded = State(initialValue: task.unit != .none)
-            _isTagsExpanded = State(initialValue: false)
-            _isEntriesExpanded = State(initialValue: false)
             _isSubtasksExpanded = State(initialValue: false)
             _isDependenciesExpanded = State(initialValue: false)
+            _isDetailsExpanded = State(initialValue: false)
         }
     }
 
@@ -76,27 +96,78 @@ struct TaskDetailView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                TaskDetailHeaderView(task: task)
+                // Parent breadcrumb (outside Identity card)
+                if let parent = parentTask {
+                    TaskParentBreadcrumb(parentTask: parent)
+                }
 
-                // Time tracking remains the canonical place for timer controls
-                DetailSectionDisclosure(
-                    title: "Time Tracking",
-                    icon: "clock",
-                    isExpanded: $isTimeTrackingExpanded,
-                    summary: { timeTrackingSummary },
-                    content: { TaskTimeTrackingView(task: task) }
+                // Identity Card (always visible)
+                TaskIdentityCard(
+                    task: task,
+                    alert: $currentAlert,
+                    onBlockingDepsTapped: {
+                        // Jump to dependencies section
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isDependenciesExpanded = true
+                        }
+                    }
                 )
 
-                // Personnel planning and tracking
+                // Schedule section
+                DetailSectionDisclosure(
+                    title: "Schedule",
+                    icon: "calendar",
+                    isExpanded: $isScheduleExpanded,
+                    summary: { scheduleSummary },
+                    content: { TaskScheduleSection(task: task) }
+                )
+
+                // Organization section
+                DetailSectionDisclosure(
+                    title: "Organization",
+                    icon: "folder",
+                    isExpanded: $isOrganizationExpanded,
+                    summary: { organizationSummary },
+                    content: { TaskOrganizationSection(task: task) }
+                )
+
+                // Time section (using original working views)
+                DetailSectionDisclosure(
+                    title: "Time",
+                    icon: "clock",
+                    isExpanded: $isTimeExpanded,
+                    summary: { timeSummary },
+                    content: {
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                            // Time Tracking (pass allTasks to avoid @Query duplication)
+                            TaskTimeTrackingView(task: task, allTasks: allTasks)
+
+                            Divider()
+                                .padding(.horizontal)
+
+                            // Time Entries header
+                            Text("Time Entries")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                                .padding(.horizontal)
+
+                            // Time Entries (original working view)
+                            TimeEntriesView(task: task)
+                        }
+                    }
+                )
+
+                // Personnel section
                 DetailSectionDisclosure(
                     title: "Personnel",
                     icon: "person.2.fill",
                     isExpanded: $isPersonnelExpanded,
                     summary: { personnelSummary },
-                    content: { TaskPersonnelView(task: task) }
+                    content: { TaskPersonnelView(task: task, allTasks: allTasks) }
                 )
 
-                // Quantity tracking for productivity measurement
+                // Quantity section
                 DetailSectionDisclosure(
                     title: "Quantity",
                     icon: "number",
@@ -105,40 +176,33 @@ struct TaskDetailView: View {
                     content: { TaskQuantityView(task: task) }
                 )
 
-                // Tags for organization and filtering
-                DetailSectionDisclosure(
-                    title: "Tags",
-                    icon: "tag",
-                    isExpanded: $isTagsExpanded,
-                    summary: { tagsSummary },
-                    content: { TaskTagsView(task: task) }
-                )
+                // TODO: Productivity section (add later)
 
-                // Time entries management
-                DetailSectionDisclosure(
-                    title: "Time Entries",
-                    icon: "list.bullet.clipboard",
-                    isExpanded: $isEntriesExpanded,
-                    summary: { entriesSummary },
-                    content: { TimeEntriesView(task: task) }
-                )
-
-                // Subtasks
+                // Subtasks section
                 DetailSectionDisclosure(
                     title: "Subtasks",
                     icon: "list.bullet.indent",
                     isExpanded: $isSubtasksExpanded,
                     summary: { subtasksSummary },
-                    content: { TaskSubtasksView(task: task) }
+                    content: { TaskSubtasksView(task: task, allTasks: allTasks) }
                 )
 
-                // Dependencies
+                // Dependencies section
                 DetailSectionDisclosure(
                     title: "Dependencies",
                     icon: "link",
                     isExpanded: $isDependenciesExpanded,
                     summary: { dependenciesSummary },
-                    content: { TaskDependenciesView(task: task) }
+                    content: { TaskDependenciesView(task: task, allTasks: allTasks) }
+                )
+
+                // Details section (consolidated Tags + Notes + Info)
+                DetailSectionDisclosure(
+                    title: "Details",
+                    icon: "doc.text",
+                    isExpanded: $isDetailsExpanded,
+                    summary: { detailsSummary },
+                    content: { TaskDetailsSection(task: task) }
                 )
             }
             .padding(DesignSystem.Spacing.lg)
@@ -147,7 +211,6 @@ struct TaskDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                // Edit â€” now routed via executor; if no alert, open editor
                 Button {
                     var presentedAlert = false
                     _ = router.performWithExecutor(.edit, on: task, context: ctx) { alert in
@@ -161,7 +224,6 @@ struct TaskDetailView: View {
                     Image(systemName: "pencil")
                 }
 
-                // More â€” shared Quick Actions sheet (already executor-backed)
                 Button {
                     showingMoreSheet = true
                 } label: {
@@ -169,53 +231,68 @@ struct TaskDetailView: View {
                 }
             }
         }
-        // Edit sheet (form-only)
         .sheet(isPresented: $showingEditSheet) {
             TaskEditView(task: task)
         }
-        // Quick Actions / More sheet (routes via router internally)
         .sheet(isPresented: $showingMoreSheet) {
             TaskMoreActionsSheet(
                 task: task,
                 onEdit: { showingEditSheet = true },
                 onAddSubtask: {
-                    // If you still have a dedicated add-subtask flow, trigger it here.
-                    // The router has already emitted `.addSubtask`.
                     showingMoreSheet = false
                 }
             )
         }
-        // Present any alerts triggered from this view (e.g., edit intent if it ever alerts)
         .taskActionAlert(alert: $currentAlert)
     }
 
-    // MARK: - Summary Badge Helpers
+    // MARK: - Summary Badge Views
 
-    private var timeTrackingSummaryText: String {
-        var text = ""
-
-        // Add time spent
-        let totalTime = task.totalTimeSpent
-        if totalTime > 0 {
-            text = totalTime.formattedTime()
-        } else {
-            text = "No time tracked"
-        }
-
-        // Add progress if has estimate
-        if let estimate = task.effectiveEstimate {
-            let progress = Double(task.totalTimeSpent) / Double(estimate)
-            text += " • \(Int(progress * 100))%"
-        }
-
-        return text
+    @ViewBuilder
+    private var scheduleSummary: some View {
+        Text(TaskScheduleSection.summaryText(for: task))
+            .font(.caption)
+            .foregroundStyle(TaskScheduleSection.summaryColor(for: task))
     }
 
     @ViewBuilder
-    private var timeTrackingSummary: some View {
-        Text(timeTrackingSummaryText)
+    private var organizationSummary: some View {
+        Text(TaskOrganizationSection.summaryText(for: task))
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(TaskOrganizationSection.summaryColor(for: task))
+    }
+
+    @ViewBuilder
+    private var timeSummary: some View {
+        Text(timeSummaryText)
+            .font(.caption)
+            .foregroundStyle(task.hasActiveTimer ? .red : .secondary)
+    }
+
+    private var timeSummaryText: String {
+        var parts: [String] = []
+
+        // Time spent
+        let totalTime = task.totalTimeSpent
+        if totalTime > 0 {
+            parts.append(totalTime.formattedTime())
+        } else {
+            parts.append("No time")
+        }
+
+        // Progress percentage (if has estimate)
+        if let estimate = task.effectiveEstimate, estimate > 0 {
+            let progress = Double(task.totalTimeSpent) / Double(estimate)
+            parts.append("\(Int(progress * 100))%")
+        }
+
+        // Entry count
+        let entryCount = task.timeEntries?.count ?? 0
+        if entryCount > 0 {
+            parts.append("\(entryCount) \(entryCount == 1 ? "entry" : "entries")")
+        }
+
+        return parts.joined(separator: " • ")
     }
 
     @ViewBuilder
@@ -235,7 +312,6 @@ struct TaskDetailView: View {
     @ViewBuilder
     private var quantitySummary: some View {
         if task.hasQuantityProgress {
-            // Show progress: "45.5/60 m² (76%)"
             let completed = task.quantity ?? 0
             let expected = task.expectedQuantity!
             let progress = task.quantityProgress!
@@ -245,12 +321,10 @@ struct TaskDetailView: View {
                 .font(.caption)
                 .foregroundStyle(progress >= 1.0 ? .green : .secondary)
         } else if task.unit != .none, let quantity = task.quantity {
-            // Fallback: only completed quantity (no expected)
             Text("\(formatQuantity(quantity)) \(task.unitDisplayName)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         } else if task.expectedQuantity != nil {
-            // Only expected quantity set (no progress yet)
             Text("0/\(formatQuantity(task.expectedQuantity!)) \(task.unitDisplayName) (0%)")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
@@ -266,54 +340,6 @@ struct TaskDetailView: View {
             return String(format: "%.0f", value)
         } else {
             return String(format: "%.1f", value)
-        }
-    }
-
-    @ViewBuilder
-    private var tagsSummary: some View {
-        if let tags = task.tags, !tags.isEmpty {
-            CompactTagSummary(tags: Array(tags))
-        } else {
-            Text("No tags")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    private var entriesSummaryText: String {
-        let entryCount = task.timeEntries?.count ?? 0
-        if entryCount > 0 {
-            let entryWord = entryCount == 1 ? "entry" : "entries"
-            var text = "\(entryCount) \(entryWord)"
-
-            // Add last entry time if available
-            if let lastEntry = task.timeEntries?.sorted(by: { $0.startTime > $1.startTime }).first {
-                let timeAgo = Date().timeIntervalSince(lastEntry.startTime)
-                if timeAgo < 3600 {
-                    text += " • \(Int(timeAgo / 60))m ago"
-                } else if timeAgo < 86400 {
-                    text += " • \(Int(timeAgo / 3600))h ago"
-                } else {
-                    text += " • \(Int(timeAgo / 86400))d ago"
-                }
-            }
-            return text
-        } else {
-            return "No entries"
-        }
-    }
-
-    @ViewBuilder
-    private var entriesSummary: some View {
-        let entryCount = task.timeEntries?.count ?? 0
-        if entryCount > 0 {
-            Text(entriesSummaryText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } else {
-            Text(entriesSummaryText)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
         }
     }
 
@@ -352,5 +378,12 @@ struct TaskDetailView: View {
                     .foregroundStyle(.tertiary)
             }
         }
+    }
+
+    @ViewBuilder
+    private var detailsSummary: some View {
+        Text(TaskDetailsSection.summaryText(for: task))
+            .font(.caption)
+            .foregroundStyle(TaskDetailsSection.summaryColor(for: task))
     }
 }
