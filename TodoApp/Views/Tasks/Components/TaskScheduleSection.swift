@@ -66,14 +66,69 @@ struct TaskScheduleSection: View {
                 }
             }
 
-            // Empty state
-            if task.startDate == nil && task.endDate == nil {
-                emptyState
+            // Add missing date buttons
+            if task.startDate == nil || task.endDate == nil {
+                addDateButtons
             }
         }
         .padding(.horizontal)
         .sheet(item: $dateEditItem) { item in
             DateEditSheet(task: task, dateType: item.dateType)
+        }
+    }
+
+    // MARK: - Add Date Buttons
+
+    @ViewBuilder
+    private var addDateButtons: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            if task.startDate == nil {
+                Button {
+                    dateEditItem = DateEditItem(dateType: .start)
+                    HapticManager.selection()
+                } label: {
+                    HStack(spacing: DesignSystem.Spacing.sm) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(.blue)
+                            .frame(width: 28)
+
+                        Text("Add Start Date")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.blue)
+
+                        Spacer()
+                    }
+                    .padding(.vertical, DesignSystem.Spacing.xs)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+
+            if task.endDate == nil {
+                Button {
+                    dateEditItem = DateEditItem(dateType: .end)
+                    HapticManager.selection()
+                } label: {
+                    HStack(spacing: DesignSystem.Spacing.sm) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(.blue)
+                            .frame(width: 28)
+
+                        Text("Add Due Date")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.blue)
+
+                        Spacer()
+                    }
+                    .padding(.vertical, DesignSystem.Spacing.xs)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -266,23 +321,6 @@ struct TaskScheduleSection: View {
         .padding(.top, DesignSystem.Spacing.xs)
     }
 
-    // MARK: - Empty State
-
-    private var emptyState: some View {
-        HStack {
-            Image(systemName: "calendar.badge.plus")
-                .font(.body)
-                .foregroundStyle(.tertiary)
-                .frame(width: 28)
-
-            Text("No dates scheduled")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
-
-            Spacer()
-        }
-        .padding(.vertical, DesignSystem.Spacing.sm)
-    }
 }
 
 // MARK: - Schedule Estimate Status
