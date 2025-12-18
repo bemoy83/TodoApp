@@ -8,8 +8,6 @@ struct TaskPersonnelView: View {
     // Passed from parent to prevent @Query duplication
     private let allTasks: [Task]
 
-    @State private var showingPersonnelPicker = false
-    @State private var selectedCount: Int = 1
     @State private var saveError: TaskActionAlert?
     @StateObject private var aggregator = SubtaskAggregator()
 
@@ -27,11 +25,27 @@ struct TaskPersonnelView: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             // Three states: direct assignment, calculated from subtasks, or empty
             if let direct = task.expectedPersonnelCount {
-                // State 1: Direct assignment (tappable to edit)
-                Button {
-                    selectedCount = direct
-                    showingPersonnelPicker = true
-                    HapticManager.selection()
+                // State 1: Direct assignment (inline menu to edit)
+                Menu {
+                    ForEach(1...20, id: \.self) { count in
+                        Button {
+                            setPersonnelCount(count)
+                        } label: {
+                            if count == direct {
+                                Label("\(count) \(count == 1 ? "person" : "people")", systemImage: "checkmark")
+                            } else {
+                                Text("\(count) \(count == 1 ? "person" : "people")")
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive) {
+                        removePersonnelCount()
+                    } label: {
+                        Label("Remove", systemImage: "trash")
+                    }
                 } label: {
                     HStack {
                         Image(systemName: "person.2.fill")
@@ -52,7 +66,7 @@ struct TaskPersonnelView: View {
 
                         Spacer()
 
-                        Image(systemName: "chevron.right")
+                        Image(systemName: "chevron.up.chevron.down")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
@@ -87,11 +101,15 @@ struct TaskPersonnelView: View {
                     .padding(.vertical, 4)
                 }
             } else if let range = effectivePersonnelRange {
-                // State 2: Calculated from subtasks (tappable to override)
-                Button {
-                    selectedCount = range.min
-                    showingPersonnelPicker = true
-                    HapticManager.selection()
+                // State 2: Calculated from subtasks (menu to override)
+                Menu {
+                    ForEach(1...20, id: \.self) { count in
+                        Button {
+                            setPersonnelCount(count)
+                        } label: {
+                            Text("\(count) \(count == 1 ? "person" : "people")")
+                        }
+                    }
                 } label: {
                     HStack {
                         Image(systemName: "person.2.fill")
@@ -112,7 +130,7 @@ struct TaskPersonnelView: View {
                                     .foregroundStyle(.primary)
                             }
 
-                            Text("From subtasks")
+                            Text("From subtasks • Tap to override")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .italic()
@@ -120,7 +138,7 @@ struct TaskPersonnelView: View {
 
                         Spacer()
 
-                        Image(systemName: "chevron.right")
+                        Image(systemName: "chevron.up.chevron.down")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
@@ -129,11 +147,15 @@ struct TaskPersonnelView: View {
                 }
                 .buttonStyle(.plain)
             } else {
-                // State 3: Empty state - show add button
-                Button {
-                    selectedCount = 1
-                    showingPersonnelPicker = true
-                    HapticManager.selection()
+                // State 3: Empty state - menu to add
+                Menu {
+                    ForEach(1...20, id: \.self) { count in
+                        Button {
+                            setPersonnelCount(count)
+                        } label: {
+                            Text("\(count) \(count == 1 ? "person" : "people")")
+                        }
+                    }
                 } label: {
                     HStack(spacing: DesignSystem.Spacing.sm) {
                         Image(systemName: "plus.circle.fill")
@@ -161,40 +183,39 @@ struct TaskPersonnelView: View {
                 ActualUsageSection(stats: stats, hasSubtasks: hasSubtasks)
             }
         }
-        .sheet(isPresented: $showingPersonnelPicker) {
-            PersonnelPickerSheet(
-                selectedCount: $selectedCount,
-                onSave: {
-                    task.expectedPersonnelCount = selectedCount
-                    do {
-                        try task.modelContext?.save()
-                        aggregator.invalidate(taskId: task.id)
-                        HapticManager.success()
-                    } catch {
-                        saveError = TaskActionAlert(
-                            title: "Save Failed",
-                            message: "Could not save personnel count: \(error.localizedDescription)",
-                            actions: [AlertAction(title: "OK", role: .cancel, action: {})]
-                        )
-                    }
-                },
-                onRemove: task.expectedPersonnelCount != nil ? {
-                    task.expectedPersonnelCount = nil
-                    do {
-                        try task.modelContext?.save()
-                        aggregator.invalidate(taskId: task.id)
-                        HapticManager.success()
-                    } catch {
-                        saveError = TaskActionAlert(
-                            title: "Save Failed",
-                            message: "Could not remove personnel assignment: \(error.localizedDescription)",
-                            actions: [AlertAction(title: "OK", role: .cancel, action: {})]
-                        )
-                    }
-                } : nil
+        .taskActionAlert(alert: $saveError)
+    }
+
+    // MARK: - Actions
+
+    private func setPersonnelCount(_ count: Int) {
+        task.expectedPersonnelCount = count
+        do {
+            try task.modelContext?.save()
+            aggregator.invalidate(taskId: task.id)
+            HapticManager.success()
+        } catch {
+            saveError = TaskActionAlert(
+                title: "Save Failed",
+                message: "Could not save personnel count: \(error.localizedDescription)",
+                actions: [AlertAction(title: "OK", role: .cancel, action: {})]
             )
         }
-        .taskActionAlert(alert: $saveError)
+    }
+
+    private func removePersonnelCount() {
+        task.expectedPersonnelCount = nil
+        do {
+            try task.modelContext?.save()
+            aggregator.invalidate(taskId: task.id)
+            HapticManager.success()
+        } catch {
+            saveError = TaskActionAlert(
+                title: "Save Failed",
+                message: "Could not remove personnel assignment: \(error.localizedDescription)",
+                actions: [AlertAction(title: "OK", role: .cancel, action: {})]
+            )
+        }
     }
 
     // MARK: - Computed Properties
@@ -306,62 +327,6 @@ struct PersonnelStats {
     let average: Double
     let hasDirectEntries: Bool
     let hasSubtaskEntries: Bool
-}
-
-// MARK: - Personnel Picker Sheet
-
-private struct PersonnelPickerSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var selectedCount: Int
-    let onSave: () -> Void
-    let onRemove: (() -> Void)?
-
-    var body: some View {
-        NavigationStack {
-            VStack {
-                Picker("Expected crew size", selection: $selectedCount) {
-                    ForEach(1...20, id: \.self) { count in
-                        Text("\(count) \(count == 1 ? "person" : "people")")
-                            .tag(count)
-                    }
-                }
-                .pickerStyle(.wheel)
-                .labelsHidden()
-
-                Spacer()
-            }
-            .navigationTitle("Set Personnel")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        onSave()
-                        dismiss()
-                    }
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                if let onRemove = onRemove {
-                    Button(role: .destructive) {
-                        onRemove()
-                        dismiss()
-                    } label: {
-                        Label("Remove Personnel Assignment", systemImage: "trash")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
-                    .padding()
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Actual Usage Section
