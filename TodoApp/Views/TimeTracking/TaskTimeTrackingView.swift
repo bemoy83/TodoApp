@@ -18,7 +18,7 @@ struct TaskTimeTrackingView: View {
     @State private var currentTime = Date()
     @StateObject private var aggregator = SubtaskAggregator()
 
-    init(task: Task, allTasks: [Task] = [], alert: Binding<TaskActionAlert?>? = nil) {
+    init(task: Task, allTasks: [Task], alert: Binding<TaskActionAlert?>? = nil) {
         self._task = Bindable(wrappedValue: task)
         self.allTasks = allTasks
         self.externalAlert = alert
@@ -57,10 +57,7 @@ struct TaskTimeTrackingView: View {
 
             // Active Session (conditional - only if timer running)
             if hasAnyTimerRunning {
-                ActiveSessionSection(
-                    sessionSeconds: currentSessionSeconds,
-                    pulseOpacity: timerPulseOpacity
-                )
+                ActiveSessionSection(sessionSeconds: currentSessionSeconds)
             }
 
             // Timer Button (always shown)
@@ -96,9 +93,13 @@ struct TaskTimeTrackingView: View {
         return hasAnySubtaskTimerRunning
     }
 
+    /// Direct child subtasks of this task
+    private var directSubtasks: [Task] {
+        allTasks.filter { $0.parentTask?.id == task.id }
+    }
+
     private var hasAnySubtaskTimerRunning: Bool {
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        return checkSubtasksForTimer(in: subtasks)
+        checkSubtasksForTimer(in: directSubtasks)
     }
 
     private func checkSubtasksForTimer(in subtasks: [Task]) -> Bool {
@@ -175,11 +176,6 @@ struct TaskTimeTrackingView: View {
         guard let estimate = task.effectiveEstimate else { return nil }
         let remainingSeconds = estimate - displayedTotalTimeSeconds  // estimate is already in seconds!
         return remainingSeconds / 60
-    }
-
-    private var timerPulseOpacity: Double {
-        let deciseconds = Int(currentTime.timeIntervalSinceReferenceDate * 10) % 10
-        return deciseconds < 5 ? 1.0 : 0.3
     }
 
     // MARK: - Actions
@@ -380,8 +376,7 @@ private struct TotalTimeSection: View {
 
 private struct ActiveSessionSection: View {
     let sessionSeconds: Int
-    let pulseOpacity: Double
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Current Session")
