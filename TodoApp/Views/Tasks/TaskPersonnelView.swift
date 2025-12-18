@@ -13,7 +13,7 @@ struct TaskPersonnelView: View {
     @State private var saveError: TaskActionAlert?
     @StateObject private var aggregator = SubtaskAggregator()
 
-    init(task: Task, allTasks: [Task] = []) {
+    init(task: Task, allTasks: [Task]) {
         self.task = task
         self.allTasks = allTasks
     }
@@ -450,7 +450,7 @@ private struct ActualUsageSection: View {
     container.mainContext.insert(entry1)
     container.mainContext.insert(entry2)
 
-    return TaskPersonnelView(task: task)
+    return TaskPersonnelView(task: task, allTasks: [])
         .modelContainer(container)
         .padding()
 }
@@ -471,7 +471,7 @@ private struct ActualUsageSection: View {
     container.mainContext.insert(subtask1)
     container.mainContext.insert(subtask2)
 
-    return TaskPersonnelView(task: parentTask)
+    return TaskPersonnelView(task: parentTask, allTasks: [subtask1, subtask2])
         .modelContainer(container)
         .padding()
 }
@@ -496,7 +496,7 @@ private struct ActualUsageSection: View {
     container.mainContext.insert(subtask2)
     container.mainContext.insert(subtask3)
 
-    return TaskPersonnelView(task: parentTask)
+    return TaskPersonnelView(task: parentTask, allTasks: [subtask1, subtask2, subtask3])
         .modelContainer(container)
         .padding()
 }
@@ -508,7 +508,7 @@ private struct ActualUsageSection: View {
     let task = Task(title: "Test Task")
     container.mainContext.insert(task)
 
-    return TaskPersonnelView(task: task)
+    return TaskPersonnelView(task: task, allTasks: [])
         .modelContainer(container)
         .padding()
 }
