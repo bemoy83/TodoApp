@@ -8,6 +8,8 @@ struct TaskPersonnelView: View {
     // Passed from parent to prevent @Query duplication
     private let allTasks: [Task]
 
+    @State private var showingPersonnelPicker = false
+    @State private var selectedCount: Int = 1
     @State private var saveError: TaskActionAlert?
     @StateObject private var aggregator = SubtaskAggregator()
 
@@ -25,27 +27,10 @@ struct TaskPersonnelView: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             // Three states: direct assignment, calculated from subtasks, or empty
             if let direct = task.expectedPersonnelCount {
-                // State 1: Direct assignment (inline menu to edit)
-                Menu {
-                    ForEach(1...20, id: \.self) { count in
-                        Button {
-                            setPersonnelCount(count)
-                        } label: {
-                            if count == direct {
-                                Label("\(count) \(count == 1 ? "person" : "people")", systemImage: "checkmark")
-                            } else {
-                                Text("\(count) \(count == 1 ? "person" : "people")")
-                            }
-                        }
-                    }
-
-                    Divider()
-
-                    Button(role: .destructive) {
-                        removePersonnelCount()
-                    } label: {
-                        Label("Remove", systemImage: "trash")
-                    }
+                // State 1: Direct assignment (tappable to edit)
+                Button {
+                    selectedCount = direct
+                    showingPersonnelPicker = true
                 } label: {
                     HStack {
                         Image(systemName: "person.2.fill")
@@ -66,7 +51,7 @@ struct TaskPersonnelView: View {
 
                         Spacer()
 
-                        Image(systemName: "chevron.up.chevron.down")
+                        Image(systemName: "chevron.right")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
@@ -101,15 +86,10 @@ struct TaskPersonnelView: View {
                     .padding(.vertical, 4)
                 }
             } else if let range = effectivePersonnelRange {
-                // State 2: Calculated from subtasks (menu to override)
-                Menu {
-                    ForEach(1...20, id: \.self) { count in
-                        Button {
-                            setPersonnelCount(count)
-                        } label: {
-                            Text("\(count) \(count == 1 ? "person" : "people")")
-                        }
-                    }
+                // State 2: Calculated from subtasks (tappable to override)
+                Button {
+                    selectedCount = range.min
+                    showingPersonnelPicker = true
                 } label: {
                     HStack {
                         Image(systemName: "person.2.fill")
@@ -138,7 +118,7 @@ struct TaskPersonnelView: View {
 
                         Spacer()
 
-                        Image(systemName: "chevron.up.chevron.down")
+                        Image(systemName: "chevron.right")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
@@ -147,15 +127,10 @@ struct TaskPersonnelView: View {
                 }
                 .buttonStyle(.plain)
             } else {
-                // State 3: Empty state - menu to add
-                Menu {
-                    ForEach(1...20, id: \.self) { count in
-                        Button {
-                            setPersonnelCount(count)
-                        } label: {
-                            Text("\(count) \(count == 1 ? "person" : "people")")
-                        }
-                    }
+                // State 3: Empty state - tappable to add
+                Button {
+                    selectedCount = 1
+                    showingPersonnelPicker = true
                 } label: {
                     HStack(spacing: DesignSystem.Spacing.sm) {
                         Image(systemName: "plus.circle.fill")
@@ -182,6 +157,16 @@ struct TaskPersonnelView: View {
 
                 ActualUsageSection(stats: stats, hasSubtasks: hasSubtasks)
             }
+        }
+        .sheet(isPresented: $showingPersonnelPicker) {
+            CompactPersonnelPicker(
+                selectedCount: $selectedCount,
+                hasExistingValue: task.expectedPersonnelCount != nil,
+                onSave: { setPersonnelCount(selectedCount) },
+                onRemove: { removePersonnelCount() }
+            )
+            .presentationDetents([.height(280)])
+            .presentationDragIndicator(.visible)
         }
         .taskActionAlert(alert: $saveError)
     }
@@ -327,6 +312,68 @@ struct PersonnelStats {
     let average: Double
     let hasDirectEntries: Bool
     let hasSubtaskEntries: Bool
+}
+
+// MARK: - Compact Personnel Picker
+
+private struct CompactPersonnelPicker: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var selectedCount: Int
+    let hasExistingValue: Bool
+    let onSave: () -> Void
+    let onRemove: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header with cancel/done
+            HStack {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .foregroundStyle(.blue)
+
+                Spacer()
+
+                Text("Crew Size")
+                    .font(.headline)
+
+                Spacer()
+
+                Button("Done") {
+                    onSave()
+                    dismiss()
+                }
+                .fontWeight(.semibold)
+                .foregroundStyle(.blue)
+            }
+            .padding(.horizontal)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+
+            // Wheel picker
+            Picker("Expected crew size", selection: $selectedCount) {
+                ForEach(1...20, id: \.self) { count in
+                    Text("\(count) \(count == 1 ? "person" : "people")")
+                        .tag(count)
+                }
+            }
+            .pickerStyle(.wheel)
+            .labelsHidden()
+            .frame(height: 150)
+
+            // Remove button (only if has existing value)
+            if hasExistingValue {
+                Button(role: .destructive) {
+                    onRemove()
+                    dismiss()
+                } label: {
+                    Text("Remove")
+                        .font(.subheadline)
+                }
+                .padding(.bottom, 16)
+            }
+        }
+    }
 }
 
 // MARK: - Actual Usage Section
