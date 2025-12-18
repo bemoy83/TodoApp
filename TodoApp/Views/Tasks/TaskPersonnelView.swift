@@ -87,9 +87,6 @@ struct TaskPersonnelView: View {
                         .padding(.horizontal)
                         .padding(.vertical, 4)
                     }
-
-                    Divider()
-                        .padding(.horizontal)
                 } else if let range = effectivePersonnelRange {
                     // State 2: Calculated from subtasks (tappable to override)
                     Button {
@@ -132,39 +129,30 @@ struct TaskPersonnelView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-
-                    Divider()
-                        .padding(.horizontal)
                 } else {
-                    // State 3: Empty state
-                    Text("No assigned personnel")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    // State 3: Empty state - show add button
+                    Button {
+                        selectedCount = 1
+                        showingPersonnelPicker = true
+                        HapticManager.selection()
+                    } label: {
+                        HStack(spacing: DesignSystem.Spacing.sm) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.body)
+                                .foregroundStyle(.blue)
+                                .frame(width: 28)
+
+                            Text("Add Personnel")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.blue)
+                        }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
-                }
-
-                // Action area - button text changes based on state
-                Button {
-                    selectedCount = task.expectedPersonnelCount ?? effectivePersonnelRange?.min ?? 1
-                    showingPersonnelPicker = true
-                    HapticManager.selection()
-                } label: {
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        Image(systemName: buttonIcon)
-                            .font(.body)
-                            .foregroundStyle(.blue)
-
-                        Text(buttonText)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.blue)
+                        .contentShape(Rectangle())
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
 
                 // Actual Usage Section (only show if has time entries)
                 if let stats = computeActualPersonnelStats() {
@@ -245,28 +233,6 @@ struct TaskPersonnelView: View {
 
         // Show warning: user broke down work differently than parent estimate
         return true
-    }
-
-    /// Button text based on state
-    private var buttonText: String {
-        if task.expectedPersonnelCount != nil {
-            return "Edit Personnel"
-        } else if effectivePersonnelRange != nil {
-            return "Set Personnel"
-        } else {
-            return "Add Personnel"
-        }
-    }
-
-    /// Button icon based on state
-    private var buttonIcon: String {
-        if task.expectedPersonnelCount != nil {
-            return "pencil.circle.fill"
-        } else if effectivePersonnelRange != nil {
-            return "square.and.pencil"
-        } else {
-            return "plus.circle.fill"
-        }
     }
 
     private var hasSubtasks: Bool {
