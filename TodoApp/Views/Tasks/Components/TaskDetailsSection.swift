@@ -5,9 +5,12 @@ import SwiftData
 /// Part of the TaskDetailView mini-sections architecture
 struct TaskDetailsSection: View {
     @Bindable var task: Task
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Tag.order) private var allTags: [Tag]
 
     @State private var showingTagPicker = false
+    @State private var editedNotes: String = ""
+    @FocusState private var isNotesFocused: Bool
 
     // Get task tags using @Query pattern for fresh data
     private var taskTags: [Tag] {
@@ -34,6 +37,25 @@ struct TaskDetailsSection: View {
         }
         .sheet(isPresented: $showingTagPicker) {
             TagPickerView(task: task)
+        }
+        .onAppear {
+            editedNotes = task.notes ?? ""
+        }
+        .onChange(of: isNotesFocused) { _, focused in
+            if !focused {
+                saveNotesIfChanged()
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                if isNotesFocused {
+                    Button("Done") {
+                        isNotesFocused = false
+                    }
+                    .fontWeight(.medium)
+                }
+            }
         }
     }
 
@@ -98,21 +120,77 @@ struct TaskDetailsSection: View {
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
                 Spacer()
+
+                // Clear button (only when has notes and editing)
+                if hasNotes && isNotesFocused {
+                    Button {
+                        editedNotes = ""
+                        HapticManager.light()
+                    } label: {
+                        Text("Clear")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.horizontal)
 
-            // Notes content
-            if let notes = task.notes, !notes.isEmpty {
-                Text(notes)
+            // Inline notes editor
+            ZStack(alignment: .topLeading) {
+                // Placeholder
+                if editedNotes.isEmpty && !isNotesFocused {
+                    Text("Tap to add notes...")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal)
+                        .padding(.vertical, DesignSystem.Spacing.xs)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            isNotesFocused = true
+                        }
+                }
+
+                // TextEditor (always present but styled based on state)
+                TextEditor(text: $editedNotes)
                     .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-            } else {
-                Text("No notes")
-                    .font(.subheadline)
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal)
+                    .focused($isNotesFocused)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: isNotesFocused || hasNotes ? 80 : 32)
+                    .padding(.horizontal, DesignSystem.Spacing.sm)
+                    .padding(.vertical, DesignSystem.Spacing.xs)
+                    .background(
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm)
+                            .fill(isNotesFocused ? Color(.systemGray6) : Color.clear)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm)
+                            .stroke(isNotesFocused ? Color.blue.opacity(0.5) : Color.clear, lineWidth: 1)
+                    )
+                    .opacity(editedNotes.isEmpty && !isNotesFocused ? 0 : 1)
+            }
+            .padding(.horizontal)
+            .animation(.easeInOut(duration: 0.2), value: isNotesFocused)
+        }
+    }
+
+    private var hasNotes: Bool {
+        !editedNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func saveNotesIfChanged() {
+        let trimmed = editedNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newValue = trimmed.isEmpty ? nil : trimmed
+
+        // Only save if changed
+        if task.notes != newValue {
+            task.notes = newValue
+            do {
+                try modelContext.save()
+                HapticManager.success()
+            } catch {
+                HapticManager.error()
             }
         }
     }

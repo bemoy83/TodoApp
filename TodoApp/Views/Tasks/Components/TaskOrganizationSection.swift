@@ -6,47 +6,93 @@ import SwiftData
 struct TaskOrganizationSection: View {
     @Bindable var task: Task
 
+    @State private var showingProjectPicker = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            // Project (conditional)
-            if let project = task.project {
-                projectRow(project: project)
-            }
+            // Project row (with inline editing)
+            projectSection
 
-            // Priority (always shown)
+            // Priority (always shown, inline editable via Menu)
             priorityRow
         }
         .padding(.horizontal)
+        .sheet(isPresented: $showingProjectPicker) {
+            ProjectPickerSheet(task: task)
+        }
     }
 
-    // MARK: - Project Row
+    // MARK: - Project Section
 
     @ViewBuilder
-    private func projectRow(project: Project) -> some View {
-        NavigationLink(destination: ProjectDetailView(project: project)) {
-            HStack {
-                Image(systemName: "folder.fill")
-                    .font(.body)
-                    .foregroundStyle(Color(hex: project.color))
-                    .frame(width: 28)
+    private var projectSection: some View {
+        if let project = task.project {
+            // Has project - show with options to view or change
+            HStack(spacing: 0) {
+                // Navigate to project detail
+                NavigationLink(destination: ProjectDetailView(project: project)) {
+                    HStack {
+                        Image(systemName: "folder.fill")
+                            .font(.body)
+                            .foregroundStyle(Color(hex: project.color))
+                            .frame(width: 28)
 
-                Text("Project")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                        Text("Project")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
 
-                Spacer()
+                        Spacer()
 
-                Text(project.title)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
+                        Text(project.title)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
 
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, DesignSystem.Spacing.xs)
+                }
+                .buttonStyle(.plain)
             }
-            .padding(.vertical, DesignSystem.Spacing.xs)
+            .contextMenu {
+                Button {
+                    showingProjectPicker = true
+                } label: {
+                    Label("Change Project", systemImage: "arrow.triangle.2.circlepath")
+                }
+
+                Button(role: .destructive) {
+                    task.project = nil
+                    HapticManager.medium()
+                } label: {
+                    Label("Remove from Project", systemImage: "folder.badge.minus")
+                }
+            }
+        } else {
+            // No project - show add button
+            Button {
+                showingProjectPicker = true
+                HapticManager.selection()
+            } label: {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(.blue)
+                        .frame(width: 28)
+
+                    Text("Assign to Project")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.blue)
+
+                    Spacer()
+                }
+                .padding(.vertical, DesignSystem.Spacing.xs)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Priority Row
@@ -114,6 +160,90 @@ extension TaskOrganizationSection {
             return priority.color
         }
         return .secondary
+    }
+}
+
+// MARK: - Project Picker Sheet
+
+private struct ProjectPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+
+    @Query(sort: \Project.title) private var projects: [Project]
+
+    let task: Task
+
+    var body: some View {
+        NavigationStack {
+            List {
+                // No Project option
+                Button {
+                    task.project = nil
+                    saveAndDismiss()
+                } label: {
+                    HStack {
+                        Circle()
+                            .fill(.gray.opacity(0.3))
+                            .frame(width: 12, height: 12)
+
+                        Text("No Project")
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if task.project == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+
+                // Project list
+                ForEach(projects) { project in
+                    Button {
+                        task.project = project
+                        saveAndDismiss()
+                    } label: {
+                        HStack {
+                            Circle()
+                                .fill(Color(hex: project.color))
+                                .frame(width: 12, height: 12)
+
+                            Text(project.title)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            if task.project?.id == project.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .navigationTitle("Assign to Project")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func saveAndDismiss() {
+        do {
+            try modelContext.save()
+            HapticManager.success()
+        } catch {
+            HapticManager.error()
+        }
+        dismiss()
     }
 }
 
