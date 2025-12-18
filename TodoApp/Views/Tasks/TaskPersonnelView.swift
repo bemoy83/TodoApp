@@ -233,17 +233,20 @@ struct TaskPersonnelView: View {
         return true
     }
 
+    /// Direct child subtasks of this task
+    private var directSubtasks: [Task] {
+        allTasks.filter { $0.parentTask?.id == task.id }
+    }
+
     private var hasSubtasks: Bool {
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        return !subtasks.isEmpty
+        !directSubtasks.isEmpty
     }
 
     // MARK: - Expected Personnel from Subtasks
 
     /// Collect all expectedPersonnelCount values from subtasks recursively
     private func collectSubtaskExpectedPersonnel() -> [Int] {
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        return collectExpectedCounts(from: subtasks)
+        collectExpectedCounts(from: directSubtasks)
     }
 
     /// Recursively collect expected personnel counts from subtasks
