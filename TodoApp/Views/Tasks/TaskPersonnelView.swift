@@ -173,18 +173,6 @@ struct TaskPersonnelView: View {
 
                     ActualUsageSection(stats: stats, hasSubtasks: hasSubtasks)
                 }
-
-                // Person-Hours Section (only show if has time entries)
-                if hasTimeEntries {
-                    Divider()
-                        .padding(.horizontal)
-
-                    PersonHoursSection(
-                        totalPersonHours: stats.totalPersonHours,
-                        directPersonHours: stats.directPersonHours,
-                        hasSubtasks: hasSubtasks
-                    )
-                }
             }
         }
         .sheet(isPresented: $showingPersonnelPicker) {
@@ -284,29 +272,6 @@ struct TaskPersonnelView: View {
     private var hasSubtasks: Bool {
         let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
         return !subtasks.isEmpty
-    }
-
-    private var hasTimeEntries: Bool {
-        if let entries = task.timeEntries, !entries.isEmpty {
-            return true
-        }
-
-        // Check subtasks
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        return checkSubtasksForEntries(in: subtasks)
-    }
-
-    private func checkSubtasksForEntries(in subtasks: [Task]) -> Bool {
-        for subtask in subtasks {
-            if let entries = subtask.timeEntries, !entries.isEmpty {
-                return true
-            }
-            let nestedSubtasks = allTasks.filter { $0.parentTask?.id == subtask.id }
-            if checkSubtasksForEntries(in: nestedSubtasks) {
-                return true
-            }
-        }
-        return false
     }
 
     // MARK: - Expected Personnel from Subtasks
@@ -494,65 +459,6 @@ private struct ActualUsageSection: View {
                 }
                 .padding(.horizontal)
             }
-        }
-    }
-}
-
-// MARK: - Person-Hours Section
-
-private struct PersonHoursSection: View {
-    let totalPersonHours: Double
-    let directPersonHours: Double
-    let hasSubtasks: Bool
-
-    private var formattedTotalPersonHours: String {
-        String(format: "%.1f hrs", totalPersonHours)
-    }
-
-    private var formattedDirectPersonHours: String {
-        String(format: "%.1f", directPersonHours)
-    }
-
-    private var formattedSubtaskPersonHours: String {
-        let subtask = totalPersonHours - directPersonHours
-        return String(format: "%.1f", subtask)
-    }
-
-    private var hasSubtaskPersonHours: Bool {
-        totalPersonHours > directPersonHours
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Text("Total Person-Hours")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.horizontal)
-
-            HStack {
-                Image(systemName: "clock.badge.checkmark.fill")
-                    .font(.body)
-                    .foregroundStyle(DesignSystem.Colors.info)
-                    .frame(width: 28)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(formattedTotalPersonHours)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(DesignSystem.Colors.info)
-
-                    // Breakdown if has subtask person-hours
-                    if hasSubtaskPersonHours {
-                        Text("\(formattedDirectPersonHours) direct, \(formattedSubtaskPersonHours) from subtasks")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal)
         }
     }
 }
