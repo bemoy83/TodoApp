@@ -24,143 +24,141 @@ struct TaskPersonnelView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                // Three states: direct assignment, calculated from subtasks, or empty
-                if let direct = task.expectedPersonnelCount {
-                    // State 1: Direct assignment (tappable to edit)
-                    Button {
-                        selectedCount = direct
-                        showingPersonnelPicker = true
-                        HapticManager.selection()
-                    } label: {
-                        HStack {
-                            Image(systemName: "person.2.fill")
-                                .font(.body)
-                                .foregroundStyle(DesignSystem.Colors.info)
-                                .frame(width: 28)
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // Three states: direct assignment, calculated from subtasks, or empty
+            if let direct = task.expectedPersonnelCount {
+                // State 1: Direct assignment (tappable to edit)
+                Button {
+                    selectedCount = direct
+                    showingPersonnelPicker = true
+                    HapticManager.selection()
+                } label: {
+                    HStack {
+                        Image(systemName: "person.2.fill")
+                            .font(.body)
+                            .foregroundStyle(DesignSystem.Colors.info)
+                            .frame(width: 28)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(direct) \(direct == 1 ? "person" : "people")")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(direct) \(direct == 1 ? "person" : "people")")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+
+                            Text("Expected crew size")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.horizontal)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                // Show mismatch warning if subtask personnel differs
+                if hasMismatch, let subtaskRange = subtaskPersonnelRange {
+                    HStack(spacing: DesignSystem.Spacing.xs) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            if subtaskRange.min == subtaskRange.max {
+                                Text("Subtasks: \(subtaskRange.min) \(subtaskRange.min == 1 ? "person" : "people")")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            } else {
+                                Text("Subtasks range: \(subtaskRange.min)-\(subtaskRange.max) people")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 4)
+                }
+            } else if let range = effectivePersonnelRange {
+                // State 2: Calculated from subtasks (tappable to override)
+                Button {
+                    selectedCount = range.min
+                    showingPersonnelPicker = true
+                    HapticManager.selection()
+                } label: {
+                    HStack {
+                        Image(systemName: "person.2.fill")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            if range.min == range.max {
+                                Text("\(range.min) \(range.min == 1 ? "person" : "people")")
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(.primary)
-
-                                Text("Expected crew size")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("\(range.min)-\(range.max) people")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.primary)
                             }
 
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
+                            Text("From subtasks")
                                 .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(.horizontal)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-
-                    // Show mismatch warning if subtask personnel differs
-                    if hasMismatch, let subtaskRange = subtaskPersonnelRange {
-                        HStack(spacing: DesignSystem.Spacing.xs) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.orange)
-                                .frame(width: 28)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                if subtaskRange.min == subtaskRange.max {
-                                    Text("Subtasks: \(subtaskRange.min) \(subtaskRange.min == 1 ? "person" : "people")")
-                                        .font(.caption)
-                                        .foregroundStyle(.orange)
-                                } else {
-                                    Text("Subtasks range: \(subtaskRange.min)-\(subtaskRange.max) people")
-                                        .font(.caption)
-                                        .foregroundStyle(.orange)
-                                }
-                            }
-
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 4)
-                    }
-                } else if let range = effectivePersonnelRange {
-                    // State 2: Calculated from subtasks (tappable to override)
-                    Button {
-                        selectedCount = range.min
-                        showingPersonnelPicker = true
-                        HapticManager.selection()
-                    } label: {
-                        HStack {
-                            Image(systemName: "person.2.fill")
-                                .font(.body)
                                 .foregroundStyle(.secondary)
-                                .frame(width: 28)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                if range.min == range.max {
-                                    Text("\(range.min) \(range.min == 1 ? "person" : "people")")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
-                                } else {
-                                    Text("\(range.min)-\(range.max) people")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
-                                }
-
-                                Text("From subtasks")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .italic()
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                                .italic()
                         }
-                        .padding(.horizontal)
-                        .contentShape(Rectangle())
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
-                    .buttonStyle(.plain)
-                } else {
-                    // State 3: Empty state - show add button
-                    Button {
-                        selectedCount = 1
-                        showingPersonnelPicker = true
-                        HapticManager.selection()
-                    } label: {
-                        HStack(spacing: DesignSystem.Spacing.sm) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.body)
-                                .foregroundStyle(.blue)
-                                .frame(width: 28)
+                    .padding(.horizontal)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } else {
+                // State 3: Empty state - show add button
+                Button {
+                    selectedCount = 1
+                    showingPersonnelPicker = true
+                    HapticManager.selection()
+                } label: {
+                    HStack(spacing: DesignSystem.Spacing.sm) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(.blue)
+                            .frame(width: 28)
 
-                            Text("Add Personnel")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.blue)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                        .contentShape(Rectangle())
+                        Text("Add Personnel")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.blue)
                     }
-                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+            }
 
-                // Actual Usage Section (only show if has time entries)
-                if let stats = computeActualPersonnelStats() {
-                    Divider()
-                        .padding(.horizontal)
+            // Actual Usage Section (only show if has time entries)
+            if let stats = computeActualPersonnelStats() {
+                Divider()
+                    .padding(.horizontal)
 
-                    ActualUsageSection(stats: stats, hasSubtasks: hasSubtasks)
-                }
+                ActualUsageSection(stats: stats, hasSubtasks: hasSubtasks)
             }
         }
         .sheet(isPresented: $showingPersonnelPicker) {
