@@ -52,15 +52,7 @@ struct ActiveTimerRow: View {
     private var elapsedTime: String {
         guard let entry = activeEntry else { return "0:00" }
         let elapsed = Int(currentTime.timeIntervalSince(entry.startTime))
-        let hours = elapsed / 3600
-        let minutes = (elapsed % 3600) / 60
-        let seconds = elapsed % 60
-
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            return String(format: "%d:%02d", minutes, seconds)
-        }
+        return elapsed.formattedStopwatch()
     }
 
     var body: some View {

@@ -45,6 +45,24 @@ enum TimeEstimateStatus: String, Codable, Sendable {
     case warning = "warning"        // 75-100% time used
     case over = "over"             // > 100% time used
 
+    // MARK: - Thresholds
+
+    /// Progress threshold for warning status (75%)
+    static let warningThreshold: Double = 0.75
+    /// Progress threshold for over status (100%)
+    static let overThreshold: Double = 1.0
+
+    /// Derive status from progress value (0.0 to 1.0+)
+    static func from(progress: Double) -> TimeEstimateStatus {
+        if progress >= overThreshold {
+            return .over
+        } else if progress >= warningThreshold {
+            return .warning
+        } else {
+            return .onTrack
+        }
+    }
+
     var color: Color {
         switch self {
         case .onTrack: return DesignSystem.Colors.success
@@ -570,14 +588,7 @@ final class Task: TitledItem {
     @Transient
     var estimateStatus: TimeEstimateStatus? {
         guard let progress = timeProgress else { return nil }
-
-        if progress >= 1.0 {
-            return .over
-        } else if progress >= 0.75 {
-            return .warning
-        } else {
-            return .onTrack
-        }
+        return TimeEstimateStatus.from(progress: progress)
     }
 
     /// Estimate accuracy: ratio of estimated to actual time (1.0 = perfect, 0.8 = took 25% longer)

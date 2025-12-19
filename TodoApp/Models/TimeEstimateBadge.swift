@@ -38,8 +38,8 @@ struct TimeEstimateBadge: View {
                 .font(.caption)
                 .monospacedDigit()
 
-            if shouldShowStatusIcon, let status = estimateStatus {
-                Image(systemName: status.icon)
+            if shouldShowStatusIcon {
+                Image(systemName: estimateStatus.icon)
                     .font(.caption2)
             }
 
@@ -107,26 +107,20 @@ struct TimeEstimateBadge: View {
         return Double(actual) / Double(estimated)
     }
     
-    private var estimateStatus: TimeEstimateStatus? {
-        if progress >= 1.0 {
-            return .over
-        } else if progress >= 0.75 {
-            return .warning
-        } else {
-            return .onTrack
-        }
+    private var estimateStatus: TimeEstimateStatus {
+        TimeEstimateStatus.from(progress: progress)
     }
     
     private var badgeColor: Color {
         if shouldShowCountdownMode {
-            return remaining >= 0 ? (estimateStatus?.color ?? .secondary) : .red
+            return remaining >= 0 ? estimateStatus.color : .red
         }
 
         if hasActiveTimer {
             return DesignSystem.Colors.timerActive
         }
 
-        return estimateStatus?.color ?? .secondary
+        return estimateStatus.color
     }
 }
 

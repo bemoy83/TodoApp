@@ -96,14 +96,7 @@ struct TaskRowCalculations {
     /// Live estimate status (includes running timers)
     var liveEstimateStatus: TimeEstimateStatus? {
         guard let progress = liveTimeProgress else { return nil }
-        
-        if progress >= 1.0 {
-            return .over
-        } else if progress >= 0.75 {
-            return .warning
-        } else {
-            return .onTrack
-        }
+        return TimeEstimateStatus.from(progress: progress)
     }
     
     /// Live remaining time (includes running timers) - in minutes

@@ -34,7 +34,7 @@ struct TaskTimeTrackingView: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
             // Estimate Section (conditional - only if has estimate)
             if let estimate = task.effectiveEstimate {
-                EstimateSectionRefactored(
+                EstimateSection(
                     actualSeconds: displayedTotalTimeSeconds,
                     estimateSeconds: estimate,
                     progress: liveTimeProgress,
@@ -72,8 +72,8 @@ struct TaskTimeTrackingView: View {
                 BlockedWarning()
             }
         }
-        .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
-            // Fast update for smooth countdown when any timer is running
+        .onReceive(Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()) { _ in
+            // Update every second when any timer is running
             if hasAnyTimerRunning {
                 currentTime = Date()
             }
@@ -119,16 +119,8 @@ struct TaskTimeTrackingView: View {
         stats.totalTimeSeconds
     }
 
-    private var displayedTotalTime: Int {
-        displayedTotalTimeSeconds / 60
-    }
-
     private var displayedDirectTimeSeconds: Int {
         stats.directTimeSeconds
-    }
-
-    private var displayedDirectTime: Int {
-        displayedDirectTimeSeconds / 60
     }
 
     private var currentSessionSeconds: Int {
@@ -162,20 +154,7 @@ struct TaskTimeTrackingView: View {
     
     private var liveEstimateStatus: TimeEstimateStatus? {
         guard let progress = liveTimeProgress else { return nil }
-        
-        if progress >= 1.0 {
-            return .over
-        } else if progress >= 0.75 {
-            return .warning
-        } else {
-            return .onTrack
-        }
-    }
-    
-    private var liveTimeRemaining: Int? {
-        guard let estimate = task.effectiveEstimate else { return nil }
-        let remainingSeconds = estimate - displayedTotalTimeSeconds  // estimate is already in seconds!
-        return remainingSeconds / 60
+        return TimeEstimateStatus.from(progress: progress)
     }
 
     // MARK: - Actions
@@ -203,7 +182,7 @@ struct TaskTimeTrackingView: View {
 
 // MARK: - Estimate Section
 
-private struct EstimateSectionRefactored: View {
+private struct EstimateSection: View {
     let actualSeconds: Int
     let estimateSeconds: Int
     let progress: Double?
@@ -296,20 +275,16 @@ private struct TotalTimeSection: View {
     let hasPersonnelTracking: Bool
 
     private var formattedTotalPersonHours: String {
-        String(format: "%.1f hrs", totalPersonHours)
-    }
-
-    private var formattedDirectPersonHours: String {
-        String(format: "%.1f", directPersonHours)
-    }
-
-    private var formattedSubtaskPersonHours: String {
-        let subtask = totalPersonHours - directPersonHours
-        return String(format: "%.1f", subtask)
+        String(format: "%.1f person-hours", totalPersonHours)
     }
 
     private var hasSubtaskPersonHours: Bool {
         totalPersonHours > directPersonHours
+    }
+
+    private var breakdownText: String {
+        let subtask = totalPersonHours - directPersonHours
+        return String(format: "%.1f direct + %.1f subtasks", directPersonHours, subtask)
     }
 
     var body: some View {
@@ -358,7 +333,7 @@ private struct TotalTimeSection: View {
 
                         // Breakdown if has subtask person-hours
                         if hasSubtaskPersonHours {
-                            Text("\(formattedDirectPersonHours) direct, \(formattedSubtaskPersonHours) from subtasks")
+                            Text(breakdownText)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -383,28 +358,13 @@ private struct ActiveSessionSection: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
-            
-            VStack(spacing: DesignSystem.Spacing.sm) {
-                // Stopwatch display
-                Text(formatStopwatch(sessionSeconds))
-                    .font(.system(size: 34, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
+
+            Text(sessionSeconds.formattedStopwatch())
+                .font(.system(size: 34, weight: .medium, design: .monospaced))
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(.horizontal)
-    }
-    
-    private func formatStopwatch(_ totalSeconds: Int) -> String {
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
-        let seconds = totalSeconds % 60
-
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            return String(format: "%d:%02d", minutes, seconds)
-        }
     }
 }
 
