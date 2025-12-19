@@ -91,27 +91,39 @@ struct TaskDetailView: View {
         }
     }
 
+    // MARK: - Section IDs for scrolling
+
+    private enum SectionID: Hashable {
+        case dependencies
+    }
+
     var body: some View {
         let ctx = TaskActionRouter.Context(modelContext: modelContext, hapticsEnabled: true)
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                // Parent breadcrumb (outside Identity card)
-                if let parent = parentTask {
-                    TaskParentBreadcrumb(parentTask: parent)
-                }
-
-                // Identity Card (always visible)
-                TaskIdentityCard(
-                    task: task,
-                    alert: $currentAlert,
-                    onBlockingDepsTapped: {
-                        // Jump to dependencies section
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isDependenciesExpanded = true
-                        }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                    // Parent breadcrumb (outside Identity card)
+                    if let parent = parentTask {
+                        TaskParentBreadcrumb(parentTask: parent)
                     }
-                )
+
+                    // Identity Card (always visible)
+                    TaskIdentityCard(
+                        task: task,
+                        alert: $currentAlert,
+                        onBlockingDepsTapped: {
+                            // Expand and scroll to dependencies section
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isDependenciesExpanded = true
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    proxy.scrollTo(SectionID.dependencies, anchor: .top)
+                                }
+                            }
+                        }
+                    )
 
                 // Schedule section
                 DetailSectionDisclosure(
@@ -195,6 +207,7 @@ struct TaskDetailView: View {
                     summary: { dependenciesSummary },
                     content: { TaskDependenciesView(task: task, allTasks: allTasks) }
                 )
+                .id(SectionID.dependencies)
 
                 // Details section (consolidated Tags + Notes + Info)
                 DetailSectionDisclosure(
@@ -244,6 +257,7 @@ struct TaskDetailView: View {
             )
         }
         .taskActionAlert(alert: $currentAlert)
+        } // ScrollViewReader
     }
 
     // MARK: - Summary Badge Views
