@@ -20,26 +20,9 @@ struct TimeEntriesView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-            // Add entry button (moved from header)
-            HStack {
-                Spacer()
-
-                Button {
-                    showingManualEntrySheet = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add Entry")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                    }
-                    .foregroundStyle(DesignSystem.Colors.taskInProgress)
-                }
-            }
-            .padding(.horizontal)
-
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             if hasEntries {
+                // Entry list
                 List {
                     ForEach(sortedEntries) { entry in
                         TimeEntryRow(entry: entry, task: task, onEdit: {
@@ -70,10 +53,39 @@ struct TimeEntriesView: View {
                 .scrollContentBackground(.hidden)
                 .scrollDisabled(true)
                 .frame(minHeight: CGFloat(sortedEntries.count * 70))
+
+                Divider()
+                    .padding(.horizontal)
             } else {
-                EmptyEntriesView()
+                // Empty state - simple text matching other sections
+                Text("No time entries")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
             }
+
+            // Add button - always at bottom, matching Subtasks/Dependencies pattern
+            Button {
+                showingManualEntrySheet = true
+                HapticManager.selection()
+            } label: {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(.blue)
+
+                    Text("Add Entry")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.blue)
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, DesignSystem.Spacing.xs)
+            }
+            .buttonStyle(.plain)
         }
         .sheet(isPresented: $showingManualEntrySheet) {
             ManualTimeEntrySheet(task: task)
@@ -198,25 +210,3 @@ private struct TimeEntryRow: View {
     }
 }
 
-// MARK: - Empty State
-
-private struct EmptyEntriesView: View {
-    var body: some View {
-        VStack(spacing: DesignSystem.Spacing.sm) {
-            Image(systemName: "clock.badge.questionmark")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-
-            Text("No time entries yet")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Text("Start the timer to track time on this task")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignSystem.Spacing.lg)
-    }
-}
