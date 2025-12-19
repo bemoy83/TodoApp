@@ -54,6 +54,7 @@ struct TimeEntriesView: View {
                             trailing: DesignSystem.Spacing.md
                         ))
                         .listRowSeparator(.hidden)
+                        .listRowBackground(DesignSystem.Colors.secondaryGroupedBackground)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             if entry.endTime != nil { // Only allow delete for completed entries
                                 Button(role: .destructive) {
