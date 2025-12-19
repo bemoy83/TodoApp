@@ -25,11 +25,7 @@ struct TimeEntriesView: View {
                 // Entry list
                 List {
                     ForEach(sortedEntries) { entry in
-                        TimeEntryRow(entry: entry, task: task, onEdit: {
-                            editingEntry = entry
-                        }, onDelete: {
-                            deleteEntry(entry)
-                        })
+                        TimeEntryRow(entry: entry, task: task)
                         .listRowInsets(EdgeInsets(
                             top: DesignSystem.Spacing.xs,
                             leading: DesignSystem.Spacing.md,
@@ -38,13 +34,20 @@ struct TimeEntriesView: View {
                         ))
                         .listRowSeparator(.hidden)
                         .listRowBackground(DesignSystem.Colors.secondaryGroupedBackground)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            if entry.endTime != nil { // Only allow delete for completed entries
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if entry.endTime != nil { // Only allow actions for completed entries
                                 Button(role: .destructive) {
                                     deleteEntry(entry)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
+
+                                Button {
+                                    editingEntry = entry
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.blue)
                             }
                         }
                     }
@@ -111,10 +114,6 @@ struct TimeEntriesView: View {
 private struct TimeEntryRow: View {
     let entry: TimeEntry
     let task: Task
-    let onEdit: () -> Void
-    let onDelete: () -> Void
-
-    @State private var showingDeleteAlert = false
 
     private var isActiveTimer: Bool {
         TimeEntryManager.isActiveTimer(entry)
@@ -176,37 +175,9 @@ private struct TimeEntryRow: View {
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(isActiveTimer ? DesignSystem.Colors.timerActive : .primary)
-
-            // Action menu
-            Menu {
-                Button {
-                    onEdit()
-                } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-                .disabled(isActiveTimer)
-
-                Button(role: .destructive) {
-                    showingDeleteAlert = true
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-                .disabled(isActiveTimer)
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .foregroundStyle(.secondary)
-            }
         }
         .padding(.vertical, DesignSystem.Spacing.xs)
         .contentShape(Rectangle())
-        .alert("Delete Time Entry?", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                onDelete()
-            }
-        } message: {
-            Text("This time entry (\(formattedDuration)) will be permanently deleted.")
-        }
     }
 }
 
