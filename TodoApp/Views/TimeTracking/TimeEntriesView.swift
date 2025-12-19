@@ -40,16 +40,21 @@ struct TimeEntriesView: View {
             .padding(.horizontal)
 
             if hasEntries {
-                LazyVStack(spacing: DesignSystem.Spacing.xs) {
+                List {
                     ForEach(sortedEntries) { entry in
                         TimeEntryRow(entry: entry, task: task, onEdit: {
                             editingEntry = entry
                         }, onDelete: {
                             deleteEntry(entry)
                         })
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                        .padding(.vertical, DesignSystem.Spacing.xs)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        .listRowInsets(EdgeInsets(
+                            top: DesignSystem.Spacing.xs,
+                            leading: DesignSystem.Spacing.md,
+                            bottom: DesignSystem.Spacing.xs,
+                            trailing: DesignSystem.Spacing.md
+                        ))
+                        .listRowSeparator(.hidden)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             if entry.endTime != nil { // Only allow delete for completed entries
                                 Button(role: .destructive) {
                                     deleteEntry(entry)
@@ -60,6 +65,8 @@ struct TimeEntriesView: View {
                         }
                     }
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             } else {
                 EmptyEntriesView()
                     .padding(.horizontal)
