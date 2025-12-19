@@ -67,6 +67,8 @@ struct TimeEntriesView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .scrollDisabled(true)
+                .frame(minHeight: CGFloat(sortedEntries.count * 70))
             } else {
                 EmptyEntriesView()
                     .padding(.horizontal)
