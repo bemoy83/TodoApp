@@ -151,19 +151,19 @@ struct TaskDependenciesView: View {
                         }
                     }
 
-                    Divider()
-                        .padding(.horizontal)
-
-                    // Blocked By Section (reverse relationship)
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                        Text("Tasks waiting for this")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
+                    // Blocked By Section (only show if other tasks depend on this one)
+                    if !blockedByTasks.isEmpty {
+                        Divider()
                             .padding(.horizontal)
 
-                        VStack(spacing: DesignSystem.Spacing.xs) {
-                            if !blockedByTasks.isEmpty {
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                            Text("Tasks waiting for this")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                                .padding(.horizontal)
+
+                            VStack(spacing: DesignSystem.Spacing.xs) {
                                 ForEach(blockedByTasks) { blockedTask in
                                     NavigationLink(destination: LazyView(TaskDetailView(task: blockedTask))) {
                                         HStack(spacing: DesignSystem.Spacing.sm) {
@@ -187,12 +187,6 @@ struct TaskDependenciesView: View {
                                     .buttonStyle(.plain)
                                     .padding(.horizontal)
                                 }
-                            } else {
-                                Text("No tasks waiting")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal)
                             }
                         }
                     }
@@ -228,18 +222,9 @@ private struct DependencyRow: View {
 
             // Content navigation
             NavigationLink(destination: LazyView(TaskDetailView(task: dependency))) {
-                HStack(spacing: DesignSystem.Spacing.sm) {
-                    // Title
-                    Text(dependency.title)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
+                Text(dependency.title)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
             }
             .buttonStyle(.plain)
         }
