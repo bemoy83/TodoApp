@@ -278,9 +278,15 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var timeSummary: some View {
-        Text(timeSummaryText)
-            .font(.caption)
-            .foregroundStyle(timeSummaryIsTertiary ? .tertiary : timeSummaryColor)
+        if timeSummaryIsTertiary {
+            Text(timeSummaryText)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        } else {
+            Text(timeSummaryText)
+                .font(.caption)
+                .foregroundStyle(timeSummaryColor)
+        }
     }
 
     private var timeSummaryText: String {
