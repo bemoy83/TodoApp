@@ -202,3 +202,32 @@ private struct SubtaskRow: View {
         )
     }
 }
+
+// MARK: - Summary Badge Helper
+
+extension TaskSubtasksView {
+    /// Returns summary text for collapsed state
+    static func summaryText(for task: Task) -> String {
+        let subtaskCount = task.subtasks?.count ?? 0
+        if subtaskCount > 0 {
+            let completedCount = task.subtasks?.filter { $0.isCompleted }.count ?? 0
+            return "\(completedCount)/\(subtaskCount) complete"
+        }
+        return "Not set"
+    }
+
+    /// Returns summary color for collapsed state
+    static func summaryColor(for task: Task) -> Color {
+        let subtaskCount = task.subtasks?.count ?? 0
+        if subtaskCount > 0 {
+            let completedCount = task.subtasks?.filter { $0.isCompleted }.count ?? 0
+            return completedCount == subtaskCount ? .green : .secondary
+        }
+        return .secondary
+    }
+
+    /// Returns true if summary should use tertiary style (not set state)
+    static func summaryIsTertiary(for task: Task) -> Bool {
+        (task.subtasks?.count ?? 0) == 0
+    }
+}

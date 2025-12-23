@@ -278,137 +278,66 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var timeSummary: some View {
-        if timeSummaryIsTertiary {
-            Text(timeSummaryText)
+        if TaskTimeTrackingView.summaryIsTertiary(for: task) {
+            Text(TaskTimeTrackingView.summaryText(for: task))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else {
-            Text(timeSummaryText)
+            Text(TaskTimeTrackingView.summaryText(for: task))
                 .font(.caption)
-                .foregroundStyle(timeSummaryColor)
+                .foregroundStyle(TaskTimeTrackingView.summaryColor(for: task))
         }
-    }
-
-    private var timeSummaryText: String {
-        // Active timer takes priority
-        if task.hasActiveTimer {
-            return "Recording..."
-        }
-
-        let totalTime = task.totalTimeSpent
-
-        // No time logged
-        guard totalTime > 0 else {
-            return "Not set"
-        }
-
-        // Has estimate - show progress format
-        if let estimate = task.effectiveEstimate, estimate > 0 {
-            let progress = Double(totalTime) / Double(estimate)
-            return "\(totalTime.formattedTime()) / \(estimate.formattedTime()) (\(Int(progress * 100))%)"
-        }
-
-        // No estimate - just show time
-        return "\(totalTime.formattedTime()) logged"
-    }
-
-    private var timeSummaryColor: Color {
-        if task.hasActiveTimer {
-            return .red
-        }
-        if let estimate = task.effectiveEstimate, estimate > 0 {
-            let progress = Double(task.totalTimeSpent) / Double(estimate)
-            return TimeEstimateStatus.from(progress: progress).color
-        }
-        return .secondary
-    }
-
-    private var timeSummaryIsTertiary: Bool {
-        !task.hasActiveTimer && task.totalTimeSpent == 0
     }
 
     @ViewBuilder
     private var personnelSummary: some View {
-        if let count = task.expectedPersonnelCount {
-            let personWord = count == 1 ? "person" : "people"
-            Text("\(count) \(personWord)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } else {
-            Text("Not set")
+        if TaskPersonnelView.summaryIsTertiary(for: task) {
+            Text(TaskPersonnelView.summaryText(for: task))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+        } else {
+            Text(TaskPersonnelView.summaryText(for: task))
+                .font(.caption)
+                .foregroundStyle(TaskPersonnelView.summaryColor(for: task))
         }
     }
 
     @ViewBuilder
     private var quantitySummary: some View {
-        if task.hasQuantityProgress {
-            let completed = task.quantity ?? 0
-            let expected = task.expectedQuantity!
-            let progress = task.quantityProgress!
-            let progressPercent = Int(progress * 100)
-
-            Text("\(formatQuantity(completed))/\(formatQuantity(expected)) \(task.unitDisplayName) (\(progressPercent)%)")
-                .font(.caption)
-                .foregroundStyle(progress >= 1.0 ? .green : .secondary)
-        } else if task.unit != .none, let quantity = task.quantity {
-            Text("\(formatQuantity(quantity)) \(task.unitDisplayName)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } else if task.expectedQuantity != nil {
-            Text("0/\(formatQuantity(task.expectedQuantity!)) \(task.unitDisplayName) (0%)")
+        if TaskQuantityView.summaryIsTertiary(for: task) {
+            Text(TaskQuantityView.summaryText(for: task))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else {
-            Text("Not set")
+            Text(TaskQuantityView.summaryText(for: task))
                 .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    private func formatQuantity(_ value: Double) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(format: "%.0f", value)
-        } else {
-            return String(format: "%.1f", value)
+                .foregroundStyle(TaskQuantityView.summaryColor(for: task))
         }
     }
 
     @ViewBuilder
     private var subtasksSummary: some View {
-        let subtaskCount = task.subtasks?.count ?? 0
-        if subtaskCount > 0 {
-            let completedCount = task.subtasks?.filter { $0.isCompleted }.count ?? 0
-            Text("\(completedCount)/\(subtaskCount) complete")
-                .font(.caption)
-                .foregroundStyle(completedCount == subtaskCount ? .green : .secondary)
-        } else {
-            Text("Not set")
+        if TaskSubtasksView.summaryIsTertiary(for: task) {
+            Text(TaskSubtasksView.summaryText(for: task))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+        } else {
+            Text(TaskSubtasksView.summaryText(for: task))
+                .font(.caption)
+                .foregroundStyle(TaskSubtasksView.summaryColor(for: task))
         }
     }
 
     @ViewBuilder
     private var dependenciesSummary: some View {
-        let blockingCount = task.blockingDependencies.count
-        if blockingCount > 0 {
-            Text("\(blockingCount) blocking")
+        if TaskDependenciesView.summaryIsTertiary(for: task) {
+            Text(TaskDependenciesView.summaryText(for: task))
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(.tertiary)
         } else {
-            let totalDeps = (task.dependsOn?.count ?? 0) + (task.blockedBy?.count ?? 0)
-            if totalDeps > 0 {
-                let depWord = totalDeps == 1 ? "dependency" : "dependencies"
-                Text("\(totalDeps) \(depWord)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("Not set")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
+            Text(TaskDependenciesView.summaryText(for: task))
+                .font(.caption)
+                .foregroundStyle(TaskDependenciesView.summaryColor(for: task))
         }
     }
 

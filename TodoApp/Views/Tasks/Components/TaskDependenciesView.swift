@@ -352,3 +352,39 @@ private struct SubtaskDependencyRow: View {
     }
     .modelContainer(for: [Task.self, Project.self, TimeEntry.self])
 }
+
+// MARK: - Summary Badge Helper
+
+extension TaskDependenciesView {
+    /// Returns summary text for collapsed state
+    static func summaryText(for task: Task) -> String {
+        let blockingCount = task.blockingDependencies.count
+        if blockingCount > 0 {
+            return "\(blockingCount) blocking"
+        }
+
+        let totalDeps = (task.dependsOn?.count ?? 0) + (task.blockedBy?.count ?? 0)
+        if totalDeps > 0 {
+            let depWord = totalDeps == 1 ? "dependency" : "dependencies"
+            return "\(totalDeps) \(depWord)"
+        }
+
+        return "Not set"
+    }
+
+    /// Returns summary color for collapsed state
+    static func summaryColor(for task: Task) -> Color {
+        let blockingCount = task.blockingDependencies.count
+        if blockingCount > 0 {
+            return .orange
+        }
+        return .secondary
+    }
+
+    /// Returns true if summary should use tertiary style (not set state)
+    static func summaryIsTertiary(for task: Task) -> Bool {
+        let blockingCount = task.blockingDependencies.count
+        let totalDeps = (task.dependsOn?.count ?? 0) + (task.blockedBy?.count ?? 0)
+        return blockingCount == 0 && totalDeps == 0
+    }
+}

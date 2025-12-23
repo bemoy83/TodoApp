@@ -527,3 +527,26 @@ private struct ActualUsageSection: View {
         .modelContainer(container)
         .padding()
 }
+
+// MARK: - Summary Badge Helper
+
+extension TaskPersonnelView {
+    /// Returns summary text for collapsed state
+    static func summaryText(for task: Task) -> String {
+        if let count = task.expectedPersonnelCount {
+            let personWord = count == 1 ? "person" : "people"
+            return "\(count) \(personWord)"
+        }
+        return "Not set"
+    }
+
+    /// Returns summary color for collapsed state
+    static func summaryColor(for task: Task) -> Color {
+        .secondary
+    }
+
+    /// Returns true if summary should use tertiary style (not set state)
+    static func summaryIsTertiary(for task: Task) -> Bool {
+        task.expectedPersonnelCount == nil
+    }
+}

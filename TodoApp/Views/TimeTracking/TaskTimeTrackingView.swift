@@ -402,11 +402,56 @@ private struct BlockedWarning: View {
                 .font(.body)
                 .foregroundStyle(.orange)
                 .frame(width: 28)
-            
+
             Text("Resolve dependencies before tracking time")
                 .font(.caption)
                 .foregroundStyle(.orange)
         }
         .padding(.horizontal)
+    }
+}
+
+// MARK: - Summary Badge Helper
+
+extension TaskTimeTrackingView {
+    /// Returns summary text for collapsed state
+    static func summaryText(for task: Task) -> String {
+        // Active timer takes priority
+        if task.hasActiveTimer {
+            return "Recording..."
+        }
+
+        let totalTime = task.totalTimeSpent
+
+        // No time logged
+        guard totalTime > 0 else {
+            return "Not set"
+        }
+
+        // Has estimate - show progress format
+        if let estimate = task.effectiveEstimate, estimate > 0 {
+            let progress = Double(totalTime) / Double(estimate)
+            return "\(totalTime.formattedTime()) / \(estimate.formattedTime()) (\(Int(progress * 100))%)"
+        }
+
+        // No estimate - just show time
+        return "\(totalTime.formattedTime()) logged"
+    }
+
+    /// Returns summary color for collapsed state
+    static func summaryColor(for task: Task) -> Color {
+        if task.hasActiveTimer {
+            return .red
+        }
+        if let estimate = task.effectiveEstimate, estimate > 0 {
+            let progress = Double(task.totalTimeSpent) / Double(estimate)
+            return TimeEstimateStatus.from(progress: progress).color
+        }
+        return .secondary
+    }
+
+    /// Returns true if summary should use tertiary style (not set state)
+    static func summaryIsTertiary(for task: Task) -> Bool {
+        !task.hasActiveTimer && task.totalTimeSpent == 0
     }
 }
