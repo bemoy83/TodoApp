@@ -149,7 +149,7 @@ extension TaskOrganizationSection {
                 return "\(project.title) • \(priorityText)"
             }
         } else {
-            return priorityText.isEmpty ? "No project" : priorityText
+            return priorityText.isEmpty ? "Not set" : priorityText
         }
     }
 

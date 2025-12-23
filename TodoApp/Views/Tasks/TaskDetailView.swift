@@ -280,33 +280,45 @@ struct TaskDetailView: View {
     private var timeSummary: some View {
         Text(timeSummaryText)
             .font(.caption)
-            .foregroundStyle(task.hasActiveTimer ? .red : .secondary)
+            .foregroundStyle(timeSummaryIsTertiary ? .tertiary : timeSummaryColor)
     }
 
     private var timeSummaryText: String {
-        var parts: [String] = []
-
-        // Time spent
-        let totalTime = task.totalTimeSpent
-        if totalTime > 0 {
-            parts.append(totalTime.formattedTime())
-        } else {
-            parts.append("No time")
+        // Active timer takes priority
+        if task.hasActiveTimer {
+            return "Recording..."
         }
 
-        // Progress percentage (if has estimate)
+        let totalTime = task.totalTimeSpent
+
+        // No time logged
+        guard totalTime > 0 else {
+            return "Not set"
+        }
+
+        // Has estimate - show progress format
+        if let estimate = task.effectiveEstimate, estimate > 0 {
+            let progress = Double(totalTime) / Double(estimate)
+            return "\(totalTime.formattedTime()) / \(estimate.formattedTime()) (\(Int(progress * 100))%)"
+        }
+
+        // No estimate - just show time
+        return "\(totalTime.formattedTime()) logged"
+    }
+
+    private var timeSummaryColor: Color {
+        if task.hasActiveTimer {
+            return .red
+        }
         if let estimate = task.effectiveEstimate, estimate > 0 {
             let progress = Double(task.totalTimeSpent) / Double(estimate)
-            parts.append("\(Int(progress * 100))%")
+            return TimeEstimateStatus.from(progress: progress).color
         }
+        return .secondary
+    }
 
-        // Entry count
-        let entryCount = task.timeEntries?.count ?? 0
-        if entryCount > 0 {
-            parts.append("\(entryCount) \(entryCount == 1 ? "entry" : "entries")")
-        }
-
-        return parts.joined(separator: " • ")
+    private var timeSummaryIsTertiary: Bool {
+        !task.hasActiveTimer && task.totalTimeSpent == 0
     }
 
     @ViewBuilder
@@ -362,11 +374,11 @@ struct TaskDetailView: View {
         let subtaskCount = task.subtasks?.count ?? 0
         if subtaskCount > 0 {
             let completedCount = task.subtasks?.filter { $0.isCompleted }.count ?? 0
-            Text("\(completedCount)/\(subtaskCount) completed")
+            Text("\(completedCount)/\(subtaskCount) complete")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(completedCount == subtaskCount ? .green : .secondary)
         } else {
-            Text("No subtasks")
+            Text("Not set")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
@@ -387,7 +399,7 @@ struct TaskDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                Text("None")
+                Text("Not set")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
