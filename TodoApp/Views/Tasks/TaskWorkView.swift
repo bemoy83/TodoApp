@@ -18,20 +18,16 @@ struct TaskWorkView: View {
             // MARK: - Output Section
             outputSection
 
-            // MARK: - Productivity Section (conditional)
-            if task.hasLiveProductivityInsights && !task.isCompleted {
+            // MARK: - Productivity Section (always show when quantity tracking enabled)
+            if task.shouldShowProductivity {
                 Divider()
                     .padding(.horizontal)
 
-                productivitySection
-            }
-
-            // MARK: - Completed Task Productivity (historical)
-            if let productivity = task.unitsPerHour, task.isCompleted {
-                Divider()
-                    .padding(.horizontal)
-
-                completedProductivitySection(productivity: productivity)
+                if task.isCompleted, let productivity = task.unitsPerHour {
+                    completedProductivitySection(productivity: productivity)
+                } else {
+                    productivitySection
+                }
             }
         }
         .sheet(isPresented: $showingQuantityPicker) {
@@ -184,71 +180,123 @@ struct TaskWorkView: View {
                 .textCase(.uppercase)
                 .padding(.horizontal)
 
-            // Current rate
+            // Expected rate (from template or custom)
+            if let expectedRate = task.expectedProductivityRate {
+                productivityRow(
+                    icon: "chart.line.uptrend.xyaxis",
+                    label: "Expected rate",
+                    sublabel: task.customProductivityRate != nil ? "Custom" : "From template",
+                    value: expectedRate,
+                    color: .secondary
+                )
+            }
+
+            // Min required rate (calculated from quantity/estimate/personnel)
+            if let minRequired = task.minimumRequiredProductivityRate {
+                productivityRow(
+                    icon: "target",
+                    label: "Min required",
+                    sublabel: "To meet estimate",
+                    value: minRequired,
+                    color: minRequiredColor(minRequired)
+                )
+            }
+
+            // Current rate (if has tracked quantity + time)
             if let currentRate = task.liveProductivityRate {
-                HStack {
-                    Image(systemName: "speedometer")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 28)
+                productivityRow(
+                    icon: "speedometer",
+                    label: "Current rate",
+                    sublabel: "Based on progress",
+                    value: currentRate,
+                    color: currentRateColor(currentRate)
+                )
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Current rate")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(formatRate(currentRate)) \(task.unitDisplayName)/person-hr")
+                // Pace status
+                if let status = task.productivityPaceStatus {
+                    HStack(spacing: DesignSystem.Spacing.sm) {
+                        Image(systemName: status.icon)
+                            .font(.body)
+                            .foregroundStyle(status.color)
+                            .frame(width: 28)
+
+                        Text(status.label)
                             .font(.subheadline)
-                            .fontWeight(.medium)
-                    }
+                            .fontWeight(.semibold)
+                            .foregroundStyle(status.color)
 
-                    Spacer()
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, DesignSystem.Spacing.xs)
+                    .background(status.color.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
                 }
-                .padding(.horizontal)
             }
 
-            // Required rate
-            if let requiredRate = task.requiredProductivityRate {
-                HStack {
-                    Image(systemName: "target")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 28)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Required rate")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(formatRate(requiredRate)) \(task.unitDisplayName)/person-hr")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                    }
-
-                    Spacer()
-                }
-                .padding(.horizontal)
-            }
-
-            // Pace status
-            if let status = task.productivityPaceStatus {
+            // No productivity data available yet
+            if task.expectedProductivityRate == nil && task.minimumRequiredProductivityRate == nil && task.liveProductivityRate == nil {
                 HStack(spacing: DesignSystem.Spacing.sm) {
-                    Image(systemName: status.icon)
+                    Image(systemName: "info.circle")
                         .font(.body)
-                        .foregroundStyle(status.color)
+                        .foregroundStyle(.secondary)
                         .frame(width: 28)
 
-                    Text(status.label)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(status.color)
+                    Text("Set target quantity and time estimate to see required productivity")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
                     Spacer()
                 }
                 .padding(.horizontal)
-                .padding(.vertical, DesignSystem.Spacing.xs)
-                .background(status.color.opacity(0.1))
-                .cornerRadius(8)
-                .padding(.horizontal)
             }
+        }
+    }
+
+    private func productivityRow(icon: String, label: String, sublabel: String, value: Double, color: Color) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundStyle(color)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("\(formatRate(value)) \(task.unitDisplayName)/person-hr")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(color == .secondary ? .primary : color)
+            }
+
+            Spacer()
+
+            Text(sublabel)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal)
+    }
+
+    private func minRequiredColor(_ rate: Double) -> Color {
+        guard let expected = task.expectedProductivityRate else { return .secondary }
+        // If min required is higher than expected, it's a warning
+        if rate > expected * 1.1 {
+            return DesignSystem.Colors.warning
+        }
+        return .secondary
+    }
+
+    private func currentRateColor(_ rate: Double) -> Color {
+        guard let minRequired = task.minimumRequiredProductivityRate else { return .secondary }
+        if rate >= minRequired * 1.1 {
+            return DesignSystem.Colors.success
+        } else if rate >= minRequired * 0.9 {
+            return DesignSystem.Colors.info
+        } else {
+            return DesignSystem.Colors.warning
         }
     }
 
@@ -437,12 +485,25 @@ extension TaskWorkView {
             let progress = task.quantityProgress!
             let progressPercent = Int(progress * 100)
 
-            // Add pace indicator if available
+            // Add pace indicator if available (current vs required)
             if let status = task.productivityPaceStatus, !task.isCompleted {
                 return "\(formatQuantity(completed))/\(formatQuantity(expected)) (\(progressPercent)%) • \(status.label)"
             }
 
+            // Show min required rate if available
+            if let minRequired = task.minimumRequiredProductivityRate, !task.isCompleted {
+                return "\(formatQuantity(completed))/\(formatQuantity(expected)) (\(progressPercent)%) @ \(String(format: "%.1f", minRequired))/hr"
+            }
+
             return "\(formatQuantity(completed))/\(formatQuantity(expected)) \(task.unitDisplayName) (\(progressPercent)%)"
+        } else if task.unit.isQuantifiable {
+            // Has quantity tracking but no progress yet
+            if let minRequired = task.minimumRequiredProductivityRate {
+                return "Need \(String(format: "%.1f", minRequired)) \(task.unitDisplayName)/person-hr"
+            } else if let expected = task.expectedProductivityRate {
+                return "Expected \(String(format: "%.1f", expected)) \(task.unitDisplayName)/person-hr"
+            }
+            return "Quantity tracking enabled"
         } else if task.unit != .none, let quantity = task.quantity {
             return "\(formatQuantity(quantity)) \(task.unitDisplayName)"
         } else if task.expectedQuantity != nil {
@@ -458,18 +519,35 @@ extension TaskWorkView {
             return status.color
         }
 
+        // Check if min required exceeds expected (warning)
+        if let minRequired = task.minimumRequiredProductivityRate,
+           let expected = task.expectedProductivityRate,
+           minRequired > expected * 1.1 {
+            return DesignSystem.Colors.warning
+        }
+
         if task.hasQuantityProgress {
             let progress = task.quantityProgress!
             return progress >= 1.0 ? DesignSystem.Colors.success : .secondary
         }
+
+        // Has productivity tracking enabled
+        if task.unit.isQuantifiable {
+            return .secondary
+        }
+
         return .secondary
     }
 
     /// Returns true if summary should use tertiary style (not set state)
     static func summaryIsTertiary(for task: Task) -> Bool {
-        !task.hasQuantityProgress &&
-        !(task.unit != .none && task.quantity != nil) &&
-        task.expectedQuantity == nil
+        // Not tertiary if has quantity tracking enabled
+        if task.unit.isQuantifiable {
+            return false
+        }
+        return !task.hasQuantityProgress &&
+               !(task.unit != .none && task.quantity != nil) &&
+               task.expectedQuantity == nil
     }
 
     private static func formatQuantity(_ value: Double) -> String {

@@ -744,6 +744,40 @@ final class Task: TitledItem {
         liveProductivityRate != nil || requiredProductivityRate != nil
     }
 
+    /// Expected productivity rate from custom setting or task template
+    /// Priority: customProductivityRate > taskTemplate.defaultProductivityRate
+    @Transient
+    var expectedProductivityRate: Double? {
+        if let custom = customProductivityRate, custom > 0 {
+            return custom
+        }
+        return taskTemplate?.defaultProductivityRate
+    }
+
+    /// Minimum required productivity rate to complete task within estimate
+    /// Calculates: expectedQuantity / (estimatedSeconds/3600 * personnel)
+    @Transient
+    var minimumRequiredProductivityRate: Double? {
+        guard unit.isQuantifiable,
+              let expected = expectedQuantity, expected > 0,
+              let estimate = effectiveEstimate, estimate > 0 else {
+            return nil
+        }
+
+        let personnel = Double(expectedPersonnelCount ?? 1)
+        let totalPersonHours = (Double(estimate) / 3600.0) * personnel
+
+        guard totalPersonHours > 0 else { return nil }
+        return expected / totalPersonHours
+    }
+
+    /// Whether productivity section should be shown
+    /// Shows when task has quantifiable unit (quantity tracking enabled)
+    @Transient
+    var shouldShowProductivity: Bool {
+        unit.isQuantifiable
+    }
+
     // MARK: - Quantity Progress Tracking
 
     /// Progress toward expected quantity (0.0 - 1.0+), nil if no expected quantity set
