@@ -505,7 +505,7 @@ extension TaskWorkView {
 
     container.mainContext.insert(task)
 
-    return ScrollView {
+    ScrollView {
         TaskWorkView(task: task)
     }
     .modelContainer(container)
@@ -518,7 +518,7 @@ extension TaskWorkView {
     let task = Task(title: "Review documents")
     container.mainContext.insert(task)
 
-    return ScrollView {
+    ScrollView {
         TaskWorkView(task: task)
     }
     .modelContainer(container)
@@ -544,7 +544,7 @@ extension TaskWorkView {
 
     container.mainContext.insert(task)
 
-    return ScrollView {
+    ScrollView {
         TaskWorkView(task: task)
     }
     .modelContainer(container)
