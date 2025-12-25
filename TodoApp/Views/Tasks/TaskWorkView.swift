@@ -484,68 +484,40 @@ extension TaskWorkView {
 // MARK: - Previews
 
 #Preview("With Progress and Productivity") {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Task.self, TimeEntry.self, configurations: config)
-
-    let task = Task(title: "Install Carpet", priority: 1, createdDate: Date())
-    task.unit = .squareMeters
-    task.expectedQuantity = 60
-    task.quantity = 45
-    task.timeEstimate = 8 * 3600 // 8 hours
-    task.expectedPersonnelCount = 2
-
-    // Add some time entries
-    let entry = TimeEntry(
-        startTime: Date().addingTimeInterval(-3600 * 3),
-        endTime: Date(),
-        personnelCount: 2
-    )
-    entry.task = task
-    task.timeEntries = [entry]
-
-    container.mainContext.insert(task)
+    @Previewable @State var task: Task = {
+        let task = Task(title: "Install Carpet", priority: 1, createdDate: Date())
+        task.unit = .squareMeters
+        task.expectedQuantity = 60
+        task.quantity = 45
+        task.estimatedSeconds = 8 * 3600 // 8 hours
+        task.expectedPersonnelCount = 2
+        return task
+    }()
 
     ScrollView {
         TaskWorkView(task: task)
     }
-    .modelContainer(container)
 }
 
 #Preview("Empty State") {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Task.self, configurations: config)
-
-    let task = Task(title: "Review documents")
-    container.mainContext.insert(task)
+    @Previewable @State var task = Task(title: "Review documents")
 
     ScrollView {
         TaskWorkView(task: task)
     }
-    .modelContainer(container)
 }
 
 #Preview("Completed Task") {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Task.self, TimeEntry.self, configurations: config)
-
-    let task = Task(title: "Paint walls", priority: 1, createdDate: Date())
-    task.unit = .squareMeters
-    task.expectedQuantity = 100
-    task.quantity = 100
-    task.completedDate = Date()
-
-    let entry = TimeEntry(
-        startTime: Date().addingTimeInterval(-3600 * 5),
-        endTime: Date(),
-        personnelCount: 2
-    )
-    entry.task = task
-    task.timeEntries = [entry]
-
-    container.mainContext.insert(task)
+    @Previewable @State var task: Task = {
+        let task = Task(title: "Paint walls", priority: 1, createdDate: Date())
+        task.unit = .squareMeters
+        task.expectedQuantity = 100
+        task.quantity = 100
+        task.completedDate = Date()
+        return task
+    }()
 
     ScrollView {
         TaskWorkView(task: task)
     }
-    .modelContainer(container)
 }
