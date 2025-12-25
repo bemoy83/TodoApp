@@ -376,7 +376,7 @@ extension TaskDependenciesView {
     static func summaryColor(for task: Task) -> Color {
         let blockingCount = task.blockingDependencies.count
         if blockingCount > 0 {
-            return .orange
+            return DesignSystem.Colors.warning
         }
         return .secondary
     }

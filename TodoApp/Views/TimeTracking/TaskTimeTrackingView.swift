@@ -441,7 +441,7 @@ extension TaskTimeTrackingView {
     /// Returns summary color for collapsed state
     static func summaryColor(for task: Task) -> Color {
         if task.hasActiveTimer {
-            return .red
+            return DesignSystem.Colors.error
         }
         if let estimate = task.effectiveEstimate, estimate > 0 {
             let progress = Double(task.totalTimeSpent) / Double(estimate)

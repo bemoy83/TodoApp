@@ -679,7 +679,7 @@ extension TaskQuantityView {
     static func summaryColor(for task: Task) -> Color {
         if task.hasQuantityProgress {
             let progress = task.quantityProgress!
-            return progress >= 1.0 ? .green : .secondary
+            return progress >= 1.0 ? DesignSystem.Colors.success : .secondary
         }
         return .secondary
     }

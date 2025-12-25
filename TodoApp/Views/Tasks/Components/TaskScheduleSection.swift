@@ -388,9 +388,9 @@ extension TaskScheduleSection {
 
         let daysUntil = Calendar.current.dateComponents([.day], from: Date(), to: end).day ?? 0
         if daysUntil < 0 {
-            return .red
+            return DesignSystem.Colors.error
         } else if daysUntil <= 1 {
-            return .orange
+            return DesignSystem.Colors.warning
         }
         return .secondary
     }

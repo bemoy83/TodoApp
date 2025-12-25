@@ -221,7 +221,7 @@ extension TaskSubtasksView {
         let subtaskCount = task.subtasks?.count ?? 0
         if subtaskCount > 0 {
             let completedCount = task.subtasks?.filter { $0.isCompleted }.count ?? 0
-            return completedCount == subtaskCount ? .green : .secondary
+            return completedCount == subtaskCount ? DesignSystem.Colors.success : .secondary
         }
         return .secondary
     }
