@@ -80,6 +80,38 @@ enum TimeEstimateStatus: String, Codable, Sendable {
     }
 }
 
+// MARK: - Productivity Pace Status Enum
+
+enum ProductivityPaceStatus: Sendable {
+    case ahead(percentage: Int)   // Working faster than needed
+    case onPace                    // Within 10% of required rate
+    case behind(percentage: Int)  // Working slower than needed
+
+    var color: Color {
+        switch self {
+        case .ahead: return DesignSystem.Colors.success
+        case .onPace: return DesignSystem.Colors.info
+        case .behind: return DesignSystem.Colors.warning
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .ahead: return "hare.fill"
+        case .onPace: return "checkmark.circle.fill"
+        case .behind: return "tortoise.fill"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .ahead(let pct): return "\(pct)% ahead"
+        case .onPace: return "On pace"
+        case .behind(let pct): return "\(pct)% behind"
+        }
+    }
+}
+
 // MARK: - Unit Type Enum
 
 enum UnitType: String, Codable, CaseIterable, Sendable {
@@ -647,6 +679,69 @@ final class Task: TitledItem {
     @Transient
     var hasProductivityData: Bool {
         unitsPerHour != nil
+    }
+
+    /// Live productivity rate - works for in-progress tasks (not just completed)
+    /// Returns current rate based on completed quantity and tracked person-hours
+    @Transient
+    var liveProductivityRate: Double? {
+        guard unit.isQuantifiable,
+              let qty = quantity, qty > 0,
+              let personHours = totalPersonHours, personHours > 0 else {
+            return nil
+        }
+        return qty / personHours
+    }
+
+    /// Required productivity rate to complete remaining work within time budget
+    /// Calculates: remainingQuantity / remainingPersonHours
+    @Transient
+    var requiredProductivityRate: Double? {
+        guard unit.isQuantifiable,
+              let expected = expectedQuantity, expected > 0,
+              let estimate = effectiveEstimate, estimate > 0 else {
+            return nil
+        }
+
+        let completed = quantity ?? 0
+        let remaining = expected - completed
+        guard remaining > 0 else { return nil } // Already complete
+
+        // Calculate remaining time budget in person-hours
+        let totalBudgetSeconds = Double(estimate)
+        let usedSeconds = Double(totalTimeSpent)
+        let remainingSeconds = totalBudgetSeconds - usedSeconds
+        guard remainingSeconds > 0 else { return nil } // No time left
+
+        // Convert to hours, factor in personnel
+        let personnel = Double(expectedPersonnelCount ?? 1)
+        let remainingPersonHours = (remainingSeconds / 3600.0) * personnel
+
+        return remaining / remainingPersonHours
+    }
+
+    /// Productivity pace status comparing current rate to required rate
+    @Transient
+    var productivityPaceStatus: ProductivityPaceStatus? {
+        guard let current = liveProductivityRate,
+              let required = requiredProductivityRate else {
+            return nil
+        }
+
+        let ratio = current / required
+        if ratio >= 1.1 {
+            return .ahead(percentage: Int((ratio - 1.0) * 100))
+        } else if ratio >= 0.9 {
+            return .onPace
+        } else {
+            return .behind(percentage: Int((1.0 - ratio) * 100))
+        }
+    }
+
+    /// Whether live productivity insights are available
+    @Transient
+    var hasLiveProductivityInsights: Bool {
+        liveProductivityRate != nil || requiredProductivityRate != nil
     }
 
     // MARK: - Quantity Progress Tracking
