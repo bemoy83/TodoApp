@@ -340,7 +340,7 @@ extension TaskScheduleSection {
         let warningPrefix = task.hasDateConflicts ? "⚠️ " : ""
 
         guard task.startDate != nil || task.endDate != nil else {
-            return "Not scheduled"
+            return "Not set"
         }
 
         let formatter = DateFormatter()
@@ -373,7 +373,7 @@ extension TaskScheduleSection {
             return "\(warningPrefix)Starts \(formatter.string(from: start))"
         }
 
-        return "Not scheduled"
+        return "Not set"
     }
 
     /// Returns summary color for collapsed state
@@ -388,9 +388,9 @@ extension TaskScheduleSection {
 
         let daysUntil = Calendar.current.dateComponents([.day], from: Date(), to: end).day ?? 0
         if daysUntil < 0 {
-            return .red
+            return DesignSystem.Colors.error
         } else if daysUntil <= 1 {
-            return .orange
+            return DesignSystem.Colors.warning
         }
         return .secondary
     }

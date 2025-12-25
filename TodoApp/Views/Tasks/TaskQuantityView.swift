@@ -655,3 +655,47 @@ private struct ProductivitySection: View {
         .modelContainer(container)
         .padding()
 }
+
+// MARK: - Summary Badge Helper
+
+extension TaskQuantityView {
+    /// Returns summary text for collapsed state
+    static func summaryText(for task: Task) -> String {
+        if task.hasQuantityProgress {
+            let completed = task.quantity ?? 0
+            let expected = task.expectedQuantity!
+            let progress = task.quantityProgress!
+            let progressPercent = Int(progress * 100)
+            return "\(formatQuantityValue(completed))/\(formatQuantityValue(expected)) \(task.unitDisplayName) (\(progressPercent)%)"
+        } else if task.unit != .none, let quantity = task.quantity {
+            return "\(formatQuantityValue(quantity)) \(task.unitDisplayName)"
+        } else if task.expectedQuantity != nil {
+            return "0/\(formatQuantityValue(task.expectedQuantity!)) \(task.unitDisplayName) (0%)"
+        }
+        return "Not set"
+    }
+
+    /// Returns summary color for collapsed state
+    static func summaryColor(for task: Task) -> Color {
+        if task.hasQuantityProgress {
+            let progress = task.quantityProgress!
+            return progress >= 1.0 ? DesignSystem.Colors.success : .secondary
+        }
+        return .secondary
+    }
+
+    /// Returns true if summary should use tertiary style (not set state)
+    static func summaryIsTertiary(for task: Task) -> Bool {
+        !task.hasQuantityProgress &&
+        !(task.unit != .none && task.quantity != nil) &&
+        task.expectedQuantity == nil
+    }
+
+    private static func formatQuantityValue(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(format: "%.0f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
+    }
+}

@@ -10,14 +10,18 @@ struct TaskDependenciesView: View {
     @State private var showingDependencyPicker = false
     @State private var enableDependencies: Bool = false // Use @State to avoid AttributeGraph cycle
 
-    init(task: Task, allTasks: [Task] = []) {
+    // MARK: - Constants
+
+    private static let dependencyRowHeight: CGFloat = 52
+
+    init(task: Task, allTasks: [Task]) {
         self.task = task
         self.allTasks = allTasks
         // Initialize based on whether task already has dependencies
         self._enableDependencies = State(initialValue: task.dependsOn?.isEmpty == false)
     }
-    
-    var blockedByTasks: [Task] {
+
+    private var blockedByTasks: [Task] {
         TaskService.blockedByTasks(for: task, from: allTasks)
     }
     
@@ -76,13 +80,14 @@ struct TaskDependenciesView: View {
                                         onRemove: { removeDependency(dependency) }
                                     )
                                     .listRowSeparator(.hidden)
-                                    .listRowBackground(Color.clear)
+                                    .listRowBackground(DesignSystem.Colors.secondaryGroupedBackground)
                                     .listRowInsets(EdgeInsets(top: 0, leading: DesignSystem.Spacing.lg, bottom: 0, trailing: DesignSystem.Spacing.lg))
                                 }
                             }
                             .listStyle(.plain)
+                            .scrollContentBackground(.hidden)
                             .scrollDisabled(true)
-                            .frame(height: CGFloat(dependencies.count) * 52) // Approximate row height with padding
+                            .frame(height: CGFloat(dependencies.count) * Self.dependencyRowHeight)
 
                             Divider()
                                 .padding(.horizontal)
@@ -146,19 +151,19 @@ struct TaskDependenciesView: View {
                         }
                     }
 
-                    Divider()
-                        .padding(.horizontal)
-
-                    // Blocked By Section (reverse relationship)
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                        Text("Tasks waiting for this")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
+                    // Blocked By Section (only show if other tasks depend on this one)
+                    if !blockedByTasks.isEmpty {
+                        Divider()
                             .padding(.horizontal)
 
-                        VStack(spacing: DesignSystem.Spacing.xs) {
-                            if !blockedByTasks.isEmpty {
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                            Text("Tasks waiting for this")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                                .padding(.horizontal)
+
+                            VStack(spacing: DesignSystem.Spacing.xs) {
                                 ForEach(blockedByTasks) { blockedTask in
                                     NavigationLink(destination: LazyView(TaskDetailView(task: blockedTask))) {
                                         HStack(spacing: DesignSystem.Spacing.sm) {
@@ -182,12 +187,6 @@ struct TaskDependenciesView: View {
                                     .buttonStyle(.plain)
                                     .padding(.horizontal)
                                 }
-                            } else {
-                                Text("No tasks waiting")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal)
                             }
                         }
                     }
@@ -223,14 +222,9 @@ private struct DependencyRow: View {
 
             // Content navigation
             NavigationLink(destination: LazyView(TaskDetailView(task: dependency))) {
-                HStack(spacing: DesignSystem.Spacing.sm) {
-                    // Title
-                    Text(dependency.title)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-
-                    Spacer()
-                }
+                Text(dependency.title)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
             }
             .buttonStyle(.plain)
         }
@@ -332,16 +326,14 @@ private struct SubtaskDependencyRow: View {
     subtask2.dependsOn = [blocker]
     parent.subtasks = [subtask1, subtask2]
     
-    container.mainContext.insert(parent)
-    container.mainContext.insert(subtask1)
-    container.mainContext.insert(subtask2)
-    container.mainContext.insert(blocker)
-    container.mainContext.insert(dep1)
-    container.mainContext.insert(dep2)
-    
+    let allTasks = [parent, subtask1, subtask2, blocker, dep1, dep2]
+    for task in allTasks {
+        container.mainContext.insert(task)
+    }
+
     return NavigationStack {
         ScrollView {
-            TaskDependenciesView(task: parent)
+            TaskDependenciesView(task: parent, allTasks: allTasks)
         }
     }
     .modelContainer(container)
@@ -350,12 +342,49 @@ private struct SubtaskDependencyRow: View {
 #Preview("Subtask Trying to Add Parent") {
     let parent = Task(title: "Parent Task", priority: 1, createdDate: Date())
     let subtask = Task(title: "Subtask", priority: 2, createdDate: Date(), parentTask: parent)
-    
+    let allTasks = [parent, subtask]
+
     // This should NOT be possible - parent shouldn't appear in available dependencies
     return NavigationStack {
         ScrollView {
-            TaskDependenciesView(task: subtask)
+            TaskDependenciesView(task: subtask, allTasks: allTasks)
         }
     }
     .modelContainer(for: [Task.self, Project.self, TimeEntry.self])
+}
+
+// MARK: - Summary Badge Helper
+
+extension TaskDependenciesView {
+    /// Returns summary text for collapsed state
+    static func summaryText(for task: Task) -> String {
+        let blockingCount = task.blockingDependencies.count
+        if blockingCount > 0 {
+            return "\(blockingCount) blocking"
+        }
+
+        let totalDeps = (task.dependsOn?.count ?? 0) + (task.blockedBy?.count ?? 0)
+        if totalDeps > 0 {
+            let depWord = totalDeps == 1 ? "dependency" : "dependencies"
+            return "\(totalDeps) \(depWord)"
+        }
+
+        return "Not set"
+    }
+
+    /// Returns summary color for collapsed state
+    static func summaryColor(for task: Task) -> Color {
+        let blockingCount = task.blockingDependencies.count
+        if blockingCount > 0 {
+            return DesignSystem.Colors.warning
+        }
+        return .secondary
+    }
+
+    /// Returns true if summary should use tertiary style (not set state)
+    static func summaryIsTertiary(for task: Task) -> Bool {
+        let blockingCount = task.blockingDependencies.count
+        let totalDeps = (task.dependsOn?.count ?? 0) + (task.blockedBy?.count ?? 0)
+        return blockingCount == 0 && totalDeps == 0
+    }
 }

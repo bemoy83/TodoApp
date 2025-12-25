@@ -20,50 +20,75 @@ struct TimeEntriesView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-            // Add entry button (moved from header)
-            HStack {
-                Spacer()
-
-                Button {
-                    showingManualEntrySheet = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add Entry")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                    }
-                    .foregroundStyle(DesignSystem.Colors.taskInProgress)
-                }
-            }
-            .padding(.horizontal)
-
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             if hasEntries {
-                LazyVStack(spacing: DesignSystem.Spacing.xs) {
+                // Entry list
+                List {
                     ForEach(sortedEntries) { entry in
-                        TimeEntryRow(entry: entry, task: task, onEdit: {
-                            editingEntry = entry
-                        }, onDelete: {
-                            deleteEntry(entry)
-                        })
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                        .padding(.vertical, DesignSystem.Spacing.xs)
+                        TimeEntryRow(entry: entry, task: task)
+                        .listRowInsets(EdgeInsets(
+                            top: DesignSystem.Spacing.xs,
+                            leading: DesignSystem.Spacing.md,
+                            bottom: DesignSystem.Spacing.xs,
+                            trailing: DesignSystem.Spacing.md
+                        ))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(DesignSystem.Colors.secondaryGroupedBackground)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            if entry.endTime != nil { // Only allow delete for completed entries
+                            if entry.endTime != nil { // Only allow actions for completed entries
                                 Button(role: .destructive) {
                                     deleteEntry(entry)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
+
+                                Button {
+                                    editingEntry = entry
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.blue)
                             }
                         }
                     }
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .scrollDisabled(true)
+                .frame(minHeight: CGFloat(sortedEntries.count * 70))
+
+                Divider()
+                    .padding(.horizontal)
             } else {
-                EmptyEntriesView()
+                // Empty state - simple text matching other sections
+                Text("No time entries")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
             }
+
+            // Add button - always at bottom, matching Subtasks/Dependencies pattern
+            Button {
+                showingManualEntrySheet = true
+                HapticManager.selection()
+            } label: {
+                HStack(spacing: DesignSystem.Spacing.sm) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(.blue)
+
+                    Text("Add Entry")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.blue)
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, DesignSystem.Spacing.xs)
+            }
+            .buttonStyle(.plain)
         }
         .sheet(isPresented: $showingManualEntrySheet) {
             ManualTimeEntrySheet(task: task)
@@ -89,10 +114,6 @@ struct TimeEntriesView: View {
 private struct TimeEntryRow: View {
     let entry: TimeEntry
     let task: Task
-    let onEdit: () -> Void
-    let onDelete: () -> Void
-
-    @State private var showingDeleteAlert = false
 
     private var isActiveTimer: Bool {
         TimeEntryManager.isActiveTimer(entry)
@@ -154,59 +175,9 @@ private struct TimeEntryRow: View {
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(isActiveTimer ? DesignSystem.Colors.timerActive : .primary)
-
-            // Action menu
-            Menu {
-                Button {
-                    onEdit()
-                } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-                .disabled(isActiveTimer)
-
-                Button(role: .destructive) {
-                    showingDeleteAlert = true
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-                .disabled(isActiveTimer)
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .foregroundStyle(.secondary)
-            }
         }
         .padding(.vertical, DesignSystem.Spacing.xs)
         .contentShape(Rectangle())
-        .alert("Delete Time Entry?", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                onDelete()
-            }
-        } message: {
-            Text("This time entry (\(formattedDuration)) will be permanently deleted.")
-        }
     }
 }
 
-// MARK: - Empty State
-
-private struct EmptyEntriesView: View {
-    var body: some View {
-        VStack(spacing: DesignSystem.Spacing.sm) {
-            Image(systemName: "clock.badge.questionmark")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-
-            Text("No time entries yet")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Text("Start the timer to track time on this task")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignSystem.Spacing.lg)
-    }
-}

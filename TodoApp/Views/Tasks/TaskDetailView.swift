@@ -91,27 +91,39 @@ struct TaskDetailView: View {
         }
     }
 
+    // MARK: - Section IDs for scrolling
+
+    private enum SectionID: Hashable {
+        case dependencies
+    }
+
     var body: some View {
         let ctx = TaskActionRouter.Context(modelContext: modelContext, hapticsEnabled: true)
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                // Parent breadcrumb (outside Identity card)
-                if let parent = parentTask {
-                    TaskParentBreadcrumb(parentTask: parent)
-                }
-
-                // Identity Card (always visible)
-                TaskIdentityCard(
-                    task: task,
-                    alert: $currentAlert,
-                    onBlockingDepsTapped: {
-                        // Jump to dependencies section
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isDependenciesExpanded = true
-                        }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                    // Parent breadcrumb (outside Identity card)
+                    if let parent = parentTask {
+                        TaskParentBreadcrumb(parentTask: parent)
                     }
-                )
+
+                    // Identity Card (always visible)
+                    TaskIdentityCard(
+                        task: task,
+                        alert: $currentAlert,
+                        onBlockingDepsTapped: {
+                            // Expand and scroll to dependencies section
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isDependenciesExpanded = true
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    proxy.scrollTo(SectionID.dependencies, anchor: .top)
+                                }
+                            }
+                        }
+                    )
 
                 // Schedule section
                 DetailSectionDisclosure(
@@ -195,6 +207,7 @@ struct TaskDetailView: View {
                     summary: { dependenciesSummary },
                     content: { TaskDependenciesView(task: task, allTasks: allTasks) }
                 )
+                .id(SectionID.dependencies)
 
                 // Details section (consolidated Tags + Notes + Info)
                 DetailSectionDisclosure(
@@ -244,6 +257,7 @@ struct TaskDetailView: View {
             )
         }
         .taskActionAlert(alert: $currentAlert)
+        } // ScrollViewReader
     }
 
     // MARK: - Summary Badge Views
@@ -264,119 +278,66 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var timeSummary: some View {
-        Text(timeSummaryText)
-            .font(.caption)
-            .foregroundStyle(task.hasActiveTimer ? .red : .secondary)
-    }
-
-    private var timeSummaryText: String {
-        var parts: [String] = []
-
-        // Time spent
-        let totalTime = task.totalTimeSpent
-        if totalTime > 0 {
-            parts.append(totalTime.formattedTime())
+        if TaskTimeTrackingView.summaryIsTertiary(for: task) {
+            Text(TaskTimeTrackingView.summaryText(for: task))
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         } else {
-            parts.append("No time")
+            Text(TaskTimeTrackingView.summaryText(for: task))
+                .font(.caption)
+                .foregroundStyle(TaskTimeTrackingView.summaryColor(for: task))
         }
-
-        // Progress percentage (if has estimate)
-        if let estimate = task.effectiveEstimate, estimate > 0 {
-            let progress = Double(task.totalTimeSpent) / Double(estimate)
-            parts.append("\(Int(progress * 100))%")
-        }
-
-        // Entry count
-        let entryCount = task.timeEntries?.count ?? 0
-        if entryCount > 0 {
-            parts.append("\(entryCount) \(entryCount == 1 ? "entry" : "entries")")
-        }
-
-        return parts.joined(separator: " • ")
     }
 
     @ViewBuilder
     private var personnelSummary: some View {
-        if let count = task.expectedPersonnelCount {
-            let personWord = count == 1 ? "person" : "people"
-            Text("\(count) \(personWord)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } else {
-            Text("Not set")
+        if TaskPersonnelView.summaryIsTertiary(for: task) {
+            Text(TaskPersonnelView.summaryText(for: task))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+        } else {
+            Text(TaskPersonnelView.summaryText(for: task))
+                .font(.caption)
+                .foregroundStyle(TaskPersonnelView.summaryColor(for: task))
         }
     }
 
     @ViewBuilder
     private var quantitySummary: some View {
-        if task.hasQuantityProgress {
-            let completed = task.quantity ?? 0
-            let expected = task.expectedQuantity!
-            let progress = task.quantityProgress!
-            let progressPercent = Int(progress * 100)
-
-            Text("\(formatQuantity(completed))/\(formatQuantity(expected)) \(task.unitDisplayName) (\(progressPercent)%)")
-                .font(.caption)
-                .foregroundStyle(progress >= 1.0 ? .green : .secondary)
-        } else if task.unit != .none, let quantity = task.quantity {
-            Text("\(formatQuantity(quantity)) \(task.unitDisplayName)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } else if task.expectedQuantity != nil {
-            Text("0/\(formatQuantity(task.expectedQuantity!)) \(task.unitDisplayName) (0%)")
+        if TaskQuantityView.summaryIsTertiary(for: task) {
+            Text(TaskQuantityView.summaryText(for: task))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else {
-            Text("Not set")
+            Text(TaskQuantityView.summaryText(for: task))
                 .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    private func formatQuantity(_ value: Double) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(format: "%.0f", value)
-        } else {
-            return String(format: "%.1f", value)
+                .foregroundStyle(TaskQuantityView.summaryColor(for: task))
         }
     }
 
     @ViewBuilder
     private var subtasksSummary: some View {
-        let subtaskCount = task.subtasks?.count ?? 0
-        if subtaskCount > 0 {
-            let completedCount = task.subtasks?.filter { $0.isCompleted }.count ?? 0
-            Text("\(completedCount)/\(subtaskCount) completed")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } else {
-            Text("No subtasks")
+        if TaskSubtasksView.summaryIsTertiary(for: task) {
+            Text(TaskSubtasksView.summaryText(for: task))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+        } else {
+            Text(TaskSubtasksView.summaryText(for: task))
+                .font(.caption)
+                .foregroundStyle(TaskSubtasksView.summaryColor(for: task))
         }
     }
 
     @ViewBuilder
     private var dependenciesSummary: some View {
-        let blockingCount = task.blockingDependencies.count
-        if blockingCount > 0 {
-            Text("\(blockingCount) blocking")
+        if TaskDependenciesView.summaryIsTertiary(for: task) {
+            Text(TaskDependenciesView.summaryText(for: task))
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(.tertiary)
         } else {
-            let totalDeps = (task.dependsOn?.count ?? 0) + (task.blockedBy?.count ?? 0)
-            if totalDeps > 0 {
-                let depWord = totalDeps == 1 ? "dependency" : "dependencies"
-                Text("\(totalDeps) \(depWord)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("None")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
+            Text(TaskDependenciesView.summaryText(for: task))
+                .font(.caption)
+                .foregroundStyle(TaskDependenciesView.summaryColor(for: task))
         }
     }
 

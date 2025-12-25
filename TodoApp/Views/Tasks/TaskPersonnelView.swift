@@ -13,7 +13,7 @@ struct TaskPersonnelView: View {
     @State private var saveError: TaskActionAlert?
     @StateObject private var aggregator = SubtaskAggregator()
 
-    init(task: Task, allTasks: [Task] = []) {
+    init(task: Task, allTasks: [Task]) {
         self.task = task
         self.allTasks = allTasks
     }
@@ -24,138 +24,121 @@ struct TaskPersonnelView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                // Three states: direct assignment, calculated from subtasks, or empty
-                if let direct = task.expectedPersonnelCount {
-                    // State 1: Direct assignment (tappable to edit)
-                    Button {
-                        selectedCount = direct
-                        showingPersonnelPicker = true
-                        HapticManager.selection()
-                    } label: {
-                        HStack {
-                            Image(systemName: "person.2.fill")
-                                .font(.body)
-                                .foregroundStyle(DesignSystem.Colors.info)
-                                .frame(width: 28)
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            // Three states: direct assignment, calculated from subtasks, or empty
+            if let direct = task.expectedPersonnelCount {
+                // State 1: Direct assignment (tappable to edit)
+                Button {
+                    selectedCount = direct
+                    showingPersonnelPicker = true
+                } label: {
+                    HStack {
+                        Image(systemName: "person.2.fill")
+                            .font(.body)
+                            .foregroundStyle(DesignSystem.Colors.info)
+                            .frame(width: 28)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(direct) \(direct == 1 ? "person" : "people")")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(direct) \(direct == 1 ? "person" : "people")")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+
+                            Text("Expected crew size")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.horizontal)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                // Show mismatch warning if subtask personnel differs
+                if hasMismatch, let subtaskRange = subtaskPersonnelRange {
+                    HStack(spacing: DesignSystem.Spacing.xs) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            if subtaskRange.min == subtaskRange.max {
+                                Text("Subtasks: \(subtaskRange.min) \(subtaskRange.min == 1 ? "person" : "people")")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            } else {
+                                Text("Subtasks range: \(subtaskRange.min)-\(subtaskRange.max) people")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 4)
+                }
+            } else if let range = effectivePersonnelRange {
+                // State 2: Calculated from subtasks (tappable to override)
+                Button {
+                    selectedCount = range.min
+                    showingPersonnelPicker = true
+                } label: {
+                    HStack {
+                        Image(systemName: "person.2.fill")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            if range.min == range.max {
+                                Text("\(range.min) \(range.min == 1 ? "person" : "people")")
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(.primary)
-
-                                Text("Expected crew size")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("\(range.min)-\(range.max) people")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.primary)
                             }
 
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
+                            Text("From subtasks • Tap to override")
                                 .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(.horizontal)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-
-                    // Show mismatch warning if subtask personnel differs
-                    if hasMismatch, let subtaskRange = subtaskPersonnelRange {
-                        HStack(spacing: DesignSystem.Spacing.xs) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.orange)
-                                .frame(width: 28)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                if subtaskRange.min == subtaskRange.max {
-                                    Text("Subtasks: \(subtaskRange.min) \(subtaskRange.min == 1 ? "person" : "people")")
-                                        .font(.caption)
-                                        .foregroundStyle(.orange)
-                                } else {
-                                    Text("Subtasks range: \(subtaskRange.min)-\(subtaskRange.max) people")
-                                        .font(.caption)
-                                        .foregroundStyle(.orange)
-                                }
-                            }
-
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 4)
-                    }
-
-                    Divider()
-                        .padding(.horizontal)
-                } else if let range = effectivePersonnelRange {
-                    // State 2: Calculated from subtasks (tappable to override)
-                    Button {
-                        selectedCount = range.min
-                        showingPersonnelPicker = true
-                        HapticManager.selection()
-                    } label: {
-                        HStack {
-                            Image(systemName: "person.2.fill")
-                                .font(.body)
                                 .foregroundStyle(.secondary)
-                                .frame(width: 28)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                if range.min == range.max {
-                                    Text("\(range.min) \(range.min == 1 ? "person" : "people")")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
-                                } else {
-                                    Text("\(range.min)-\(range.max) people")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
-                                }
-
-                                Text("From subtasks")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .italic()
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                                .italic()
                         }
-                        .padding(.horizontal)
-                        .contentShape(Rectangle())
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
-                    .buttonStyle(.plain)
-
-                    Divider()
-                        .padding(.horizontal)
-                } else {
-                    // State 3: Empty state
-                    Text("No assigned personnel")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
+                    .padding(.horizontal)
+                    .contentShape(Rectangle())
                 }
-
-                // Action area - button text changes based on state
+                .buttonStyle(.plain)
+            } else {
+                // State 3: Empty state - tappable to add
                 Button {
-                    selectedCount = task.expectedPersonnelCount ?? effectivePersonnelRange?.min ?? 1
+                    selectedCount = 1
                     showingPersonnelPicker = true
-                    HapticManager.selection()
                 } label: {
                     HStack(spacing: DesignSystem.Spacing.sm) {
-                        Image(systemName: buttonIcon)
+                        Image(systemName: "plus.circle.fill")
                             .font(.body)
                             .foregroundStyle(.blue)
+                            .frame(width: 28)
 
-                        Text(buttonText)
+                        Text("Add Personnel")
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(.blue)
@@ -165,62 +148,59 @@ struct TaskPersonnelView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+            }
 
-                // Actual Usage Section (only show if has time entries)
-                if let stats = computeActualPersonnelStats() {
-                    Divider()
-                        .padding(.horizontal)
+            // Actual Usage Section (only show if has time entries)
+            if let stats = computeActualPersonnelStats() {
+                Divider()
+                    .padding(.horizontal)
 
-                    ActualUsageSection(stats: stats, hasSubtasks: hasSubtasks)
-                }
-
-                // Person-Hours Section (only show if has time entries)
-                if hasTimeEntries {
-                    Divider()
-                        .padding(.horizontal)
-
-                    PersonHoursSection(
-                        totalPersonHours: stats.totalPersonHours,
-                        directPersonHours: stats.directPersonHours,
-                        hasSubtasks: hasSubtasks
-                    )
-                }
+                ActualUsageSection(stats: stats, hasSubtasks: hasSubtasks)
             }
         }
         .sheet(isPresented: $showingPersonnelPicker) {
-            PersonnelPickerSheet(
+            CompactPersonnelPicker(
                 selectedCount: $selectedCount,
-                onSave: {
-                    task.expectedPersonnelCount = selectedCount
-                    do {
-                        try task.modelContext?.save()
-                        aggregator.invalidate(taskId: task.id)
-                        HapticManager.success()
-                    } catch {
-                        saveError = TaskActionAlert(
-                            title: "Save Failed",
-                            message: "Could not save personnel count: \(error.localizedDescription)",
-                            actions: [AlertAction(title: "OK", role: .cancel, action: {})]
-                        )
-                    }
-                },
-                onRemove: task.expectedPersonnelCount != nil ? {
-                    task.expectedPersonnelCount = nil
-                    do {
-                        try task.modelContext?.save()
-                        aggregator.invalidate(taskId: task.id)
-                        HapticManager.success()
-                    } catch {
-                        saveError = TaskActionAlert(
-                            title: "Save Failed",
-                            message: "Could not remove personnel assignment: \(error.localizedDescription)",
-                            actions: [AlertAction(title: "OK", role: .cancel, action: {})]
-                        )
-                    }
-                } : nil
+                hasExistingValue: task.expectedPersonnelCount != nil,
+                onSave: { setPersonnelCount(selectedCount) },
+                onRemove: { removePersonnelCount() }
             )
+            .presentationDetents([.height(280)])
+            .presentationDragIndicator(.visible)
         }
         .taskActionAlert(alert: $saveError)
+    }
+
+    // MARK: - Actions
+
+    private func setPersonnelCount(_ count: Int) {
+        task.expectedPersonnelCount = count
+        do {
+            try task.modelContext?.save()
+            aggregator.invalidate(taskId: task.id)
+            HapticManager.success()
+        } catch {
+            saveError = TaskActionAlert(
+                title: "Save Failed",
+                message: "Could not save personnel count: \(error.localizedDescription)",
+                actions: [AlertAction(title: "OK", role: .cancel, action: {})]
+            )
+        }
+    }
+
+    private func removePersonnelCount() {
+        task.expectedPersonnelCount = nil
+        do {
+            try task.modelContext?.save()
+            aggregator.invalidate(taskId: task.id)
+            HapticManager.success()
+        } catch {
+            saveError = TaskActionAlert(
+                title: "Save Failed",
+                message: "Could not remove personnel assignment: \(error.localizedDescription)",
+                actions: [AlertAction(title: "OK", role: .cancel, action: {})]
+            )
+        }
     }
 
     // MARK: - Computed Properties
@@ -259,62 +239,20 @@ struct TaskPersonnelView: View {
         return true
     }
 
-    /// Button text based on state
-    private var buttonText: String {
-        if task.expectedPersonnelCount != nil {
-            return "Edit Personnel"
-        } else if effectivePersonnelRange != nil {
-            return "Set Personnel"
-        } else {
-            return "Add Personnel"
-        }
-    }
-
-    /// Button icon based on state
-    private var buttonIcon: String {
-        if task.expectedPersonnelCount != nil {
-            return "pencil.circle.fill"
-        } else if effectivePersonnelRange != nil {
-            return "square.and.pencil"
-        } else {
-            return "plus.circle.fill"
-        }
+    /// Direct child subtasks of this task
+    private var directSubtasks: [Task] {
+        allTasks.filter { $0.parentTask?.id == task.id }
     }
 
     private var hasSubtasks: Bool {
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        return !subtasks.isEmpty
-    }
-
-    private var hasTimeEntries: Bool {
-        if let entries = task.timeEntries, !entries.isEmpty {
-            return true
-        }
-
-        // Check subtasks
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        return checkSubtasksForEntries(in: subtasks)
-    }
-
-    private func checkSubtasksForEntries(in subtasks: [Task]) -> Bool {
-        for subtask in subtasks {
-            if let entries = subtask.timeEntries, !entries.isEmpty {
-                return true
-            }
-            let nestedSubtasks = allTasks.filter { $0.parentTask?.id == subtask.id }
-            if checkSubtasksForEntries(in: nestedSubtasks) {
-                return true
-            }
-        }
-        return false
+        !directSubtasks.isEmpty
     }
 
     // MARK: - Expected Personnel from Subtasks
 
     /// Collect all expectedPersonnelCount values from subtasks recursively
     private func collectSubtaskExpectedPersonnel() -> [Int] {
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        return collectExpectedCounts(from: subtasks)
+        collectExpectedCounts(from: directSubtasks)
     }
 
     /// Recursively collect expected personnel counts from subtasks
@@ -376,57 +314,63 @@ struct PersonnelStats {
     let hasSubtaskEntries: Bool
 }
 
-// MARK: - Personnel Picker Sheet
+// MARK: - Compact Personnel Picker
 
-private struct PersonnelPickerSheet: View {
+private struct CompactPersonnelPicker: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selectedCount: Int
+    let hasExistingValue: Bool
     let onSave: () -> Void
-    let onRemove: (() -> Void)?
+    let onRemove: () -> Void
 
     var body: some View {
-        NavigationStack {
-            VStack {
-                Picker("Expected crew size", selection: $selectedCount) {
-                    ForEach(1...20, id: \.self) { count in
-                        Text("\(count) \(count == 1 ? "person" : "people")")
-                            .tag(count)
-                    }
+        VStack(spacing: 0) {
+            // Header with cancel/done
+            HStack {
+                Button("Cancel") {
+                    dismiss()
                 }
-                .pickerStyle(.wheel)
-                .labelsHidden()
+                .foregroundStyle(.blue)
 
                 Spacer()
-            }
-            .navigationTitle("Set Personnel")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
 
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        onSave()
-                        dismiss()
-                    }
+                Text("Crew Size")
+                    .font(.headline)
+
+                Spacer()
+
+                Button("Done") {
+                    onSave()
+                    dismiss()
+                }
+                .fontWeight(.semibold)
+                .foregroundStyle(.blue)
+            }
+            .padding(.horizontal)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+
+            // Wheel picker
+            Picker("Expected crew size", selection: $selectedCount) {
+                ForEach(1...20, id: \.self) { count in
+                    Text("\(count) \(count == 1 ? "person" : "people")")
+                        .tag(count)
                 }
             }
-            .safeAreaInset(edge: .bottom) {
-                if let onRemove = onRemove {
-                    Button(role: .destructive) {
-                        onRemove()
-                        dismiss()
-                    } label: {
-                        Label("Remove Personnel Assignment", systemImage: "trash")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
-                    .padding()
+            .pickerStyle(.wheel)
+            .labelsHidden()
+            .frame(height: 150)
+
+            // Remove button (only if has existing value)
+            if hasExistingValue {
+                Button(role: .destructive) {
+                    onRemove()
+                    dismiss()
+                } label: {
+                    Text("Remove")
+                        .font(.subheadline)
                 }
+                .padding(.bottom, 16)
             }
         }
     }
@@ -498,65 +442,6 @@ private struct ActualUsageSection: View {
     }
 }
 
-// MARK: - Person-Hours Section
-
-private struct PersonHoursSection: View {
-    let totalPersonHours: Double
-    let directPersonHours: Double
-    let hasSubtasks: Bool
-
-    private var formattedTotalPersonHours: String {
-        String(format: "%.1f hrs", totalPersonHours)
-    }
-
-    private var formattedDirectPersonHours: String {
-        String(format: "%.1f", directPersonHours)
-    }
-
-    private var formattedSubtaskPersonHours: String {
-        let subtask = totalPersonHours - directPersonHours
-        return String(format: "%.1f", subtask)
-    }
-
-    private var hasSubtaskPersonHours: Bool {
-        totalPersonHours > directPersonHours
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Text("Total Person-Hours")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.horizontal)
-
-            HStack {
-                Image(systemName: "clock.badge.checkmark.fill")
-                    .font(.body)
-                    .foregroundStyle(DesignSystem.Colors.info)
-                    .frame(width: 28)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(formattedTotalPersonHours)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(DesignSystem.Colors.info)
-
-                    // Breakdown if has subtask person-hours
-                    if hasSubtaskPersonHours {
-                        Text("\(formattedDirectPersonHours) direct, \(formattedSubtaskPersonHours) from subtasks")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal)
-        }
-    }
-}
-
 #Preview("With Personnel Set") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: Task.self, TimeEntry.self, configurations: config)
@@ -580,7 +465,7 @@ private struct PersonHoursSection: View {
     container.mainContext.insert(entry1)
     container.mainContext.insert(entry2)
 
-    return TaskPersonnelView(task: task)
+    return TaskPersonnelView(task: task, allTasks: [])
         .modelContainer(container)
         .padding()
 }
@@ -601,7 +486,7 @@ private struct PersonHoursSection: View {
     container.mainContext.insert(subtask1)
     container.mainContext.insert(subtask2)
 
-    return TaskPersonnelView(task: parentTask)
+    return TaskPersonnelView(task: parentTask, allTasks: [subtask1, subtask2])
         .modelContainer(container)
         .padding()
 }
@@ -626,7 +511,7 @@ private struct PersonHoursSection: View {
     container.mainContext.insert(subtask2)
     container.mainContext.insert(subtask3)
 
-    return TaskPersonnelView(task: parentTask)
+    return TaskPersonnelView(task: parentTask, allTasks: [subtask1, subtask2, subtask3])
         .modelContainer(container)
         .padding()
 }
@@ -638,7 +523,30 @@ private struct PersonHoursSection: View {
     let task = Task(title: "Test Task")
     container.mainContext.insert(task)
 
-    return TaskPersonnelView(task: task)
+    return TaskPersonnelView(task: task, allTasks: [])
         .modelContainer(container)
         .padding()
+}
+
+// MARK: - Summary Badge Helper
+
+extension TaskPersonnelView {
+    /// Returns summary text for collapsed state
+    static func summaryText(for task: Task) -> String {
+        if let count = task.expectedPersonnelCount {
+            let personWord = count == 1 ? "person" : "people"
+            return "\(count) \(personWord)"
+        }
+        return "Not set"
+    }
+
+    /// Returns summary color for collapsed state
+    static func summaryColor(for task: Task) -> Color {
+        .secondary
+    }
+
+    /// Returns true if summary should use tertiary style (not set state)
+    static func summaryIsTertiary(for task: Task) -> Bool {
+        task.expectedPersonnelCount == nil
+    }
 }

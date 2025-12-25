@@ -18,7 +18,7 @@ struct TaskTimeTrackingView: View {
     @State private var currentTime = Date()
     @StateObject private var aggregator = SubtaskAggregator()
 
-    init(task: Task, allTasks: [Task] = [], alert: Binding<TaskActionAlert?>? = nil) {
+    init(task: Task, allTasks: [Task], alert: Binding<TaskActionAlert?>? = nil) {
         self._task = Bindable(wrappedValue: task)
         self.allTasks = allTasks
         self.externalAlert = alert
@@ -34,7 +34,7 @@ struct TaskTimeTrackingView: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
             // Estimate Section (conditional - only if has estimate)
             if let estimate = task.effectiveEstimate {
-                EstimateSectionRefactored(
+                EstimateSection(
                     actualSeconds: displayedTotalTimeSeconds,
                     estimateSeconds: estimate,
                     progress: liveTimeProgress,
@@ -57,10 +57,7 @@ struct TaskTimeTrackingView: View {
 
             // Active Session (conditional - only if timer running)
             if hasAnyTimerRunning {
-                ActiveSessionSection(
-                    sessionSeconds: currentSessionSeconds,
-                    pulseOpacity: timerPulseOpacity
-                )
+                ActiveSessionSection(sessionSeconds: currentSessionSeconds)
             }
 
             // Timer Button (always shown)
@@ -75,8 +72,8 @@ struct TaskTimeTrackingView: View {
                 BlockedWarning()
             }
         }
-        .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
-            // Fast update for smooth countdown when any timer is running
+        .onReceive(Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()) { _ in
+            // Update every second when any timer is running
             if hasAnyTimerRunning {
                 currentTime = Date()
             }
@@ -96,9 +93,13 @@ struct TaskTimeTrackingView: View {
         return hasAnySubtaskTimerRunning
     }
 
+    /// Direct child subtasks of this task
+    private var directSubtasks: [Task] {
+        allTasks.filter { $0.parentTask?.id == task.id }
+    }
+
     private var hasAnySubtaskTimerRunning: Bool {
-        let subtasks = allTasks.filter { $0.parentTask?.id == task.id }
-        return checkSubtasksForTimer(in: subtasks)
+        checkSubtasksForTimer(in: directSubtasks)
     }
 
     private func checkSubtasksForTimer(in subtasks: [Task]) -> Bool {
@@ -118,16 +119,8 @@ struct TaskTimeTrackingView: View {
         stats.totalTimeSeconds
     }
 
-    private var displayedTotalTime: Int {
-        displayedTotalTimeSeconds / 60
-    }
-
     private var displayedDirectTimeSeconds: Int {
         stats.directTimeSeconds
-    }
-
-    private var displayedDirectTime: Int {
-        displayedDirectTimeSeconds / 60
     }
 
     private var currentSessionSeconds: Int {
@@ -161,25 +154,7 @@ struct TaskTimeTrackingView: View {
     
     private var liveEstimateStatus: TimeEstimateStatus? {
         guard let progress = liveTimeProgress else { return nil }
-        
-        if progress >= 1.0 {
-            return .over
-        } else if progress >= 0.75 {
-            return .warning
-        } else {
-            return .onTrack
-        }
-    }
-    
-    private var liveTimeRemaining: Int? {
-        guard let estimate = task.effectiveEstimate else { return nil }
-        let remainingSeconds = estimate - displayedTotalTimeSeconds  // estimate is already in seconds!
-        return remainingSeconds / 60
-    }
-
-    private var timerPulseOpacity: Double {
-        let deciseconds = Int(currentTime.timeIntervalSinceReferenceDate * 10) % 10
-        return deciseconds < 5 ? 1.0 : 0.3
+        return TimeEstimateStatus.from(progress: progress)
     }
 
     // MARK: - Actions
@@ -207,7 +182,7 @@ struct TaskTimeTrackingView: View {
 
 // MARK: - Estimate Section
 
-private struct EstimateSectionRefactored: View {
+private struct EstimateSection: View {
     let actualSeconds: Int
     let estimateSeconds: Int
     let progress: Double?
@@ -300,20 +275,16 @@ private struct TotalTimeSection: View {
     let hasPersonnelTracking: Bool
 
     private var formattedTotalPersonHours: String {
-        String(format: "%.1f hrs", totalPersonHours)
-    }
-
-    private var formattedDirectPersonHours: String {
-        String(format: "%.1f", directPersonHours)
-    }
-
-    private var formattedSubtaskPersonHours: String {
-        let subtask = totalPersonHours - directPersonHours
-        return String(format: "%.1f", subtask)
+        String(format: "%.1f person-hours", totalPersonHours)
     }
 
     private var hasSubtaskPersonHours: Bool {
         totalPersonHours > directPersonHours
+    }
+
+    private var breakdownText: String {
+        let subtask = totalPersonHours - directPersonHours
+        return String(format: "%.1f direct + %.1f subtasks", directPersonHours, subtask)
     }
 
     var body: some View {
@@ -362,7 +333,7 @@ private struct TotalTimeSection: View {
 
                         // Breakdown if has subtask person-hours
                         if hasSubtaskPersonHours {
-                            Text("\(formattedDirectPersonHours) direct, \(formattedSubtaskPersonHours) from subtasks")
+                            Text(breakdownText)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -380,36 +351,20 @@ private struct TotalTimeSection: View {
 
 private struct ActiveSessionSection: View {
     let sessionSeconds: Int
-    let pulseOpacity: Double
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Text("Current Session")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
-            
-            VStack(spacing: DesignSystem.Spacing.sm) {
-                // Stopwatch display
-                Text(formatStopwatch(sessionSeconds))
-                    .font(.system(size: 34, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
+
+            Text(sessionSeconds.formattedStopwatch())
+                .font(.system(size: 34, weight: .medium, design: .monospaced))
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(.horizontal)
-    }
-    
-    private func formatStopwatch(_ totalSeconds: Int) -> String {
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
-        let seconds = totalSeconds % 60
-
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            return String(format: "%d:%02d", minutes, seconds)
-        }
     }
 }
 
@@ -447,11 +402,56 @@ private struct BlockedWarning: View {
                 .font(.body)
                 .foregroundStyle(.orange)
                 .frame(width: 28)
-            
+
             Text("Resolve dependencies before tracking time")
                 .font(.caption)
                 .foregroundStyle(.orange)
         }
         .padding(.horizontal)
+    }
+}
+
+// MARK: - Summary Badge Helper
+
+extension TaskTimeTrackingView {
+    /// Returns summary text for collapsed state
+    static func summaryText(for task: Task) -> String {
+        // Active timer takes priority
+        if task.hasActiveTimer {
+            return "Recording..."
+        }
+
+        let totalTime = task.totalTimeSpent
+
+        // No time logged
+        guard totalTime > 0 else {
+            return "Not set"
+        }
+
+        // Has estimate - show progress format
+        if let estimate = task.effectiveEstimate, estimate > 0 {
+            let progress = Double(totalTime) / Double(estimate)
+            return "\(totalTime.formattedTime()) / \(estimate.formattedTime()) (\(Int(progress * 100))%)"
+        }
+
+        // No estimate - just show time
+        return "\(totalTime.formattedTime()) logged"
+    }
+
+    /// Returns summary color for collapsed state
+    static func summaryColor(for task: Task) -> Color {
+        if task.hasActiveTimer {
+            return DesignSystem.Colors.error
+        }
+        if let estimate = task.effectiveEstimate, estimate > 0 {
+            let progress = Double(task.totalTimeSpent) / Double(estimate)
+            return TimeEstimateStatus.from(progress: progress).color
+        }
+        return .secondary
+    }
+
+    /// Returns true if summary should use tertiary style (not set state)
+    static func summaryIsTertiary(for task: Task) -> Bool {
+        !task.hasActiveTimer && task.totalTimeSpent == 0
     }
 }

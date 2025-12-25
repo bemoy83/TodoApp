@@ -15,7 +15,11 @@ struct TaskSubtasksView: View {
 
     private let router = TaskActionRouter()
 
-    init(task: Task, allTasks: [Task] = []) {
+    // MARK: - Constants
+
+    private static let subtaskRowHeight: CGFloat = 52
+
+    init(task: Task, allTasks: [Task]) {
         self.task = task
         self.allTasks = allTasks
     }
@@ -53,13 +57,14 @@ struct TaskSubtasksView: View {
                                 onMore: { showingMoreSheetFor = subtask }
                             )
                             .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
+                            .listRowBackground(DesignSystem.Colors.secondaryGroupedBackground)
                             .listRowInsets(EdgeInsets(top: 0, leading: DesignSystem.Spacing.lg, bottom: 0, trailing: DesignSystem.Spacing.lg))
                         }
                     }
                     .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                     .scrollDisabled(true)
-                    .frame(height: CGFloat(subtasks.count) * 52) // Approximate row height with padding
+                    .frame(height: CGFloat(subtasks.count) * Self.subtaskRowHeight)
 
                     if canAddSubtasks {
                         Divider()
@@ -195,5 +200,34 @@ private struct SubtaskRow: View {
             onMore: onMore,
             alert: $alert
         )
+    }
+}
+
+// MARK: - Summary Badge Helper
+
+extension TaskSubtasksView {
+    /// Returns summary text for collapsed state
+    static func summaryText(for task: Task) -> String {
+        let subtaskCount = task.subtasks?.count ?? 0
+        if subtaskCount > 0 {
+            let completedCount = task.subtasks?.filter { $0.isCompleted }.count ?? 0
+            return "\(completedCount)/\(subtaskCount) complete"
+        }
+        return "Not set"
+    }
+
+    /// Returns summary color for collapsed state
+    static func summaryColor(for task: Task) -> Color {
+        let subtaskCount = task.subtasks?.count ?? 0
+        if subtaskCount > 0 {
+            let completedCount = task.subtasks?.filter { $0.isCompleted }.count ?? 0
+            return completedCount == subtaskCount ? DesignSystem.Colors.success : .secondary
+        }
+        return .secondary
+    }
+
+    /// Returns true if summary should use tertiary style (not set state)
+    static func summaryIsTertiary(for task: Task) -> Bool {
+        (task.subtasks?.count ?? 0) == 0
     }
 }

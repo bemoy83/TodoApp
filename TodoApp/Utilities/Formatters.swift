@@ -59,4 +59,22 @@ public extension Int {
     func formattedMinutes() -> String {
         formattedTime()
     }
+
+    /// Formats seconds as digital stopwatch display (H:MM:SS or M:SS)
+    /// - Returns: Formatted stopwatch string
+    ///
+    /// Examples:
+    /// - `65.formattedStopwatch()` → "1:05"
+    /// - `3665.formattedStopwatch()` → "1:01:05"
+    func formattedStopwatch() -> String {
+        let hours = self / 3600
+        let minutes = (self % 3600) / 60
+        let seconds = self % 60
+
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
 }
