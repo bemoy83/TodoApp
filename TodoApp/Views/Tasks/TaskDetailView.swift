@@ -28,7 +28,7 @@ struct TaskDetailView: View {
     // Core tracking sections
     @State private var isTimeExpanded: Bool
     @State private var isPersonnelExpanded: Bool
-    @State private var isQuantityExpanded: Bool
+    @State private var isWorkExpanded: Bool
 
     // Structure sections
     @State private var isSubtasksExpanded: Bool
@@ -54,7 +54,7 @@ struct TaskDetailView: View {
             _isOrganizationExpanded = State(initialValue: false)
             _isTimeExpanded = State(initialValue: true)
             _isPersonnelExpanded = State(initialValue: false)
-            _isQuantityExpanded = State(initialValue: false)
+            _isWorkExpanded = State(initialValue: false)
             _isSubtasksExpanded = State(initialValue: false)
             _isDependenciesExpanded = State(initialValue: false)
             _isDetailsExpanded = State(initialValue: false)
@@ -64,7 +64,7 @@ struct TaskDetailView: View {
             _isOrganizationExpanded = State(initialValue: false)
             _isTimeExpanded = State(initialValue: true)
             _isPersonnelExpanded = State(initialValue: false)
-            _isQuantityExpanded = State(initialValue: task.hasQuantityProgress)
+            _isWorkExpanded = State(initialValue: task.hasQuantityProgress)
             _isSubtasksExpanded = State(initialValue: false)
             _isDependenciesExpanded = State(initialValue: false)
             _isDetailsExpanded = State(initialValue: true) // Show completion info
@@ -74,7 +74,7 @@ struct TaskDetailView: View {
             _isOrganizationExpanded = State(initialValue: false)
             _isTimeExpanded = State(initialValue: false)
             _isPersonnelExpanded = State(initialValue: task.expectedPersonnelCount != nil)
-            _isQuantityExpanded = State(initialValue: task.unit != .none)
+            _isWorkExpanded = State(initialValue: task.unit != .none)
             _isSubtasksExpanded = State(initialValue: true)
             _isDependenciesExpanded = State(initialValue: (task.dependsOn?.count ?? 0) > 0)
             _isDetailsExpanded = State(initialValue: false)
@@ -84,7 +84,7 @@ struct TaskDetailView: View {
             _isOrganizationExpanded = State(initialValue: false)
             _isTimeExpanded = State(initialValue: true)
             _isPersonnelExpanded = State(initialValue: task.expectedPersonnelCount != nil)
-            _isQuantityExpanded = State(initialValue: task.unit != .none)
+            _isWorkExpanded = State(initialValue: task.unit != .none)
             _isSubtasksExpanded = State(initialValue: false)
             _isDependenciesExpanded = State(initialValue: false)
             _isDetailsExpanded = State(initialValue: false)
@@ -179,16 +179,14 @@ struct TaskDetailView: View {
                     content: { TaskPersonnelView(task: task, allTasks: allTasks) }
                 )
 
-                // Quantity section
+                // Work section (Quantity + Productivity)
                 DetailSectionDisclosure(
-                    title: "Quantity",
-                    icon: "number",
-                    isExpanded: $isQuantityExpanded,
-                    summary: { quantitySummary },
-                    content: { TaskQuantityView(task: task) }
+                    title: "Work",
+                    icon: "hammer.fill",
+                    isExpanded: $isWorkExpanded,
+                    summary: { workSummary },
+                    content: { TaskWorkView(task: task) }
                 )
-
-                // TODO: Productivity section (add later)
 
                 // Subtasks section
                 DetailSectionDisclosure(
@@ -303,15 +301,15 @@ struct TaskDetailView: View {
     }
 
     @ViewBuilder
-    private var quantitySummary: some View {
-        if TaskQuantityView.summaryIsTertiary(for: task) {
-            Text(TaskQuantityView.summaryText(for: task))
+    private var workSummary: some View {
+        if TaskWorkView.summaryIsTertiary(for: task) {
+            Text(TaskWorkView.summaryText(for: task))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else {
-            Text(TaskQuantityView.summaryText(for: task))
+            Text(TaskWorkView.summaryText(for: task))
                 .font(.caption)
-                .foregroundStyle(TaskQuantityView.summaryColor(for: task))
+                .foregroundStyle(TaskWorkView.summaryColor(for: task))
         }
     }
 
